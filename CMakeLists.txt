@@ -3,4 +3,4 @@ project(vut_ifj C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(vut_ifj src/main.c)
+add_executable(vut_ifj src/main.c src/include/logging.h)
