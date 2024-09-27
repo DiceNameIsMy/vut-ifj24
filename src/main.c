@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+
 #include "logging.h"
 #include "lexer/lexer.h"
 

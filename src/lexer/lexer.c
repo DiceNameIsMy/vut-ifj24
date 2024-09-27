@@ -1,9 +1,9 @@
-#include "lexer.h"
+#include "lexer/lexer.h"
 
 #include <string.h>
 #include <stdbool.h>
 
-#include "../logging.h"
+#include "logging.h"
 
 #define KEYWORD_BUFFER_SIZE 256
 
