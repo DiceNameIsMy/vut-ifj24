@@ -20,9 +20,6 @@ enum TokenType {
 };
 
 typedef struct {
-} InvalidToken;
-
-typedef struct {
     char *value;
 } ConstStringToken;
 
@@ -35,34 +32,15 @@ typedef struct {
 } ConstFloat64Token;
 
 typedef struct {
-} VarDeclarationToken;
-
-typedef struct {
     char *value;
 } VarNameToken;
 
 typedef struct {
-} VarAssignmentToken;
-
-// ";" symbol
-typedef struct {
-} EndStatementToken;
-
-// ";" symbol
-typedef struct {
-} EndProgramToken;
-
-typedef struct {
     enum TokenType type;
     union {
-        InvalidToken invalid;
         ConstStringToken const_string;
         ConstInt32Token const_i32;
         ConstFloat64Token const_f64;
-        VarDeclarationToken var_declaration;
-        VarAssignmentToken var_assignment;
-        EndStatementToken end_statement;
-        EndProgramToken end_program;
     } data;
 } Token;
 
