@@ -17,7 +17,11 @@
 const char *LEXEME_SKIP_CHARS = " \t\n\r";
 const char *LEXEME_STOP_CHARS = ".,;(){} \t\n\r";
 
-int update_buffer(LexemeParser *parser) {
+/*
+ * Load part of the source code to the buffer.
+ * Use it when you've processed everything from the buffer.
+ */
+int load_source_code_buffer(LexemeParser *parser) {
     const size_t bytes_read = fread(parser->buffer, 1, BUFFER_LENGTH-1, parser->stream);
     if (bytes_read != BUFFER_LENGTH-1 && !feof(parser->stream)) {
         loginfo("failed to read from a stream");
@@ -27,46 +31,40 @@ int update_buffer(LexemeParser *parser) {
     return 0;
 }
 
-LexemeParser *init_lexeme_parser(FILE *stream) {
+int init_lexeme_parser(LexemeParser *parser, FILE *stream) {
     if (stream == NULL) {
-        return NULL;
-    }
-
-    LexemeParser *parser = malloc(sizeof(LexemeParser));
-    if (parser == NULL) {
-        return NULL;
-    }
-    parser->stream = stream;
-    parser->buffer = malloc(BUFFER_LENGTH * sizeof(char));
-    if (parser->buffer == NULL) {
-        free(parser);
-        return NULL;
-    }
-
-    if (update_buffer(parser) == -1) {
-        loginfo("failed to read from a stream");
-        free(parser->buffer);
-        free(parser);
-        return NULL;
+        return -1;
     }
 
     parser->cursor = 0;
-    return parser;
+    parser->stream = stream;
+    parser->buffer = malloc(BUFFER_LENGTH * sizeof(char));
+    if (parser->buffer == NULL) {
+        return -1;
+    }
+
+    if (load_source_code_buffer(parser) == -1) {
+        loginfo("failed to read from a stream");
+        free(parser->buffer);
+        return -1;
+    }
+
+
+    return 0;
 }
 
-void destroy_lexeme_parser(LexemeParser *parser) {
+void destroy_lexeme_parser(const LexemeParser *parser) {
     if (parser == NULL) {
         return;
     }
     if (parser->buffer != NULL) {
         free(parser->buffer);
     }
-    free(parser);
 }
 
 char get_char(LexemeParser *parser) {
     if (parser->cursor == BUFFER_LENGTH) {
-        update_buffer(parser);
+        load_source_code_buffer(parser);
     }
     return parser->buffer[parser->cursor];
 }
