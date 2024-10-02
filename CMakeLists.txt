@@ -4,8 +4,8 @@ project(vut_ifj C)
 
 set(CMAKE_C_STANDARD 17)
 
-# Add the public include directory for all targets
-include_directories(${CMAKE_SOURCE_DIR}/include)
+# Register all header files
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/tests)

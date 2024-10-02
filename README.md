@@ -10,13 +10,13 @@ There are several executables specified using cmake.
 - vut_ifj_debug: Has logging enabled.
 - test_*: Used to run tests. More on how to use them below.
 
-##### How to include/link .h and .c files?
+##### How to include / link .h and .c files?
 
 Look at how lexer is done.
 
-Create folders `src/<component_name>` and `include/<component_name>`
+Create a component's folder in `src/<component_name>`
 
-Create `src/<component_name>/CMakeLists.txt` & write to its contents something similar in `src/lexer/CMakeLists.txt` file.
+Create `src/<component_name>/CMakeLists.txt` & write to it something similar to `src/lexer/CMakeLists.txt`
 ```cmake
 project(<PascalCaseComponentName>Lib)
 
@@ -28,10 +28,10 @@ set(SOURCE_FILES
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
 ```
 
-To use the component in main.c, add the following to the `src/CMakeLists.txt`
+To use the component in main.c, add the following to the `src/CMakeLists.txt`. Libraries are whitespace separated.
 ```cmake
-target_link_libraries(vut_ifj PRIVATE LexerLib)
-target_link_libraries(vut_ifj_debug PRIVATE LexerLib)
+target_link_libraries(vut_ifj PRIVATE LexerLib <PascalCaseComponentName>)
+target_link_libraries(vut_ifj_debug PRIVATE LexerLib <PascalCaseComponentName>)
 ```
 
 ##### Testing
