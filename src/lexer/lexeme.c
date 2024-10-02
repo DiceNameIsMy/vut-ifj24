@@ -31,6 +31,16 @@ int LexemeParser_LoadBuffer(LexemeParser *parser) {
     return 0;
 }
 
+int Lexeme_Init(Lexeme *lexeme, const char *value, const int size) {
+    lexeme->value = malloc((size + 1) * sizeof(char)); // +1 for string termination(\0)
+    if (lexeme->value == NULL) {
+        loginfo("failed to allocate space for a lexeme [%s]", value);
+        return -1;
+    }
+    strcpy(lexeme->value, value);
+    return 0;
+}
+
 int LexemeParser_Init(LexemeParser *parser, FILE *stream) {
     if (stream == NULL) {
         return -1;
@@ -105,6 +115,7 @@ int LexemeParser_GetNext(LexemeParser *parser, Lexeme *lexeme) {
             continue;
         }
 
+        // Try to store a processed char
         if (next_char_idx == MAX_LEXEME_LENGTH) {
             loginfo("read lexeme [%32s] is too long (%i max)", value, MAX_LEXEME_LENGTH);
             return -1;
@@ -117,12 +128,10 @@ int LexemeParser_GetNext(LexemeParser *parser, Lexeme *lexeme) {
     }
 
     // Store the loaded lexeme
-    lexeme->value = malloc((next_char_idx + 1) * sizeof(char));
-    if (lexeme->value == NULL) {
-        loginfo("failed to allocate space for a lexeme [%s]", value);
+    if (Lexeme_Init(lexeme, lexeme_value, next_char_idx)) {
         return -1;
     }
-    strcpy(lexeme->value, lexeme_value);
+
     return 0;
 }
 
