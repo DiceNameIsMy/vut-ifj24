@@ -21,7 +21,7 @@ const char *LEXEME_STOP_CHARS = ".,;(){} \t\n\r";
  * Load part of the source code to the buffer.
  * Use it when you've processed everything from the buffer.
  */
-int load_source_code_buffer(LexemeParser *parser) {
+int LexemeParser_LoadBuffer(LexemeParser *parser) {
     const size_t bytes_read = fread(parser->buffer, 1, BUFFER_LENGTH-1, parser->stream);
     if (bytes_read != BUFFER_LENGTH-1 && !feof(parser->stream)) {
         loginfo("failed to read from a stream");
@@ -31,7 +31,7 @@ int load_source_code_buffer(LexemeParser *parser) {
     return 0;
 }
 
-int init_lexeme_parser(LexemeParser *parser, FILE *stream) {
+int LexemeParser_Init(LexemeParser *parser, FILE *stream) {
     if (stream == NULL) {
         return -1;
     }
@@ -43,33 +43,37 @@ int init_lexeme_parser(LexemeParser *parser, FILE *stream) {
         return -1;
     }
 
-    if (load_source_code_buffer(parser) == -1) {
+    if (LexemeParser_LoadBuffer(parser) == -1) {
         loginfo("failed to read from a stream");
         free(parser->buffer);
         return -1;
     }
 
-
     return 0;
 }
 
-void destroy_lexeme_parser(const LexemeParser *parser) {
+void LexemeParser_Destroy(LexemeParser *parser) {
     if (parser == NULL) {
         return;
     }
     if (parser->buffer != NULL) {
         free(parser->buffer);
     }
+    parser->cursor = 0;
 }
 
-char get_char(LexemeParser *parser) {
+char LexemeParser_GetChar(LexemeParser *parser) {
     if (parser->cursor == BUFFER_LENGTH) {
-        load_source_code_buffer(parser);
+        LexemeParser_LoadBuffer(parser);
     }
     return parser->buffer[parser->cursor];
 }
 
-int next_lexeme(LexemeParser *parser, Lexeme *lexeme) {
+void LexemeParser_MarkCharProcessed(LexemeParser *parser) {
+    parser->cursor++;
+}
+
+int LexemeParser_GetNext(LexemeParser *parser, Lexeme *lexeme) {
     if (parser == NULL) {
         return -1;
     }
@@ -77,48 +81,48 @@ int next_lexeme(LexemeParser *parser, Lexeme *lexeme) {
         return -1;
     }
 
-    // Load a lexeme
-    int cursor = 0;
-    char value[MAX_LEXEME_LENGTH] = {'\0'};
+    int next_char_idx = 0;
+    char lexeme_value[MAX_LEXEME_LENGTH] = {'\0'};
 
-    char c;
     while (true) {
-        c = get_char(parser);
+        const char c = LexemeParser_GetChar(parser);
         if (c == EOF || c == '\0') {
             break;
         }
 
         const bool is_stop_char = strchr(LEXEME_STOP_CHARS, c) != NULL;
-        const bool end_lexeme = is_stop_char && cursor != 0;
+        const bool lexeme_value_is_empty = next_char_idx == 0;
+        const bool end_lexeme = is_stop_char && !lexeme_value_is_empty;
         if (end_lexeme) {
             loginfo("ending a lexeme [%32s] as a stop symbol %c was encountered", value, c);
             break;
         }
 
-        // Do not include whitespaces in a lexeme
+        // Ignore whitespaces in a lexeme
         const bool is_whitespace = strchr(LEXEME_SKIP_CHARS, c) != NULL;
         if (is_whitespace) {
-            parser->cursor++;
+            LexemeParser_MarkCharProcessed(parser);
             continue;
         }
 
-        // Store the char & continue loading the lexeme
-        if (cursor == MAX_LEXEME_LENGTH) {
+        if (next_char_idx == MAX_LEXEME_LENGTH) {
             loginfo("read lexeme [%32s] is too long (%i max)", value, MAX_LEXEME_LENGTH);
             return -1;
         }
-        value[cursor] = c;
-        parser->cursor++;
-        cursor++;
+        // Set next lexeme letter
+        lexeme_value[next_char_idx] = c;
+        next_char_idx++;
+
+        LexemeParser_MarkCharProcessed(parser);
     }
 
     // Store the loaded lexeme
-    lexeme->value = malloc((cursor + 1) * sizeof(char));
+    lexeme->value = malloc((next_char_idx + 1) * sizeof(char));
     if (lexeme->value == NULL) {
         loginfo("failed to allocate space for a lexeme [%s]", value);
         return -1;
     }
-    strcpy(lexeme->value, value);
+    strcpy(lexeme->value, lexeme_value);
     return 0;
 }
 

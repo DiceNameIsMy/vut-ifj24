@@ -15,7 +15,7 @@ int init_test_parser(LexemeParser *parser, const char **input) {
         return -1;
     }
 
-    return init_lexeme_parser(parser, fake_stdin);
+    return LexemeParser_Init(parser, fake_stdin);
 }
 
 void test_lexeme(const char *test_name, const char **input, const int count, ...) {
@@ -32,9 +32,9 @@ void test_lexeme(const char *test_name, const char **input, const int count, ...
     for (int i = 0; i < count; i++) {
         // Load a lexeme
         Lexeme lexeme;
-        if (next_lexeme(&parser, &lexeme) == -1) {
+        if (LexemeParser_GetNext(&parser, &lexeme) == -1) {
             fprintf(stderr, "[Failure] %-20s: Failed to parse a lexeme. Input: [%s]\n", test_name, *input);
-            destroy_lexeme_parser(&parser);
+            LexemeParser_Destroy(&parser);
             return;
         }
 
@@ -48,14 +48,14 @@ void test_lexeme(const char *test_name, const char **input, const int count, ...
             fprintf(stderr, "[Failure] %-20s: Incorrect lexeme. Got: [%s] Expected: [%s]\n", test_name, lexeme.value,
                     expected);
             destroy_lexeme(lexeme);
-            destroy_lexeme_parser(&parser);
+            LexemeParser_Destroy(&parser);
             return;
         }
         destroy_lexeme(lexeme);
     }
 
     fprintf(stderr, "\033[32m[Success] %-20s\033[0m\n", test_name);
-    destroy_lexeme_parser(&parser);
+    LexemeParser_Destroy(&parser);
 }
 
 int main() {
