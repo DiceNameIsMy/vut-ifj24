@@ -18,12 +18,12 @@ typedef struct {
     char *value;
 } Lexeme;
 
-int init_lexeme_parser(LexemeParser *parser, FILE *stream);
-void destroy_lexeme_parser(const LexemeParser *parser);
+int LexemeParser_Init(LexemeParser *parser, FILE *stream);
+void LexemeParser_Destroy(LexemeParser *parser);
 
 // Get a next lexeme from the lexeme parser.
 // Don't forget to free up space after getting each lexeme!!!
-int next_lexeme(LexemeParser *parser, Lexeme *lexeme);
+int LexemeParser_GetNext(LexemeParser *parser, Lexeme *lexeme);
 
 void destroy_lexeme(Lexeme lexeme);
 

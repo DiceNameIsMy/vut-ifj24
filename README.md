@@ -14,7 +14,7 @@ There are several executables specified using cmake.
 
 Look at how lexer is done.
 
-Create folders `src/<component_name>` and `src/<component_name>`
+Create folders `src/<component_name>` and `include/<component_name>`
 
 Create `src/<component_name>/CMakeLists.txt` & write to it something similar to `src/lexer/CMakeLists.txt`
 ```cmake
