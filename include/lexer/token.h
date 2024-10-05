@@ -45,7 +45,7 @@ typedef enum {
     TOKEN_RIGHT_ROUND_BRACKET,
     TOKEN_LEFT_CURLY_BRACKET,
     TOKEN_RIGHT_CURLY_BRACKET,
-    TOKEN_BERTICAL_BAR,              // |
+    TOKEN_VERTICAL_BAR,              // |
     // Special symbols
     TOKEN_AT,                        // @
     TOKEN_SEMICOLON,                 // ;
@@ -58,7 +58,7 @@ typedef enum {
 } token_type_t;
 
 typedef union {
-    char *str;      // Could be changed to be an another structure with info about length and allocated memory
+    char *str;      // Could be changed to be different structure with info about length and allocated memory
     int integer;
     double real;
 } token_attribute;  // Made almost fully for variables and for syntax analysis
@@ -73,5 +73,13 @@ typedef struct {
     size_t size;     // Amount of tokens in the Array now
     size_t capacity;
 } TokenArray;
+
+int initTokenArray(TokenArray* array);
+void freeTokenArray(TokenArray* array);
+int addToken(TokenArray* array, token_t token);
+
+int initStringAttribute(token_attribute* attr, char* str);
+
+void freeToken(token_t* token);
 
 #endif // TOKEN_H
