@@ -12,7 +12,7 @@ int main() {
 
     TokenArray tokenArray;
     if (initTokenArray(&tokenArray) != 0) {
-        fprintf(stderr, "[Error] %-20s: Failed to initialize token array\n", test_name);
+        fprintf(stderr, "[Error] %-20s: Failed to initializeStack token array\n", test_name);
         return -1;
     }
 
