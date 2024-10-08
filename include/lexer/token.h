@@ -18,10 +18,11 @@ typedef enum {
     TOKEN_KEYWORD_VOID,
     // Data types
     TOKEN_KEYWORD_I32,                  // i32
-    TOKEN_KEYWORD_I32_NULLABLE,         // ?[]i32
+    TOKEN_KEYWORD_I32_NULLABLE,         // ?i32
     TOKEN_KEYWORD_F64,                  // f64
-    TOKEN_KEYWORD_F64_NULLABLE,         // ?[]f64 || []f64
-    TOKEN_KEYWORD_U8_ARRAY,             // u8
+    TOKEN_KEYWORD_F64_NULLABLE,         // ?f64
+    TOKEN_KEYWORD_U8,                   // u8
+    TOKEN_KEYWORD_U8_ARRAY,             // []u8
     TOKEN_KEYWORD_U8_ARRAY_NULLABLE,    // ?[]u8
     // Operations
     TOKEN_ASSIGNMENT,                // =
@@ -41,18 +42,21 @@ typedef enum {
     TOKEN_EQUAL_TO,                  // ==
     TOKEN_NOT_EQUAL_TO,              // !=
     // Brackets
-    TOKEN_LEFT_ROUND_BRACKET,
-    TOKEN_RIGHT_ROUND_BRACKET,
-    TOKEN_LEFT_CURLY_BRACKET,
-    TOKEN_RIGHT_CURLY_BRACKET,
-    TOKEN_VERTICAL_BAR,              // |
+    TOKEN_LEFT_ROUND_BRACKET,       // (
+    TOKEN_RIGHT_ROUND_BRACKET,      // )
+    TOKEN_LEFT_SQUARE_BRACKET,      // [
+    TOKEN_RIGHT_SQUARE_BRACKET,     // ]
+    TOKEN_LEFT_CURLY_BRACKET,       // {
+    TOKEN_RIGHT_CURLY_BRACKET,      // }       
+    TOKEN_VERTICAL_BAR,             // |
     // Special symbols
-    TOKEN_AT,                        // @
-    TOKEN_SEMICOLON,                 // ;
-    TOKEN_COMMA,                     // ,
-    TOKEN_DOT,                       // .
-    TOKEN_COLON,                     // :
-    TOKEN_ID,
+    TOKEN_AT,                       // @
+    TOKEN_SEMICOLON,                // ;
+    TOKEN_COMMA,                    // ,
+    TOKEN_DOT,                      // .
+    TOKEN_RANGE,                    // ..  I guess it won't be used, but still
+    TOKEN_COLON,                    // :
+    TOKEN_ID, 
     TOKEN_ERROR                      // Something went wrong. Message could be included in the attributes.
     // TODO: any other cases?
 } token_type_t;
