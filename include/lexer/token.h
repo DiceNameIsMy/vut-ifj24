@@ -17,22 +17,22 @@ typedef enum {
     TOKEN_KEYWORD_RETURN,
     TOKEN_KEYWORD_VOID,
     // Data types
-    TOKEN_KEYWORD_I32,
-    TOKEN_KEYWORD_I32_NULLABLE,
-    TOKEN_KEYWORD_F64,
-    TOKEN_KEYWORD_F64_NULLABLE,
-    TOKEN_KEYWORD_U8_ARRAY,
-    TOKEN_KEYWORD_U8_ARRAY_NULLABLE,
+    TOKEN_KEYWORD_I32,                  // i32
+    TOKEN_KEYWORD_I32_NULLABLE,         // ?[]i32
+    TOKEN_KEYWORD_F64,                  // f64
+    TOKEN_KEYWORD_F64_NULLABLE,         // ?[]f64 || []f64
+    TOKEN_KEYWORD_U8_ARRAY,             // u8
+    TOKEN_KEYWORD_U8_ARRAY_NULLABLE,    // ?[]u8
     // Operations
     TOKEN_ASSIGNMENT,                // =
-    TOKEN_ADDITION,
-    TOKEN_SUBTRACTION,
+    TOKEN_ADDITION,                  // +
+    TOKEN_SUBTRACTION,               // -
     TOKEN_MULTIPLICATION,            // *
     TOKEN_DIVISION,                  // /
     // Literals
-    TOKEN_STRING_LITERAL,
-    TOKEN_I32_LITERAL,
-    TOKEN_F64_LITERAL,
+    TOKEN_STRING_LITERAL,           // "string"
+    TOKEN_I32_LITERAL,              // 32
+    TOKEN_F64_LITERAL,              // 0.64
     // Comparisons
     TOKEN_LESS_THAN,                 // <
     TOKEN_LESS_THAN_OR_EQUAL_TO,     // <=
