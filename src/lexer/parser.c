@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-//#include <regex.h>
+#include <regex.h>
 
 #include "lexer/token.h"
 #include "lexer/lexer.h"
@@ -43,47 +43,45 @@ bool isKeyword(const char* str) {
     return false;  // Not found
 }
 
-token_t processKeyword(const char* str) {
-    token_t token;
+token_type_t processKeyword(const char* str) {
+    token_type_t type = TOKEN_ERROR;;
 
     if (strcmp(str, "const") == 0) {
-        token.type = TOKEN_KEYWORD_CONST;
+        type = TOKEN_KEYWORD_CONST;
     } else if (strcmp(str, "var") == 0) {
-        token.type = TOKEN_KEYWORD_VAR;
+        type = TOKEN_KEYWORD_VAR;
     } else if (strcmp(str, "if") == 0) {
-        token.type = TOKEN_KEYWORD_IF;
+        type = TOKEN_KEYWORD_IF;
     } else if (strcmp(str, "else") == 0) {
-        token.type = TOKEN_KEYWORD_ELSE;
+        type = TOKEN_KEYWORD_ELSE;
     } else if (strcmp(str, "while") == 0) {
-        token.type = TOKEN_KEYWORD_WHILE;
+        type = TOKEN_KEYWORD_WHILE;
     } else if (strcmp(str, "fn") == 0) {
-        token.type = TOKEN_KEYWORD_FN;
+        type = TOKEN_KEYWORD_FN;
     } else if (strcmp(str, "pub") == 0) {
-        token.type = TOKEN_KEYWORD_PUB;
+        type = TOKEN_KEYWORD_PUB;
     } else if (strcmp(str, "null") == 0) {
-        token.type = TOKEN_KEYWORD_NULL;
+        type = TOKEN_KEYWORD_NULL;
     } else if (strcmp(str, "return") == 0) {
-        token.type = TOKEN_KEYWORD_RETURN;
+        type = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "void") == 0) {
-        token.type = TOKEN_KEYWORD_VOID;
+        type = TOKEN_KEYWORD_VOID;
     } else if (strcmp(str, "i32") == 0) {
-        token.type = TOKEN_KEYWORD_I32;
+        type = TOKEN_KEYWORD_I32;
     } else if (strcmp(str, "?i32") == 0) {
-        token.type = TOKEN_KEYWORD_I32_NULLABLE;
+        type = TOKEN_KEYWORD_I32_NULLABLE;
     } else if (strcmp(str, "f64") == 0) {
-        token.type = TOKEN_KEYWORD_F64;
+        type = TOKEN_KEYWORD_F64;
     } else if (strcmp(str, "?f64") == 0) {
-        token.type = TOKEN_KEYWORD_F64_NULLABLE;
+        type = TOKEN_KEYWORD_F64_NULLABLE;
     } else if (strcmp(str, "u8") == 0) {
-        token.type = TOKEN_KEYWORD_U8;
+        type = TOKEN_KEYWORD_U8;
     } else if (strcmp(str, "[]u8") == 0) {
-        token.type = TOKEN_KEYWORD_U8_ARRAY;
+        type = TOKEN_KEYWORD_U8_ARRAY;
     } else if (strcmp(str, "?[]u8") == 0) {
-        token.type = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
-    } else {
-        token.type = TOKEN_ERROR;  // key word undefined
+        type = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
     }
-    return token;
+    return type;
 }
 
 bool isSeparator(char c) { 
@@ -95,11 +93,18 @@ bool isSeparator(char c) {
 }
 
 // function to check if this is an identifier ##
-int isIdentifier(const char* str) {
+bool isIdentifier(const char* str) {
     regex_t regex;
-    regcomp(&regex, "^[a-zA-Z_][a-zA-Z0-9_]*$", 0);  // Regular expression for identifiers ##
+    // Regular expression that checks if string is a valid identifier
+    // but disallows a single underscore '_'
+    if (regcomp(&regex, "^[a-zA-Z][a-zA-Z0-9_]*$|^[a-zA-Z_][a-zA-Z0-9_]+$", REG_EXTENDED)) {
+        return false;  // Return false if regex compilation fails
+    }
+    // Execute the regex check
     int result = regexec(&regex, str, 0, NULL, 0);
+    // Free the regex
     regfree(&regex);
+    // Return true if the regex matched the string, otherwise false
     return result == 0;
 }
 
@@ -114,20 +119,23 @@ int isNumber(const char* str) {
 
 // Function for processing lexemes ##
 void processToken(const char* token) {
-    // Use createToken
+    token_type_t token_type;    // TODO: Maybe create attribute None?
     if (isKeyword(token)) {
+        token_type = processKeyword(token);
         printf("Keyword: %s\n", token); // Process keyword #
     } else if (isIdentifier(token)) {
         printf("Identifier: %s\n", token); // Process id #
     } else if (isDefineType(token)) {
-        printf("Identifier: %s\n", token); // Process type i32, f64 etc. #
+        printf("Type: %s\n", token); // Process type i32, f64 etc. #
     } else if (isNumber(token)) {
         printf("Number: %s\n", token); // Process num #
     } else if (isSpecialSymbol(token)) {
-        printf("Identifier: %s\n", token); // Process special symbol #
+        printf("Special symbol: %s\n", token); // Process special symbol #
     } else {
         printf("Unknown token: %s\n", token); // Process Error #
+        exit(1);
     }
+    
 }
 
 // The main function of the lexer ##
