@@ -24,16 +24,16 @@ typedef enum {
     TOKEN_KEYWORD_U8,                   // u8
     TOKEN_KEYWORD_U8_ARRAY,             // []u8
     TOKEN_KEYWORD_U8_ARRAY_NULLABLE,    // ?[]u8
+    // Literals
+    TOKEN_STRING_LITERAL,           // "string"
+    TOKEN_I32_LITERAL,              // 32
+    TOKEN_F64_LITERAL,              // 0.64
     // Operations
     TOKEN_ASSIGNMENT,                // =
     TOKEN_ADDITION,                  // +
     TOKEN_SUBTRACTION,               // -
     TOKEN_MULTIPLICATION,            // *
     TOKEN_DIVISION,                  // /
-    // Literals
-    TOKEN_STRING_LITERAL,           // "string"
-    TOKEN_I32_LITERAL,              // 32
-    TOKEN_F64_LITERAL,              // 0.64
     // Comparisons
     TOKEN_LESS_THAN,                 // <
     TOKEN_LESS_THAN_OR_EQUAL_TO,     // <=
@@ -50,11 +50,11 @@ typedef enum {
     TOKEN_RIGHT_CURLY_BRACKET,      // }       
     TOKEN_VERTICAL_BAR,             // |
     // Special symbols
-    TOKEN_AT,                       // @
+    TOKEN_AT,                       // @    When do we use it?
     TOKEN_SEMICOLON,                // ;
     TOKEN_COMMA,                    // ,
     TOKEN_DOT,                      // .
-    TOKEN_RANGE,                    // ..  I guess it won't be used, but still
+    TOKEN_RANGE,                    // ..   I guess it won't be used, but still
     TOKEN_COLON,                    // :
     TOKEN_ID, 
     TOKEN_ERROR                      // Something went wrong. Message could be included in the attributes.

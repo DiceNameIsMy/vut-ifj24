@@ -34,7 +34,7 @@ const char* keywords[] = {
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
 
 // checking is it a key word
-int isKeyword(const char* str) {
+bool isKeyword(const char* str) {
     for (int i = 0; i < NUM_KEYWORDS; i++) {
         if (strcmp(str, keywords[i]) == 0) {
             return true;  // Found
@@ -114,6 +114,7 @@ int isNumber(const char* str) {
 
 // Function for processing lexemes ##
 void processToken(const char* token) {
+    // Use createToken
     if (isKeyword(token)) {
         printf("Keyword: %s\n", token); // Process keyword #
     } else if (isIdentifier(token)) {
@@ -141,11 +142,13 @@ void lexer(const char* source_code) {
         // State handling
         switch (state) {
             case STATE_NORMAL:
-                if (isSeparator(c)) {
+                if (isSeparator(c)) { // a+b
                     if (buffer_index > 0) {
                         buffer[buffer_index] = '\0';  // put end of the buffer for future cmp
                         processToken(buffer);
                         buffer_index = 0;
+                        // Check if it isn't whitespace and increase buffer otherwise
+                        // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
                     }
                 } else if (c == '"') {  // String starts
                     if (buffer_index != 0){
@@ -178,7 +181,7 @@ void lexer(const char* source_code) {
                 break;
 
             case STATE_STRING:
-                if (c == '\\' && source_code[i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end?
+                if (c == '\\' && source_code[i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
                     buffer[buffer_index] = c;
                     buffer_index++;
                     buffer[buffer_index] = '"';
@@ -202,9 +205,10 @@ void lexer(const char* source_code) {
                         state = STATE_STRING;
                     }
                     else{
-                        ; // TODO: ERROR OCCURE
+                        ; // TODO: ERROR OCCURE bc string isn't closed
                     }
-                } 
+                }
+                break; 
 
             case STATE_COMMENT:
                 if (c == '\n') {
@@ -241,6 +245,10 @@ int isSpecialSymbol(char c) {
 token_t processSpecialSymbol(char c) {
     token_t token;
     switch (c) {
+        // Math Equations
+        case '=':
+            token.type = TOKEN_ASSIGNMENT;
+            break;
         case '+':
             token.type = TOKEN_ADDITION;
             break;
@@ -253,12 +261,45 @@ token_t processSpecialSymbol(char c) {
         case '/':
             token.type = TOKEN_DIVISION;
             break;
-        // Other cases... TODO
+        // Brackets
         case '(':
             token.type = TOKEN_LEFT_ROUND_BRACKET;
             break;
         case ')':
             token.type = TOKEN_RIGHT_ROUND_BRACKET;
+            break;
+        case '[':
+            token.type = TOKEN_LEFT_SQUARE_BRACKET;
+            break;
+        case ']':
+            token.type = TOKEN_RIGHT_SQUARE_BRACKET;
+            break;
+        case '{':
+            token.type = TOKEN_LEFT_CURLY_BRACKET;
+            break;
+        case '}':
+            token.type = TOKEN_RIGHT_CURLY_BRACKET;
+            break;
+        // Special symbols
+        case '@':
+            token.type = TOKEN_AT;
+            break;
+        case ';':
+            token.type = TOKEN_SEMICOLON;
+            break;
+        case ',':
+            token.type = TOKEN_COMMA;
+            break;
+        case '.':
+            token.type = TOKEN_DOT;
+            break;
+        /*
+        case '..':
+            token.type = TOKEN_RANGE;   // If needed would be proceeded in another form
+            break;
+        */
+        case ':':
+            token.type = TOKEN_COLON;
             break;
         default:
             token.type = TOKEN_ERROR;
