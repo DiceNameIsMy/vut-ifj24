@@ -147,56 +147,56 @@ bool isSpecialSymbol(char c) {
 }
 
 // Not much used now, but will be in the near future
-token_t processSpecialSymbol(char c) {
-    token_t token;
+token_type_t processSpecialSymbol(char c) {
+    token_type_t type;
     switch (c) {
         // Math Equations
         case '=':
-            token.type = TOKEN_ASSIGNMENT;
+            type = TOKEN_ASSIGNMENT;
             break;
         case '+':
-            token.type = TOKEN_ADDITION;
+            type = TOKEN_ADDITION;
             break;
         case '-':
-            token.type = TOKEN_SUBTRACTION;
+            type = TOKEN_SUBTRACTION;
             break;
         case '*':
-            token.type = TOKEN_MULTIPLICATION;
+            type = TOKEN_MULTIPLICATION;
             break;
         case '/':
-            token.type = TOKEN_DIVISION;
+            type = TOKEN_DIVISION;
             break;
         // Brackets
         case '(':
-            token.type = TOKEN_LEFT_ROUND_BRACKET;
+            type = TOKEN_LEFT_ROUND_BRACKET;
             break;
         case ')':
-            token.type = TOKEN_RIGHT_ROUND_BRACKET;
+            type = TOKEN_RIGHT_ROUND_BRACKET;
             break;
         case '[':
-            token.type = TOKEN_LEFT_SQUARE_BRACKET;
+            type = TOKEN_LEFT_SQUARE_BRACKET;
             break;
         case ']':
-            token.type = TOKEN_RIGHT_SQUARE_BRACKET;
+            type = TOKEN_RIGHT_SQUARE_BRACKET;
             break;
         case '{':
-            token.type = TOKEN_LEFT_CURLY_BRACKET;
+            type = TOKEN_LEFT_CURLY_BRACKET;
             break;
         case '}':
-            token.type = TOKEN_RIGHT_CURLY_BRACKET;
+            type = TOKEN_RIGHT_CURLY_BRACKET;
             break;
         // Special symbols
         case '@':
-            token.type = TOKEN_AT;
+            type = TOKEN_AT;
             break;
         case ';':
-            token.type = TOKEN_SEMICOLON;
+            type = TOKEN_SEMICOLON;
             break;
         case ',':
-            token.type = TOKEN_COMMA;
+            type = TOKEN_COMMA;
             break;
         case '.':
-            token.type = TOKEN_DOT;
+            type = TOKEN_DOT;
             break;
         /*
         case '..':
@@ -204,13 +204,13 @@ token_t processSpecialSymbol(char c) {
             break;
         */
         case ':':
-            token.type = TOKEN_COLON;
+            type = TOKEN_COLON;
             break;
         default:
-            token.type = TOKEN_ERROR;
+            type = TOKEN_ERROR;
             break;
     }
-    return token;
+    return type;
 }
 
 
@@ -231,11 +231,11 @@ void processToken(const char* buf_str) {
     else if (identifyNumberType(buf_str)) {     // != 0
         if (identifyNumberType(buf_str) == 1){
             token_type = TOKEN_I32_LITERAL;
-            attribute->integer = atoi(buf_str);
+            attribute.integer = atoi(buf_str);
         }
         if (identifyNumberType(buf_str) == 2){
             token_type = TOKEN_F64_LITERAL;
-            attribute->real = strtod(str, NULL);
+            attribute.real = strtod(buf_str, NULL);
         }
         printf("Number: %s\n", buf_str); // Process num
     } 

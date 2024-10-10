@@ -82,6 +82,8 @@ int initTokenArray(TokenArray* array);
 void freeTokenArray(TokenArray* array);
 int addToken(TokenArray* array, token_t token);
 
+token_t createToken(const token_type_t type, const token_attribute attribute);
+
 int initStringAttribute(token_attribute* attr, char* str);
 
 void freeToken(token_t* token);

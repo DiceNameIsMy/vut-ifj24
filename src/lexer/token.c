@@ -47,7 +47,7 @@ int addToken(TokenArray* array, const token_t token) {
 token_t createToken(const token_type_t type, const token_attribute attribute) {
     token_t token;
     token.type = type;
-    token.attribute = attribute;
+    token.attribute = attribute;  // TODO: INIT attribute
 
     return token;
 }
