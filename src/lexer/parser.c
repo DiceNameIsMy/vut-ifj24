@@ -9,10 +9,12 @@
 #include <stdbool.h>
 #include <regex.h>
 
-#include "lexer/token.h"
-#include "lexer/lexer.h"
-#include "logging.h"
+#include "../../include/lexer/lexer.h"
+#include "../../include/lexer/token.h"
+// #include "../../include/lexer/parser.h"
+#include "../../include/logging.h"
 
+TokenArray *array;
 
 typedef enum {
     STATE_NORMAL,
@@ -239,14 +241,15 @@ void processToken(const char* buf_str) {
         }
         printf("Number: %s\n", buf_str); // Process num
     } 
-    else if (isSpecialSymbol(buf_str) && buf_str[1] == '\0') {
+    else if (isSpecialSymbol(buf_str[0]) && buf_str[1] == '\0') {
         token_type = processSpecialSymbol(buf_str[0]);
         printf("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
-        printf("Unknown token: %s\n", buf_str); // Unxpected input, Error
+        printf("Unknown token: %s\n", buf_str); // Unxpected input, Error TODO?
         exit(1);
     }
-    token_t token = createToken(buf_str, attribute); 
+    token_t token = createToken(token_type, attribute); 
+    addToken(array, token);
 }
 
 // The main function of the lexer ##
@@ -302,7 +305,7 @@ void lexer(const char* source_code) {
                     printf("String: \"%s\"\n", buffer);  // TODO: Gotta be another parser for str only
                     buffer_index = 0;
                     state = STATE_NORMAL;
-                } else if (c == "\n"){
+                } else if (c == '\n'){
                     state = STATE_NEXT_LINE_STRING; // Starts next line
                 } else {
                     buffer[buffer_index++] = c;  // String processing ##
@@ -341,6 +344,7 @@ void lexer(const char* source_code) {
 }
 
 int main() {
+    initTokenArray(array);
     const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
     lexer(code);
     return 0;
