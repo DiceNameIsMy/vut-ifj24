@@ -9,8 +9,8 @@
 #include <stdbool.h>
 #include <regex.h>
 
-#include "../../include/lexer/lexer.h"
 #include "../../include/lexer/token.h"
+#include "token.c"
 // #include "../../include/lexer/parser.h"
 #include "../../include/logging.h"
 
@@ -100,13 +100,18 @@ bool isIdentifier(const char* str) {
     regex_t regex;
     // Regular expression that checks if string is a valid identifier
     // but disallows a single underscore '_'
-    if (regcomp(&regex, "^[a-zA-Z][a-zA-Z0-9_]*$|^[a-zA-Z_][a-zA-Z0-9_]+$", REG_EXTENDED)) {
+    if (regcomp(&regex, "^[a-zA-Z_][a-zA-Z0-9_]*$", REG_EXTENDED)) {
         return false;  // Return false if regex compilation fails
     }
     // Execute the regex check
     int result = regexec(&regex, str, 0, NULL, 0);
     // Free the regex
     regfree(&regex);
+
+    // check not solo _
+    if (result == 0 && strcmp(str, "_") == 0) {
+        return false;
+    }
     // Return true if the regex matched the string, otherwise false
     return result == 0;
 }
@@ -229,6 +234,12 @@ void processToken(const char* buf_str) {
     else if (isIdentifier(buf_str)) {
         token_type = TOKEN_ID;
         printf("Identifier: %s\n", buf_str); // Process id
+        attribute.str = strdup(buf_str); // copy
+
+        if (attribute.str == NULL) {
+            fprintf(stderr, "Error memory allocation\n");
+            exit(0); // TODO: clean
+        }
     }
     else if (identifyNumberType(buf_str)) {     // != 0
         if (identifyNumberType(buf_str) == 1){
@@ -344,8 +355,30 @@ void lexer(const char* source_code) {
 }
 
 int main() {
-    initTokenArray(array);
-    const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
+    initTokenArray(&array);
+    // const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
+    const char* test1 = "x";     // Valid identifier
+    const char* test2 = "_";     // Invalid identifier
+    const char* test3 = "var1";  // Valid identifier
+    const char* test4 = "123";   // Invalid identifier
+    const char* code = "a b c d e = 42";
+     // Test multiple calls
+    printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
+    printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
+    printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
+    printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
+
+     // Test multiple calls
+    printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
+    printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
+    printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
+    printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
+
+     // Test multiple calls
+    printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
+    printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
+    printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
+    printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
     lexer(code);
     return 0;
 }
