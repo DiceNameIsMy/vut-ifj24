@@ -7,9 +7,13 @@ set(SOURCE_FILES
         ../../include/structs/stack.h
         ../../include/parser/parser.h
         ../parser/parser.c
+        ../structs/sym_table.c
+        ../../include/structs/sym_table.h
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES}
         ../../include/structs/stack.h
         ../../include/parser/parser.h
-        ../parser/parser.c)
+        ../parser/parser.c
+        ../structs/sym_table.c
+        ../../include/structs/sym_table.h)
