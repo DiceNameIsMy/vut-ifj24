@@ -14,7 +14,7 @@
 // #include "../../include/lexer/parser.h"
 #include "../../include/logging.h"
 
-TokenArray *array;
+TokenArray array;
 
 typedef enum {
     STATE_NORMAL,
@@ -257,10 +257,11 @@ void processToken(const char* buf_str) {
         printf("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
         printf("Unknown token: %s\n", buf_str); // Unxpected input, Error TODO?
-        exit(1);
+        printf("Possible ERROR!\n\n");
+        //exit(1);
     }
     token_t token = createToken(token_type, attribute); 
-    addToken(array, token);
+    addToken(&array, token);
 }
 
 // The main function of the lexer ##
@@ -275,27 +276,40 @@ void lexer(const char* source_code) {
         // State handling
         switch (state) {
             case STATE_NORMAL:
-                if (isSeparator(c)) { // a+b
+                if (isSeparator(c)) { 
                     if (buffer_index > 0) {
                         buffer[buffer_index] = '\0';  // put end of the buffer for future cmp
                         processToken(buffer);
                         buffer_index = 0;
+
+                        if (strchr("+-*/=()[]{}&|,;:", c) != NULL){ // Some scenarios with solo symbols
+                            buffer[0] = c;                          // TODO: ==, >=, <=, !=, check all symbols
+                            buffer[1] = '\0';                       // Can make it a func;
+                            processToken(buffer);
+
+                        }
                         // Check if it isn't whitespace and increase buffer otherwise
                         // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
+                    }
+                    else if (strchr("+-*/=()[]{}&|,;:", c) != NULL){    // Todo -> few rows above
+                            buffer[0] = c;                              
+                            buffer[1] = '\0';
+                            processToken(buffer);
                     }
                 } else if (c == '"') {  // String starts
                     if (buffer_index != 0){
                         buffer[buffer_index] = '\0';  // Process all from buffer
                         processToken(buffer);
                         buffer_index = 0;
-
-                        state = STATE_STRING;   // Start String status 
                     }
+                    state = STATE_STRING;   // Start String status 
+                    
                 } else if (c == '/' && source_code[i + 1] == '/') {  // Comment starts
-                    buffer[buffer_index] = '\0';  // Process all from buffer
-                    processToken(buffer);
-                    buffer_index = 0;
-
+                    if (buffer_index != 0){  // TODO: MAKE IT A FUNC
+                        buffer[buffer_index] = '\0';  // Process all from buffer
+                        processToken(buffer);
+                        buffer_index = 0;
+                    }
                     i++;    // Increasing i by 1, so next reading won't start from '\' 
                     state = STATE_COMMENT;
                 } else {
@@ -318,6 +332,7 @@ void lexer(const char* source_code) {
                     state = STATE_NORMAL;
                 } else if (c == '\n'){
                     state = STATE_NEXT_LINE_STRING; // Starts next line
+                                                    // TODO: Check if \n needed
                 } else {
                     buffer[buffer_index++] = c;  // String processing ##
                 }
@@ -356,29 +371,19 @@ void lexer(const char* source_code) {
 
 int main() {
     initTokenArray(&array);
-    // const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
+    
     const char* test1 = "x";     // Valid identifier
     const char* test2 = "_";     // Invalid identifier
     const char* test3 = "var1";  // Valid identifier
     const char* test4 = "123";   // Invalid identifier
-    const char* code = "a b c d e = 42";
-     // Test multiple calls
+    //const char* code = "a b c d e = 42";
+    // Test multiple calls
     printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
     printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
     printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
     printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
 
-     // Test multiple calls
-    printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
-    printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
-    printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
-    printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
-
-     // Test multiple calls
-    printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
-    printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
-    printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
-    printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
+    const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
     lexer(code);
     return 0;
 }
