@@ -355,7 +355,7 @@ void lexer(const char* source_code) {
         ; // TODO: ERROR OCCURE
     }
 }
-
+/*
 int main() {
     initTokenArray(&array);
     
@@ -373,4 +373,4 @@ int main() {
     const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
     lexer(code);
     return 0;
-}
+}*/
