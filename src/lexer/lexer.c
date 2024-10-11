@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <regex.h>
 
+#include "../../include/lexer/lexer.h"
 #include "../../include/lexer/token.h"
 #include "token.c"
 // #include "../../include/lexer/parser.h"
@@ -16,23 +17,9 @@
 
 TokenArray array;
 
-typedef enum {
-    STATE_NORMAL,
-    STATE_STRING,
-    STATE_NEXT_LINE_STRING,
-    STATE_COMMENT,
-} LexerState;  // FSM which decides, how we aproach characters
-
-
 // Token reader Buffer size
 #define BUFFER_SIZE 256
 
-// Array of keywords
-const char* keywords[] = {
-    "const", "var", "if", "else", "while", "fn", "pub", 
-    "null", "return", "void", 
-    "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
-};
 
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
 
