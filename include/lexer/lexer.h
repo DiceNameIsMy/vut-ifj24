@@ -1,3 +1,6 @@
+#ifndef LEXER_H
+#define LEXER_H
+
 #include "token.h"
 
 typedef enum {
@@ -10,8 +13,8 @@ typedef enum {
 
 // Array of keywords
 const char* keywords[] = {
-    "const", "var", "if", "else", "while", "fn", "pub", 
-    "null", "return", "void", 
+    "const", "var", "if", "else", "while", "fn", "pub",
+    "null", "return", "void",
     "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
 };
 
@@ -24,3 +27,4 @@ bool isSpecialSymbol(char c);
 token_type_t processSpecialSymbol(char c);
 void processToken(const char* buf_str);
 void lexer(const char* source_code);
+#endif // LEXER_H
