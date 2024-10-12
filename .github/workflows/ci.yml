@@ -17,4 +17,4 @@ jobs:
           build-dir: build
       - name: Run tests
         run: ls
-      - run: find . -type f -wholename "./tests/test_*" -executable -exec {} \;
+      - run: find . -type f -wholename "./build/tests/test_*" -executable -exec {} \;
