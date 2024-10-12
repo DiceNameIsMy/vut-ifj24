@@ -1,0 +1,26 @@
+name: CI
+run-name: ${{ github.actor }}
+on:
+  pull_request:
+    branches:
+      - $default_branch
+  push:
+    branches:
+      - $default_branch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.0
+      - name: Build
+        uses: threeal/cmake-action@v2.0.0
+        with:
+          build-dir: build
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tests
+        run: echo Running tests
+      - run: ls
+      - run: find . -type f -wholename "./tests/test_*" -executable -exec {} \;
