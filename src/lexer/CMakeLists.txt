@@ -2,7 +2,6 @@ project(LexerLib)
 
 set(SOURCE_FILES
         lexer.c
-        lexeme.c
         token.c
 )
 
