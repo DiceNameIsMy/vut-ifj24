@@ -1,12 +1,10 @@
 name: CI
 run-name: ${{ github.actor }}
 on:
-  pull_request:
-    branches:
-      - $default_branch
   push:
-    branches:
-      - $default_branch
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
 jobs:
   build:
     runs-on: ubuntu-latest
