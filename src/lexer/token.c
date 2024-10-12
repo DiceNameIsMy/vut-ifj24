@@ -1,9 +1,8 @@
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../include/logging.h"
-#include "../../include/lexer/token.h"
+#include "logging.h"
+#include "lexer/token.h"
 
 #define TOKEN_ARRAY_INIT_CAPACITY 16
 
