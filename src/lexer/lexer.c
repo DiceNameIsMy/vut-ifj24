@@ -5,15 +5,13 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
 #include <regex.h>
 
-#include "../../include/lexer/lexer.h"
-#include "../../include/lexer/token.h"
+#include "lexer/lexer.h"
+#include "lexer/token.h"
 #include "token.c"
-// #include "../../include/lexer/parser.h"
-#include "../../include/logging.h"
+#include "logging.h"
 
 TokenArray array;
 
