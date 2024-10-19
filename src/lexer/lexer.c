@@ -28,15 +28,17 @@ const char *keywords[] = {
     "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
 };
 
-bool isKeyword(const char *str);
+// If str is one of keywords, set keywordType value to the proper token type and return true.
+// False otherwise.
+bool tryGetKeyword(const char *str, TokenType *keywordType);
 
-TokenType processKeyword(const char *str);
+bool tryGetI32(const char *str, int *i32);
+
+bool tryGetF64(const char *str, double *f64);
 
 bool isSeparator(char c);
 
 bool isIdentifier(const char *str);
-
-int identifyNumberType(const char *str);
 
 bool isSpecialSymbol(char c);
 
@@ -49,55 +51,45 @@ void processToken(const char *buf_str, TokenArray *array);
 
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
 
-// checking is it a key word
-bool isKeyword(const char *str) {
-    for (int i = 0; i < NUM_KEYWORDS; i++) {
-        if (strcmp(str, keywords[i]) == 0) {
-            return true; // Found
-        }
-    }
-    return false; // Not found
-}
-
-TokenType processKeyword(const char *str) {
-    TokenType type = TOKEN_ERROR;;
-
+bool tryGetKeyword(const char *str, TokenType *keywordType) {
     if (strcmp(str, "const") == 0) {
-        type = TOKEN_KEYWORD_CONST;
+        *keywordType = TOKEN_KEYWORD_CONST;
     } else if (strcmp(str, "var") == 0) {
-        type = TOKEN_KEYWORD_VAR;
+        *keywordType = TOKEN_KEYWORD_VAR;
     } else if (strcmp(str, "if") == 0) {
-        type = TOKEN_KEYWORD_IF;
+        *keywordType = TOKEN_KEYWORD_IF;
     } else if (strcmp(str, "else") == 0) {
-        type = TOKEN_KEYWORD_ELSE;
+        *keywordType = TOKEN_KEYWORD_ELSE;
     } else if (strcmp(str, "while") == 0) {
-        type = TOKEN_KEYWORD_WHILE;
+        *keywordType = TOKEN_KEYWORD_WHILE;
     } else if (strcmp(str, "fn") == 0) {
-        type = TOKEN_KEYWORD_FN;
+        *keywordType = TOKEN_KEYWORD_FN;
     } else if (strcmp(str, "pub") == 0) {
-        type = TOKEN_KEYWORD_PUB;
+        *keywordType = TOKEN_KEYWORD_PUB;
     } else if (strcmp(str, "null") == 0) {
-        type = TOKEN_KEYWORD_NULL;
+        *keywordType = TOKEN_KEYWORD_NULL;
     } else if (strcmp(str, "return") == 0) {
-        type = TOKEN_KEYWORD_RETURN;
+        *keywordType = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "void") == 0) {
-        type = TOKEN_KEYWORD_VOID;
+        *keywordType = TOKEN_KEYWORD_VOID;
     } else if (strcmp(str, "i32") == 0) {
-        type = TOKEN_KEYWORD_I32;
+        *keywordType = TOKEN_KEYWORD_I32;
     } else if (strcmp(str, "?i32") == 0) {
-        type = TOKEN_KEYWORD_I32_NULLABLE;
+        *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
     } else if (strcmp(str, "f64") == 0) {
-        type = TOKEN_KEYWORD_F64;
+        *keywordType = TOKEN_KEYWORD_F64;
     } else if (strcmp(str, "?f64") == 0) {
-        type = TOKEN_KEYWORD_F64_NULLABLE;
+        *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
     } else if (strcmp(str, "u8") == 0) {
-        type = TOKEN_KEYWORD_U8;
+        *keywordType = TOKEN_KEYWORD_U8;
     } else if (strcmp(str, "[]u8") == 0) {
-        type = TOKEN_KEYWORD_U8_ARRAY;
+        *keywordType = TOKEN_KEYWORD_U8_ARRAY;
     } else if (strcmp(str, "?[]u8") == 0) {
-        type = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
+        *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
+    } else {
+        return false;
     }
-    return type;
+    return true;
 }
 
 // function to check if this is an identifier
@@ -121,38 +113,34 @@ bool isIdentifier(const char *str) {
     return result == 0;
 }
 
-int identifyNumberType(const char *str) {
-    regex_t i32_regex, f64_regex;
-
-    // i32 literal regex
+bool tryGetI32(const char *str, int *i32) {
     const char *i32_pattern = "^[0-9]+$";
-    // f64 literal regex with number before '.'
-    const char *f64_pattern =
-            "^([0-9]+\\.[0-9]*([eE][+-]?[0-9]+)?)|(\\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+)$";
-
-    // Compile regex
+    regex_t i32_regex;
     regcomp(&i32_regex, i32_pattern, REG_EXTENDED);
+
+    const bool match = regexec(&i32_regex, str, 0, NULL, 0) == 0;
+    regfree(&i32_regex);
+
+    if (match) {
+        *i32 = (int)strtol(str, NULL, 10);
+        return true;
+    }
+    return false;
+}
+
+bool tryGetF64(const char *str, double *f64) {
+    const char *f64_pattern = "^([0-9]+\\.[0-9]*([eE][+-]?[0-9]+)?)|(\\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+)$";
+    regex_t f64_regex;
     regcomp(&f64_regex, f64_pattern, REG_EXTENDED);
 
-    // Check if string matches i32 pattern
-    if (regexec(&i32_regex, str, 0, NULL, 0) == 0) {
-        regfree(&i32_regex);
-        regfree(&f64_regex);
-        return 1; // It's an i32 literal
-    }
-
-    // Check if string matches f64 pattern
-    if (regexec(&f64_regex, str, 0, NULL, 0) == 0) {
-        regfree(&i32_regex);
-        regfree(&f64_regex);
-        return 2; // It's an f64 literal
-    }
-
-    // Free regex memory
-    regfree(&i32_regex);
+    const bool match = regexec(&f64_regex, str, 0, NULL, 0) == 0;
     regfree(&f64_regex);
 
-    return 0; // Neither i32 nor f64 literal
+    if (match) {
+        *f64 = strtod(str, NULL);
+        return true;
+    }
+    return false;
 }
 
 bool isSpecialSymbol(char c) {
@@ -229,15 +217,14 @@ TokenType processSpecialSymbol(char c) {
 
 // Function for processing lexemes
 void processToken(const char *buf_str, TokenArray *array) {
-    TokenType token_type;
+    TokenType tokenType;
     TokenAttribute attribute;
     attribute.str = NULL;
 
-    if (isKeyword(buf_str)) {
-        token_type = processKeyword(buf_str);
+    if (tryGetKeyword(buf_str, &tokenType)) {
         printf("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
     } else if (isIdentifier(buf_str)) {
-        token_type = TOKEN_ID;
+        tokenType = TOKEN_ID;
         printf("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
 
@@ -245,26 +232,21 @@ void processToken(const char *buf_str, TokenArray *array) {
             fprintf(stderr, "Error memory allocation\n");
             exit(0); // TODO: clean
         }
-    } else if (identifyNumberType(buf_str)) {
-        // != 0
-        if (identifyNumberType(buf_str) == 1) {
-            token_type = TOKEN_I32_LITERAL;
-            attribute.integer = atoi(buf_str);
-        }
-        if (identifyNumberType(buf_str) == 2) {
-            token_type = TOKEN_F64_LITERAL;
-            attribute.real = strtod(buf_str, NULL);
-        }
+    } else if (tryGetI32(buf_str, &attribute.integer)) {
+        tokenType = TOKEN_I32_LITERAL;
+        printf("Number: %s\n", buf_str); // Process num
+    } else if (tryGetF64(buf_str, &attribute.real)) {
+        tokenType = TOKEN_F64_LITERAL;
         printf("Number: %s\n", buf_str); // Process num
     } else if (isSpecialSymbol(buf_str[0]) && buf_str[1] == '\0') {
-        token_type = processSpecialSymbol(buf_str[0]);
+        tokenType = processSpecialSymbol(buf_str[0]);
         printf("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
         printf("Unknown token: %s\n", buf_str); // Unxpected input, Error TODO?
         printf("Possible ERROR!\n\n");
         //exit(1);
     }
-    Token token = createToken(token_type, attribute);
+    const Token token = createToken(tokenType, attribute);
     addToken(array, token);
 }
 

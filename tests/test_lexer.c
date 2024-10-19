@@ -157,6 +157,43 @@ TEST(float_literals)
 
 ENDTEST
 
+TEST(assignment)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("i32 a = b + 3;", &tokenArray);
+
+    Token t;
+    if (!check_token(&t, TOKEN_KEYWORD_I32)) {
+        return;
+    }
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    if (!check_token(&t, TOKEN_ASSIGNMENT)) {
+        return;
+    }
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "b") != 0) {
+        FAILCOMPS("Wrong attribute value", "b", t.attribute.str);
+    }
+    if (!check_token(&t, TOKEN_ADDITION)) {
+        return;
+    }
+    if (!check_token(&t, TOKEN_I32_LITERAL)) {
+        return;
+    }
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+
+ENDTEST
+
 int main() {
     initTokenArray(&tokenArray);
 
