@@ -36,13 +36,11 @@ bool tryGetI32(const char *str, int *i32);
 
 bool tryGetF64(const char *str, double *f64);
 
+bool tryGetSymbol(const char *str, TokenType *tokenType);
+
 bool isSeparator(char c);
 
 bool isIdentifier(const char *str);
-
-bool isSpecialSymbol(char c);
-
-TokenType processSpecialSymbol(char c);
 
 void processToken(const char *buf_str, TokenArray *array);
 
@@ -122,14 +120,15 @@ bool tryGetI32(const char *str, int *i32) {
     regfree(&i32_regex);
 
     if (match) {
-        *i32 = (int)strtol(str, NULL, 10);
+        *i32 = (int) strtol(str, NULL, 10);
         return true;
     }
     return false;
 }
 
 bool tryGetF64(const char *str, double *f64) {
-    const char *f64_pattern = "^([0-9]+\\.[0-9]*([eE][+-]?[0-9]+)?)|(\\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+)$";
+    const char *f64_pattern =
+            "^([0-9]+\\.[0-9]*([eE][+-]?[0-9]+)?)|(\\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+)$";
     regex_t f64_regex;
     regcomp(&f64_regex, f64_pattern, REG_EXTENDED);
 
@@ -143,75 +142,62 @@ bool tryGetF64(const char *str, double *f64) {
     return false;
 }
 
-bool isSpecialSymbol(char c) {
-    return strchr("+-*/=()[]{};", c) != NULL;
-}
 
-// Not much used now, but will be in the near future
-TokenType processSpecialSymbol(char c) {
-    TokenType type;
-    switch (c) {
-        // Math Equations
-        case '=':
-            type = TOKEN_ASSIGNMENT;
-            break;
-        case '+':
-            type = TOKEN_ADDITION;
-            break;
-        case '-':
-            type = TOKEN_SUBTRACTION;
-            break;
-        case '*':
-            type = TOKEN_MULTIPLICATION;
-            break;
-        case '/':
-            type = TOKEN_DIVISION;
-            break;
+bool tryGetSymbol(const char *str, TokenType *tokenType) {
+    if (strcmp(str, "=") == 0) {
+        *tokenType = TOKEN_ASSIGNMENT;
+    } else if (strcmp(str, "+") == 0) {
+        // Operations
+        *tokenType = TOKEN_ADDITION;
+    } else if (strcmp(str, "-") == 0) {
+        *tokenType = TOKEN_SUBTRACTION;
+    } else if (strcmp(str, "*") == 0) {
+        *tokenType = TOKEN_MULTIPLICATION;
+    } else if (strcmp(str, "/") == 0) {
+        *tokenType = TOKEN_DIVISION;
+    } else if (strcmp(str, "(") == 0) {
         // Brackets
-        case '(':
-            type = TOKEN_LEFT_ROUND_BRACKET;
-            break;
-        case ')':
-            type = TOKEN_RIGHT_ROUND_BRACKET;
-            break;
-        case '[':
-            type = TOKEN_LEFT_SQUARE_BRACKET;
-            break;
-        case ']':
-            type = TOKEN_RIGHT_SQUARE_BRACKET;
-            break;
-        case '{':
-            type = TOKEN_LEFT_CURLY_BRACKET;
-            break;
-        case '}':
-            type = TOKEN_RIGHT_CURLY_BRACKET;
-            break;
+        *tokenType = TOKEN_LEFT_ROUND_BRACKET;
+    } else if (strcmp(str, ")") == 0) {
+        *tokenType = TOKEN_RIGHT_ROUND_BRACKET;
+    } else if (strcmp(str, "[") == 0) {
+        *tokenType = TOKEN_LEFT_SQUARE_BRACKET;
+    } else if (strcmp(str, "]") == 0) {
+        *tokenType = TOKEN_RIGHT_SQUARE_BRACKET;
+    } else if (strcmp(str, "{") == 0) {
+        *tokenType = TOKEN_LEFT_CURLY_BRACKET;
+    } else if (strcmp(str, "}") == 0) {
+        *tokenType = TOKEN_RIGHT_CURLY_BRACKET;
+    } else if (strcmp(str, "|") == 0) {
+        *tokenType = TOKEN_VERTICAL_BAR;
+    } else if (strcmp(str, "<") == 0) {
+        // Comparison operators
+        *tokenType = TOKEN_LESS_THAN;
+    } else if (strcmp(str, "<=") == 0) {
+        *tokenType = TOKEN_LESS_THAN_OR_EQUAL_TO;
+    } else if (strcmp(str, ">") == 0) {
+        *tokenType = TOKEN_GREATER_THAN;
+    } else if (strcmp(str, ">=") == 0) {
+        *tokenType = TOKEN_GREATER_THAN_OR_EQUAL_TO;
+    } else if (strcmp(str, "==") == 0) {
+        *tokenType = TOKEN_EQUAL_TO;
+    } else if (strcmp(str, "!=") == 0) {
+        *tokenType = TOKEN_NOT_EQUAL_TO;
+    } else if (strcmp(str, "@") == 0) {
         // Special symbols
-        case '@':
-            type = TOKEN_AT;
-            break;
-        case ';':
-            type = TOKEN_SEMICOLON;
-            break;
-        case ',':
-            type = TOKEN_COMMA;
-            break;
-        case '.':
-            type = TOKEN_DOT;
-            break;
-        /*
-        case '..':
-            token.type = TOKEN_RANGE;   // If needed would be proceeded in another form
-            break;
-        */
-        case ':':
-            type = TOKEN_COLON;
-            break;
-        default:
-            type = TOKEN_ERROR;
-            break;
+        *tokenType = TOKEN_AT;
+    } else if (strcmp(str, ";") == 0) {
+        *tokenType = TOKEN_SEMICOLON;
+    } else if (strcmp(str, ",") == 0) {
+        *tokenType = TOKEN_COMMA;
+    } else if (strcmp(str, ".") == 0) {
+        *tokenType = TOKEN_DOT;
+    } else if (strcmp(str, ":") == 0) {
+        *tokenType = TOKEN_COLON;
+    } else {
+        return false;
     }
-    return type;
+    return true;
 }
 
 
@@ -219,10 +205,10 @@ TokenType processSpecialSymbol(char c) {
 void processToken(const char *buf_str, TokenArray *array) {
     TokenType tokenType;
     TokenAttribute attribute;
-    attribute.str = NULL;
 
     if (tryGetKeyword(buf_str, &tokenType)) {
         printf("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
+
     } else if (isIdentifier(buf_str)) {
         tokenType = TOKEN_ID;
         printf("Identifier: %s\n", buf_str); // Process id
@@ -232,19 +218,23 @@ void processToken(const char *buf_str, TokenArray *array) {
             fprintf(stderr, "Error memory allocation\n");
             exit(0); // TODO: clean
         }
+
     } else if (tryGetI32(buf_str, &attribute.integer)) {
         tokenType = TOKEN_I32_LITERAL;
         printf("Number: %s\n", buf_str); // Process num
+
     } else if (tryGetF64(buf_str, &attribute.real)) {
         tokenType = TOKEN_F64_LITERAL;
         printf("Number: %s\n", buf_str); // Process num
-    } else if (isSpecialSymbol(buf_str[0]) && buf_str[1] == '\0') {
-        tokenType = processSpecialSymbol(buf_str[0]);
+
+    } else if (tryGetSymbol(buf_str, &tokenType)) {
         printf("Special symbol: %s\n", buf_str); // Process special symbol
+
     } else {
-        printf("Unknown token: %s\n", buf_str); // Unxpected input, Error TODO?
+        printf("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
         printf("Possible ERROR!\n\n");
-        //exit(1);
+        tokenType = TOKEN_ERROR;
+        attribute.str = "Unrecognized token";
     }
     const Token token = createToken(tokenType, attribute);
     addToken(array, token);
