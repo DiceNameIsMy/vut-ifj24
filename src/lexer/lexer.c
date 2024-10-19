@@ -273,8 +273,9 @@ void processToken(const char* buf_str, TokenArray *array) {
 // The main function of the lexer ##
 void runLexer(const char* sourceCode, TokenArray *tokenArray) {
     LexerState state = STATE_COMMON;  // Initial state
-    char buffer[BUFFER_SIZE];  // Token Buffer
-    int buffer_index = 0;  // Buffer index
+
+    DynBuffer buff;
+    initDynBuffer(&buff, -1);
 
     int i = 0;  // Index for source code symbols
     while (sourceCode[i] != '\0') {
@@ -283,64 +284,58 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
         switch (state) {
             case STATE_COMMON:
                 if (isSeparator(c)) { 
-                    if (buffer_index > 0) {
-                        buffer[buffer_index] = '\0';  // put end of the buffer for future cmp
-                        processToken(buffer, tokenArray);
-                        buffer_index = 0;
+                    if (!isDynBufferEmpty(&buff)) {
+                        processToken(buff.data, tokenArray);
 
                         if (strchr("+-*/=()[]{}&|,;:", c) != NULL){ // Some scenarios with solo symbols
-                            buffer[0] = c;                          // TODO: ==, >=, <=, !=, check all symbols
-                            buffer[1] = '\0';                       // Can make it a func;
-                            processToken(buffer, tokenArray);
-
+                            emptyDynBuffer(&buff);
+                            appendDynBuffer(&buff, c); // TODO: ==, >=, <=, !=, check all symbols
+                            processToken(buff.data, tokenArray);
                         }
+
+                        emptyDynBuffer(&buff);
                         // Check if it isn't whitespace and increase buffer otherwise
                         // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
                     }
                     else if (strchr("+-*/=()[]{}&|,;:", c) != NULL){    // Todo -> few rows above
-                            buffer[0] = c;
-                            buffer[1] = '\0';
-                            processToken(buffer, tokenArray);
+                        emptyDynBuffer(&buff);
+                        appendDynBuffer(&buff, c);
+                        processToken(buff.data, tokenArray);
                     }
                 } else if (c == '"') {  // String starts
-                    if (buffer_index != 0){
-                        buffer[buffer_index] = '\0';  // Process all from buffer
-                        processToken(buffer, tokenArray);
-                        buffer_index = 0;
+                    if (!isDynBufferEmpty(&buff)){
+                        processToken(buff.data, tokenArray);
+                        emptyDynBuffer(&buff);
                     }
                     state = STATE_STRING;   // Start String status 
                     
                 } else if (c == '/' && sourceCode[i + 1] == '/') {  // Comment starts
-                    if (buffer_index != 0){  // TODO: MAKE IT A FUNC
-                        buffer[buffer_index] = '\0';  // Process all from buffer
-                        processToken(buffer, tokenArray);
-                        buffer_index = 0;
+                    if (!isDynBufferEmpty(&buff)){  // TODO: MAKE IT A FUNC
+                        processToken(buff.data, tokenArray);
+                        emptyDynBuffer(&buff);
                     }
                     i++;    // Increasing i by 1, so next reading won't start from '\' 
                     state = STATE_COMMENT;
                 } else {
-                    buffer[buffer_index] = c;  // Add a character to the buffer ##
-                    buffer_index++;
+                    appendDynBuffer(&buff, c);
                 }
                 break;
 
             case STATE_STRING:
                 if (c == '\\' && sourceCode[i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
-                    buffer[buffer_index] = c;
-                    buffer_index++;
-                    buffer[buffer_index] = '"';
-                    buffer_index++;
+                    appendDynBuffer(&buff, c);
+                    appendDynBuffer(&buff, '"');
                     i++;
                 }else if (c == '"') { // end of the string
-                    buffer[buffer_index] = '\0';
-                    printf("String: \"%s\"\n", buffer);  // TODO: Gotta be another parser for str only
-                    buffer_index = 0;
+                    printf("String: \"%s\"\n", buff.data);  // TODO: Gotta be another parser for str only
+                    // TODO: Add string token
+                    emptyDynBuffer(&buff);
                     state = STATE_COMMON;
                 } else if (c == '\n'){
                     state = STATE_NEXT_LINE_STRING; // Starts next line
                                                     // TODO: Check if \n needed
                 } else {
-                    buffer[buffer_index++] = c;  // String processing ##
+                    appendDynBuffer(&buff, c);
                 }
                 break;
             case STATE_NEXT_LINE_STRING:
@@ -366,9 +361,9 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
     }
 
     // Processing the last token in the buffer ##
-    if (buffer_index > 0 && state == STATE_COMMON) {
-        buffer[buffer_index] = '\0';
-        processToken(buffer, tokenArray);
+    if (!isDynBufferEmpty(&buff) && state == STATE_COMMON) {
+        processToken(buff.data, tokenArray);
+        emptyDynBuffer(&buff);
     }
     else {
         ; // TODO: ERROR OCCURE

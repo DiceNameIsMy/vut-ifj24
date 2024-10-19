@@ -5,6 +5,8 @@
 #ifndef DYNBUFFER_H
 #define DYNBUFFER_H
 
+#include <stdbool.h>
+
 // Dynamic buffer. Used to store strings of any length.
 typedef struct {
     int capacity;
@@ -16,6 +18,7 @@ typedef struct {
 int initDynBuffer(DynBuffer *buffer, int size);
 void freeDynBuffer(DynBuffer *buffer);
 
+bool isDynBufferEmpty(DynBuffer *buffer);
 int appendDynBuffer(DynBuffer *buffer, char c);
 int copyFromDynBuffer(DynBuffer *buffer, char **dest);
 int emptyDynBuffer(DynBuffer *buffer);

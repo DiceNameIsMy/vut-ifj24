@@ -32,6 +32,10 @@ void freeDynBuffer(DynBuffer *buffer) {
 	buffer->nextIdx = 0;
 }
 
+bool isDynBufferEmpty(DynBuffer *buffer) {
+	return buffer->nextIdx == 0;
+}
+
 int extendDynBuffer(DynBuffer *buffer) {
 	const int newSize = buffer->capacity * 9 / 5 + 1; // increase capacity by 1.8 times
 	char *newData = realloc(buffer->data, newSize);
