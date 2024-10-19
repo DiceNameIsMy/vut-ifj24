@@ -16,7 +16,7 @@
 
 typedef enum {
     STATE_COMMON,
-    STATE_STRING,
+    STATE_ONE_LINE_STRING,
     STATE_NEXT_LINE_STRING,
     STATE_COMMENT,
 } LexerState;  // FSM which decides, how we approach characters
@@ -91,14 +91,6 @@ TokenType processKeyword(const char* str) {
         type = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
     }
     return type;
-}
-
-bool isSeparator(char c) { 
-    // Checking all possible separators
-    if (strchr("+-*/=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {   // Why is it red?
-        return true;
-    }
-    return false;
 }
 
 // function to check if this is an identifier
@@ -270,6 +262,87 @@ void processToken(const char* buf_str, TokenArray *array) {
     addToken(array, token);
 }
 
+bool isSeparator(char c) {
+    // Checking all possible separators
+    if (strchr("+-*/=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {   // Why is it red?
+        return true;
+    }
+    return false;
+}
+
+LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tokenArray, DynBuffer *buff) {
+    LexerState nextState = STATE_COMMON;
+    const char c = sourceCode[*i];
+
+    const bool bufferIsEmpty = isDynBufferEmpty(buff);
+
+    if (isSeparator(c)) {
+        if (!bufferIsEmpty) {
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+
+        const bool soloSymbol = strchr("+-*/=()[]{}&|,;:", c) != NULL;
+        if (soloSymbol){    // Todo -> few rows above
+            appendDynBuffer(buff, c); // TODO: ==, >=, <=, !=, check all symbols
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+        // Check if it isn't whitespace and increase buffer otherwise
+        // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
+
+    } else if (c == '"') {  // String starts
+        if (!bufferIsEmpty){
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+        nextState = STATE_ONE_LINE_STRING;   // Start String status
+
+    } else if (c == '/' && sourceCode[*i + 1] == '/') {  // Comment starts
+        if (!bufferIsEmpty){  // TODO: MAKE IT A FUNC
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+        (*i)++;    // Increasing i by 1, so next reading won't start from the second '/'
+        nextState = STATE_COMMENT;
+
+    } else {
+        appendDynBuffer(buff, c);
+    }
+    return nextState;
+}
+
+LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenArray *tokenArray, DynBuffer *buff) {
+    LexerState nextState = STATE_ONE_LINE_STRING;
+    const char c = sourceCode[*i];
+
+    if (c == '\\' && sourceCode[*i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
+        appendDynBuffer(buff, '"');
+        (*i)++;
+    }else if (c == '"') { // end of the string
+        printf("String: \"%s\"\n", buff->data);  // TODO: Gotta be another parser for str only
+
+        Token stringToken = {.type = TOKEN_STRING_LITERAL};
+        initStringAttribute(&stringToken.attribute, buff->data);
+        addToken(tokenArray, stringToken);
+
+        emptyDynBuffer(buff);
+        nextState = STATE_COMMON;
+    } else if (c == '\n'){
+        // Put an error since double quote strings can't be multiline
+        Token errorToken = {.type = TOKEN_ERROR};
+        initStringAttribute(&errorToken.attribute, "Got \\n whilst parsing a double quote string");
+        addToken(tokenArray, errorToken);
+        emptyDynBuffer(buff);
+        nextState = STATE_COMMON;
+    } else {
+        appendDynBuffer(buff, c);
+    }
+
+    return nextState;
+}
+
+
 // The main function of the lexer ##
 void runLexer(const char* sourceCode, TokenArray *tokenArray) {
     LexerState state = STATE_COMMON;  // Initial state
@@ -279,70 +352,22 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
 
     int i = 0;  // Index for source code symbols
     while (sourceCode[i] != '\0') {
-        char c = sourceCode[i];
+        const char c = sourceCode[i];
         // State handling
         switch (state) {
             case STATE_COMMON:
-                if (isSeparator(c)) { 
-                    if (!isDynBufferEmpty(&buff)) {
-                        processToken(buff.data, tokenArray);
-
-                        if (strchr("+-*/=()[]{}&|,;:", c) != NULL){ // Some scenarios with solo symbols
-                            emptyDynBuffer(&buff);
-                            appendDynBuffer(&buff, c); // TODO: ==, >=, <=, !=, check all symbols
-                            processToken(buff.data, tokenArray);
-                        }
-
-                        emptyDynBuffer(&buff);
-                        // Check if it isn't whitespace and increase buffer otherwise
-                        // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
-                    }
-                    else if (strchr("+-*/=()[]{}&|,;:", c) != NULL){    // Todo -> few rows above
-                        emptyDynBuffer(&buff);
-                        appendDynBuffer(&buff, c);
-                        processToken(buff.data, tokenArray);
-                    }
-                } else if (c == '"') {  // String starts
-                    if (!isDynBufferEmpty(&buff)){
-                        processToken(buff.data, tokenArray);
-                        emptyDynBuffer(&buff);
-                    }
-                    state = STATE_STRING;   // Start String status 
-                    
-                } else if (c == '/' && sourceCode[i + 1] == '/') {  // Comment starts
-                    if (!isDynBufferEmpty(&buff)){  // TODO: MAKE IT A FUNC
-                        processToken(buff.data, tokenArray);
-                        emptyDynBuffer(&buff);
-                    }
-                    i++;    // Increasing i by 1, so next reading won't start from '\' 
-                    state = STATE_COMMENT;
-                } else {
-                    appendDynBuffer(&buff, c);
-                }
+                state = fsmParseOnCommonState(sourceCode, &i, tokenArray, &buff);
                 break;
 
-            case STATE_STRING:
-                if (c == '\\' && sourceCode[i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
-                    appendDynBuffer(&buff, c);
-                    appendDynBuffer(&buff, '"');
-                    i++;
-                }else if (c == '"') { // end of the string
-                    printf("String: \"%s\"\n", buff.data);  // TODO: Gotta be another parser for str only
-                    // TODO: Add string token
-                    emptyDynBuffer(&buff);
-                    state = STATE_COMMON;
-                } else if (c == '\n'){
-                    state = STATE_NEXT_LINE_STRING; // Starts next line
-                                                    // TODO: Check if \n needed
-                } else {
-                    appendDynBuffer(&buff, c);
-                }
+            case STATE_ONE_LINE_STRING:
+                state = fsmStepOnOneLineStringParsing(sourceCode, &i, tokenArray, &buff);
                 break;
+
             case STATE_NEXT_LINE_STRING:
-                if (isspace(c) == false){
+                if (isspace(c) == false) {
                     if (c == '\\' && sourceCode[i + 1] == '\\'){   //TODO: Can it raise an ERROR at the end?
                         i++;
-                        state = STATE_STRING;
+                        state = STATE_ONE_LINE_STRING;
                     }
                     else{
                         ; // TODO: ERROR OCCURE bc string isn't closed
@@ -361,8 +386,14 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
     }
 
     // Processing the last token in the buffer ##
-    if (!isDynBufferEmpty(&buff) && state == STATE_COMMON) {
-        processToken(buff.data, tokenArray);
+    if (!isDynBufferEmpty(&buff)) {
+        if (state == STATE_COMMON) {
+            processToken(buff.data, tokenArray);
+        } else if (state == STATE_ONE_LINE_STRING) {
+            Token errorToken = {.type = TOKEN_ERROR};
+            initStringAttribute(&errorToken.attribute, "Got \\n whilst parsing a double quote string");
+            addToken(tokenArray, errorToken);
+        }
         emptyDynBuffer(&buff);
     }
     else {

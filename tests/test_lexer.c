@@ -75,6 +75,30 @@ TEST(string_literal)
     }
 ENDTEST
 
+TEST(oneline_string_literal_not_terminated)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("\"abc\n", &tokenArray);
+
+    Token t;
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
+ENDTEST
+
+TEST(oneline_string_literal_not_terminated__source_code_ended)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("\"abc", &tokenArray);
+
+    Token t;
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
+ENDTEST
+
 TEST(float_literals)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
