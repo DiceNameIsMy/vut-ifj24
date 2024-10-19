@@ -7,6 +7,7 @@
 
 #include "lexer/token.h"
 #include "test_utils.h"
+
 TokenArray tokenArray;
 
 TEST(add_i32_token)

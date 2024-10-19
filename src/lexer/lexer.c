@@ -13,11 +13,31 @@
 #include "token.c"
 #include "logging.h"
 
-TokenArray array;
+typedef enum {
+    STATE_NORMAL,
+    STATE_STRING,
+    STATE_NEXT_LINE_STRING,
+    STATE_COMMENT,
+} LexerState;  // FSM which decides, how we approach characters
+
+// Array of keywords
+const char* keywords[] = {
+    "const", "var", "if", "else", "while", "fn", "pub",
+    "null", "return", "void",
+    "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
+};
+
+bool isKeyword(const char* str);
+token_type_t processKeyword(const char* str);
+bool isSeparator(char c);
+bool isIdentifier(const char* str);
+int identifyNumberType(const char* str);
+bool isSpecialSymbol(char c);
+token_type_t processSpecialSymbol(char c);
+void processToken(const char* buf_str, TokenArray *array);
 
 // Token reader Buffer size
 #define BUFFER_SIZE 256
-
 
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
 
@@ -135,7 +155,7 @@ int identifyNumberType(const char* str) {
 }
 
 bool isSpecialSymbol(char c) {
-    return strchr("+-*/=()[]{}", c) != NULL;
+    return strchr("+-*/=()[]{};", c) != NULL;
 }
 
 // Not much used now, but will be in the near future
@@ -207,7 +227,7 @@ token_type_t processSpecialSymbol(char c) {
 
 
 // Function for processing lexemes
-void processToken(const char* buf_str) {
+void processToken(const char* buf_str, TokenArray *array) {
     token_type_t token_type;
     token_attribute attribute;
     attribute.str = NULL;
@@ -246,31 +266,31 @@ void processToken(const char* buf_str) {
         //exit(1);
     }
     token_t token = createToken(token_type, attribute); 
-    addToken(&array, token);
+    addToken(array, token);
 }
 
 // The main function of the lexer ##
-void lexer(const char* source_code) {
+void runLexer(const char* sourceCode, TokenArray *tokenArray) {
     LexerState state = STATE_NORMAL;  // Initial state
     char buffer[BUFFER_SIZE];  // Token Buffer
     int buffer_index = 0;  // Buffer index
 
     int i = 0;  // Index for source code symbols
-    while (source_code[i] != '\0') {
-        char c = source_code[i];
+    while (sourceCode[i] != '\0') {
+        char c = sourceCode[i];
         // State handling
         switch (state) {
             case STATE_NORMAL:
                 if (isSeparator(c)) { 
                     if (buffer_index > 0) {
                         buffer[buffer_index] = '\0';  // put end of the buffer for future cmp
-                        processToken(buffer);
+                        processToken(buffer, tokenArray);
                         buffer_index = 0;
 
                         if (strchr("+-*/=()[]{}&|,;:", c) != NULL){ // Some scenarios with solo symbols
                             buffer[0] = c;                          // TODO: ==, >=, <=, !=, check all symbols
                             buffer[1] = '\0';                       // Can make it a func;
-                            processToken(buffer);
+                            processToken(buffer, tokenArray);
 
                         }
                         // Check if it isn't whitespace and increase buffer otherwise
@@ -279,20 +299,20 @@ void lexer(const char* source_code) {
                     else if (strchr("+-*/=()[]{}&|,;:", c) != NULL){    // Todo -> few rows above
                             buffer[0] = c;                              
                             buffer[1] = '\0';
-                            processToken(buffer);
+                            processToken(buffer, tokenArray);
                     }
                 } else if (c == '"') {  // String starts
                     if (buffer_index != 0){
                         buffer[buffer_index] = '\0';  // Process all from buffer
-                        processToken(buffer);
+                        processToken(buffer, tokenArray);
                         buffer_index = 0;
                     }
                     state = STATE_STRING;   // Start String status 
                     
-                } else if (c == '/' && source_code[i + 1] == '/') {  // Comment starts
+                } else if (c == '/' && sourceCode[i + 1] == '/') {  // Comment starts
                     if (buffer_index != 0){  // TODO: MAKE IT A FUNC
                         buffer[buffer_index] = '\0';  // Process all from buffer
-                        processToken(buffer);
+                        processToken(buffer, tokenArray);
                         buffer_index = 0;
                     }
                     i++;    // Increasing i by 1, so next reading won't start from '\' 
@@ -304,7 +324,7 @@ void lexer(const char* source_code) {
                 break;
 
             case STATE_STRING:
-                if (c == '\\' && source_code[i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
+                if (c == '\\' && sourceCode[i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
                     buffer[buffer_index] = c;
                     buffer_index++;
                     buffer[buffer_index] = '"';
@@ -324,7 +344,7 @@ void lexer(const char* source_code) {
                 break;
             case STATE_NEXT_LINE_STRING:
                 if (isspace(c) == false){
-                    if (c == '\\' && source_code[i + 1] == '\\'){   //TODO: Can it raise an ERROR at the end?
+                    if (c == '\\' && sourceCode[i + 1] == '\\'){   //TODO: Can it raise an ERROR at the end?
                         i++;
                         state = STATE_STRING;
                     }
@@ -347,7 +367,7 @@ void lexer(const char* source_code) {
     // Processing the last token in the buffer ##
     if (buffer_index > 0 && state == STATE_NORMAL) {
         buffer[buffer_index] = '\0';
-        processToken(buffer);
+        processToken(buffer, tokenArray);
     }
     else {
         ; // TODO: ERROR OCCURE
