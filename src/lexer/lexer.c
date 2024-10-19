@@ -19,23 +19,30 @@ typedef enum {
     STATE_ONE_LINE_STRING,
     STATE_NEXT_LINE_STRING,
     STATE_COMMENT,
-} LexerState;  // FSM which decides, how we approach characters
+} LexerState; // FSM which decides, how we approach characters
 
 // Array of keywords
-const char* keywords[] = {
+const char *keywords[] = {
     "const", "var", "if", "else", "while", "fn", "pub",
     "null", "return", "void",
     "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
 };
 
-bool isKeyword(const char* str);
-TokenType processKeyword(const char* str);
+bool isKeyword(const char *str);
+
+TokenType processKeyword(const char *str);
+
 bool isSeparator(char c);
-bool isIdentifier(const char* str);
-int identifyNumberType(const char* str);
+
+bool isIdentifier(const char *str);
+
+int identifyNumberType(const char *str);
+
 bool isSpecialSymbol(char c);
+
 TokenType processSpecialSymbol(char c);
-void processToken(const char* buf_str, TokenArray *array);
+
+void processToken(const char *buf_str, TokenArray *array);
 
 // Token reader Buffer size
 #define BUFFER_SIZE 256
@@ -43,16 +50,16 @@ void processToken(const char* buf_str, TokenArray *array);
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
 
 // checking is it a key word
-bool isKeyword(const char* str) {
+bool isKeyword(const char *str) {
     for (int i = 0; i < NUM_KEYWORDS; i++) {
         if (strcmp(str, keywords[i]) == 0) {
-            return true;  // Found
+            return true; // Found
         }
     }
-    return false;  // Not found
+    return false; // Not found
 }
 
-TokenType processKeyword(const char* str) {
+TokenType processKeyword(const char *str) {
     TokenType type = TOKEN_ERROR;;
 
     if (strcmp(str, "const") == 0) {
@@ -94,12 +101,12 @@ TokenType processKeyword(const char* str) {
 }
 
 // function to check if this is an identifier
-bool isIdentifier(const char* str) {
+bool isIdentifier(const char *str) {
     regex_t regex;
     // Regular expression that checks if string is a valid identifier
     // but disallows a single underscore '_'
     if (regcomp(&regex, "^[a-zA-Z_][a-zA-Z0-9_]*$", REG_EXTENDED)) {
-        return false;  // Return false if regex compilation fails
+        return false; // Return false if regex compilation fails
     }
     // Execute the regex check
     int result = regexec(&regex, str, 0, NULL, 0);
@@ -114,14 +121,15 @@ bool isIdentifier(const char* str) {
     return result == 0;
 }
 
-int identifyNumberType(const char* str) {
+int identifyNumberType(const char *str) {
     regex_t i32_regex, f64_regex;
-    
+
     // i32 literal regex
-    const char* i32_pattern = "^[0-9]+$";
+    const char *i32_pattern = "^[0-9]+$";
     // f64 literal regex with number before '.'
-    const char* f64_pattern = "^([0-9]+\\.[0-9]*([eE][+-]?[0-9]+)?)|(\\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+)$";
-    
+    const char *f64_pattern =
+            "^([0-9]+\\.[0-9]*([eE][+-]?[0-9]+)?)|(\\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+)$";
+
     // Compile regex
     regcomp(&i32_regex, i32_pattern, REG_EXTENDED);
     regcomp(&f64_regex, f64_pattern, REG_EXTENDED);
@@ -130,21 +138,21 @@ int identifyNumberType(const char* str) {
     if (regexec(&i32_regex, str, 0, NULL, 0) == 0) {
         regfree(&i32_regex);
         regfree(&f64_regex);
-        return 1;  // It's an i32 literal
+        return 1; // It's an i32 literal
     }
 
     // Check if string matches f64 pattern
     if (regexec(&f64_regex, str, 0, NULL, 0) == 0) {
         regfree(&i32_regex);
         regfree(&f64_regex);
-        return 2;  // It's an f64 literal
+        return 2; // It's an f64 literal
     }
 
     // Free regex memory
     regfree(&i32_regex);
     regfree(&f64_regex);
-    
-    return 0;  // Neither i32 nor f64 literal
+
+    return 0; // Neither i32 nor f64 literal
 }
 
 bool isSpecialSymbol(char c) {
@@ -220,7 +228,7 @@ TokenType processSpecialSymbol(char c) {
 
 
 // Function for processing lexemes
-void processToken(const char* buf_str, TokenArray *array) {
+void processToken(const char *buf_str, TokenArray *array) {
     TokenType token_type;
     TokenAttribute attribute;
     attribute.str = NULL;
@@ -228,8 +236,7 @@ void processToken(const char* buf_str, TokenArray *array) {
     if (isKeyword(buf_str)) {
         token_type = processKeyword(buf_str);
         printf("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
-    } 
-    else if (isIdentifier(buf_str)) {
+    } else if (isIdentifier(buf_str)) {
         token_type = TOKEN_ID;
         printf("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
@@ -238,19 +245,18 @@ void processToken(const char* buf_str, TokenArray *array) {
             fprintf(stderr, "Error memory allocation\n");
             exit(0); // TODO: clean
         }
-    }
-    else if (identifyNumberType(buf_str)) {     // != 0
-        if (identifyNumberType(buf_str) == 1){
+    } else if (identifyNumberType(buf_str)) {
+        // != 0
+        if (identifyNumberType(buf_str) == 1) {
             token_type = TOKEN_I32_LITERAL;
             attribute.integer = atoi(buf_str);
         }
-        if (identifyNumberType(buf_str) == 2){
+        if (identifyNumberType(buf_str) == 2) {
             token_type = TOKEN_F64_LITERAL;
             attribute.real = strtod(buf_str, NULL);
         }
         printf("Number: %s\n", buf_str); // Process num
-    } 
-    else if (isSpecialSymbol(buf_str[0]) && buf_str[1] == '\0') {
+    } else if (isSpecialSymbol(buf_str[0]) && buf_str[1] == '\0') {
         token_type = processSpecialSymbol(buf_str[0]);
         printf("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
@@ -264,7 +270,8 @@ void processToken(const char* buf_str, TokenArray *array) {
 
 bool isSeparator(char c) {
     // Checking all possible separators
-    if (strchr("+-*/=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {   // Why is it red?
+    if (strchr("+-*/=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {
+        // Why is it red?
         return true;
     }
     return false;
@@ -283,29 +290,30 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
         }
 
         const bool soloSymbol = strchr("+-*/=()[]{}&|,;:", c) != NULL;
-        if (soloSymbol){    // Todo -> few rows above
+        if (soloSymbol) {
+            // Todo -> few rows above
             appendDynBuffer(buff, c); // TODO: ==, >=, <=, !=, check all symbols
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
         // Check if it isn't whitespace and increase buffer otherwise
         // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
-
-    } else if (c == '"') {  // String starts
-        if (!bufferIsEmpty){
+    } else if (c == '"') {
+        // String starts
+        if (!bufferIsEmpty) {
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
-        nextState = STATE_ONE_LINE_STRING;   // Start String status
-
-    } else if (c == '/' && sourceCode[*i + 1] == '/') {  // Comment starts
-        if (!bufferIsEmpty){  // TODO: MAKE IT A FUNC
+        nextState = STATE_ONE_LINE_STRING; // Start String status
+    } else if (c == '/' && sourceCode[*i + 1] == '/') {
+        // Comment starts
+        if (!bufferIsEmpty) {
+            // TODO: MAKE IT A FUNC
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
-        (*i)++;    // Increasing i by 1, so next reading won't start from the second '/'
+        (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
         nextState = STATE_COMMENT;
-
     } else {
         appendDynBuffer(buff, c);
     }
@@ -316,11 +324,13 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
     LexerState nextState = STATE_ONE_LINE_STRING;
     const char c = sourceCode[*i];
 
-    if (c == '\\' && sourceCode[*i + 1] == '"'){    // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
+    if (c == '\\' && sourceCode[*i + 1] == '"') {
+        // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
         appendDynBuffer(buff, '"');
         (*i)++;
-    }else if (c == '"') { // end of the string
-        printf("String: \"%s\"\n", buff->data);  // TODO: Gotta be another parser for str only
+    } else if (c == '"') {
+        // end of the string
+        printf("String: \"%s\"\n", buff->data); // TODO: Gotta be another parser for str only
 
         Token stringToken = {.type = TOKEN_STRING_LITERAL};
         initStringAttribute(&stringToken.attribute, buff->data);
@@ -328,7 +338,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
 
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
-    } else if (c == '\n'){
+    } else if (c == '\n') {
         // Put an error since double quote strings can't be multiline
         Token errorToken = {.type = TOKEN_ERROR};
         initStringAttribute(&errorToken.attribute, "Got \\n whilst parsing a double quote string");
@@ -344,13 +354,13 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
 
 
 // The main function of the lexer ##
-void runLexer(const char* sourceCode, TokenArray *tokenArray) {
-    LexerState state = STATE_COMMON;  // Initial state
+void runLexer(const char *sourceCode, TokenArray *tokenArray) {
+    LexerState state = STATE_COMMON; // Initial state
 
     DynBuffer buff;
     initDynBuffer(&buff, -1);
 
-    int i = 0;  // Index for source code symbols
+    int i = 0; // Index for source code symbols
     while (sourceCode[i] != '\0') {
         const char c = sourceCode[i];
         // State handling
@@ -365,20 +375,20 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
 
             case STATE_NEXT_LINE_STRING:
                 if (isspace(c) == false) {
-                    if (c == '\\' && sourceCode[i + 1] == '\\'){   //TODO: Can it raise an ERROR at the end?
+                    if (c == '\\' && sourceCode[i + 1] == '\\') {
+                        //TODO: Can it raise an ERROR at the end?
                         i++;
                         state = STATE_ONE_LINE_STRING;
-                    }
-                    else{
+                    } else {
                         ; // TODO: ERROR OCCURE bc string isn't closed
                     }
                 }
-                break; 
+                break;
 
             case STATE_COMMENT:
                 if (c == '\n') {
-                    state = STATE_COMMON;   // Return to normal state after comment ##
-                                            // Indexes must be zeros, so no changes needed
+                    state = STATE_COMMON; // Return to normal state after comment ##
+                    // Indexes must be zeros, so no changes needed
                 }
                 break;
         }
@@ -395,27 +405,7 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
             addToken(tokenArray, errorToken);
         }
         emptyDynBuffer(&buff);
-    }
-    else {
-        ; // TODO: ERROR OCCURE
+    } else {
+        ; // TODO: ERROR OCCURED
     }
 }
-/*
-int main() {
-    initTokenArray(&array);
-    
-    const char* test1 = "x";     // Valid identifier
-    const char* test2 = "_";     // Invalid identifier
-    const char* test3 = "var1";  // Valid identifier
-    const char* test4 = "123";   // Invalid identifier
-    //const char* code = "a b c d e = 42";
-    // Test multiple calls
-    printf("Is '%s' identifier? %d\n", test1, isIdentifier(test1));
-    printf("Is '%s' identifier? %d\n", test2, isIdentifier(test2));
-    printf("Is '%s' identifier? %d\n", test3, isIdentifier(test3));
-    printf("Is '%s' identifier? %d\n", test4, isIdentifier(test4));
-
-    const char* code = "fn main() { const x = 42; // This is a comment\n print(\"Hello, World!\"); }";
-    lexer(code);
-    return 0;
-}*/
