@@ -20,6 +20,7 @@ void freeDynBuffer(DynBuffer *buffer);
 
 bool isDynBufferEmpty(DynBuffer *buffer);
 int appendDynBuffer(DynBuffer *buffer, char c);
+int appendStringDynBuffer(DynBuffer *buffer, char *str);
 int copyFromDynBuffer(DynBuffer *buffer, char **dest);
 int emptyDynBuffer(DynBuffer *buffer);
 

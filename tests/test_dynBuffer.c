@@ -107,6 +107,20 @@ TEST(empty_buffer)
     }
 ENDTEST
 
+TEST(add_string_to_buffer)
+    freeDynBuffer(&buffer);
+    initDynBuffer(&buffer, 2);
+    appendDynBuffer(&buffer, 'a');
+
+    appendStringDynBuffer(&buffer, "bcdef");
+
+    if (strlen(buffer.data) != 6) {
+        FAILCOMPI("String was not properly appended to a buffer", 6, (int)strlen(buffer.data));
+    }
+    if (buffer.capacity != 7) {
+        FAILCOMPI("Buffer size was not expanded properly", 7, buffer.capacity);
+    }
+ENDTEST
 
 int main () {
     initDynBuffer(&buffer, 1);
