@@ -59,33 +59,33 @@ typedef enum {
     TOKEN_ID, 
     TOKEN_ERROR                      // Something went wrong. Message could be included in the attributes.
     // TODO: any other cases?
-} token_type_t;
+} TokenType;
 
 typedef union {
     char *str;      // Could be changed to be different structure with info about length and allocated memory
     int integer;
     double real;
-} token_attribute;  // Made almost fully for variables and for syntax analysis
+} TokenAttribute;  // Made almost fully for variables and for syntax analysis
 
 typedef struct {
-    token_type_t type;
-    token_attribute attribute;
-} token_t;
+    TokenType type;
+    TokenAttribute attribute;
+} Token;
 
 typedef struct {
-    token_t* tokens;
+    Token* tokens;
     size_t size;     // Amount of tokens in the Array now
     size_t capacity;
 } TokenArray;
 
 int initTokenArray(TokenArray* array);
 void freeTokenArray(TokenArray* array);
-int addToken(TokenArray* array, token_t token);
+int addToken(TokenArray* array, Token token);
 
-token_t createToken(const token_type_t type, const token_attribute attribute);
+Token createToken(const TokenType type, const TokenAttribute attribute);
 
-int initStringAttribute(token_attribute* attr, char* str);
+int initStringAttribute(TokenAttribute* attr, char* str);
 
-void freeToken(token_t* token);
+void freeToken(Token* token);
 
 #endif // TOKEN_H

@@ -10,11 +10,12 @@
 
 #include "lexer/lexer.h"
 #include "lexer/token.h"
+#include "structs/dynBuffer.h"
 #include "token.c"
 #include "logging.h"
 
 typedef enum {
-    STATE_NORMAL,
+    STATE_COMMON,
     STATE_STRING,
     STATE_NEXT_LINE_STRING,
     STATE_COMMENT,
@@ -28,12 +29,12 @@ const char* keywords[] = {
 };
 
 bool isKeyword(const char* str);
-token_type_t processKeyword(const char* str);
+TokenType processKeyword(const char* str);
 bool isSeparator(char c);
 bool isIdentifier(const char* str);
 int identifyNumberType(const char* str);
 bool isSpecialSymbol(char c);
-token_type_t processSpecialSymbol(char c);
+TokenType processSpecialSymbol(char c);
 void processToken(const char* buf_str, TokenArray *array);
 
 // Token reader Buffer size
@@ -51,8 +52,8 @@ bool isKeyword(const char* str) {
     return false;  // Not found
 }
 
-token_type_t processKeyword(const char* str) {
-    token_type_t type = TOKEN_ERROR;;
+TokenType processKeyword(const char* str) {
+    TokenType type = TOKEN_ERROR;;
 
     if (strcmp(str, "const") == 0) {
         type = TOKEN_KEYWORD_CONST;
@@ -159,8 +160,8 @@ bool isSpecialSymbol(char c) {
 }
 
 // Not much used now, but will be in the near future
-token_type_t processSpecialSymbol(char c) {
-    token_type_t type;
+TokenType processSpecialSymbol(char c) {
+    TokenType type;
     switch (c) {
         // Math Equations
         case '=':
@@ -228,8 +229,8 @@ token_type_t processSpecialSymbol(char c) {
 
 // Function for processing lexemes
 void processToken(const char* buf_str, TokenArray *array) {
-    token_type_t token_type;
-    token_attribute attribute;
+    TokenType token_type;
+    TokenAttribute attribute;
     attribute.str = NULL;
 
     if (isKeyword(buf_str)) {
@@ -265,13 +266,13 @@ void processToken(const char* buf_str, TokenArray *array) {
         printf("Possible ERROR!\n\n");
         //exit(1);
     }
-    token_t token = createToken(token_type, attribute); 
+    Token token = createToken(token_type, attribute);
     addToken(array, token);
 }
 
 // The main function of the lexer ##
 void runLexer(const char* sourceCode, TokenArray *tokenArray) {
-    LexerState state = STATE_NORMAL;  // Initial state
+    LexerState state = STATE_COMMON;  // Initial state
     char buffer[BUFFER_SIZE];  // Token Buffer
     int buffer_index = 0;  // Buffer index
 
@@ -280,7 +281,7 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
         char c = sourceCode[i];
         // State handling
         switch (state) {
-            case STATE_NORMAL:
+            case STATE_COMMON:
                 if (isSeparator(c)) { 
                     if (buffer_index > 0) {
                         buffer[buffer_index] = '\0';  // put end of the buffer for future cmp
@@ -297,7 +298,7 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
                         // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
                     }
                     else if (strchr("+-*/=()[]{}&|,;:", c) != NULL){    // Todo -> few rows above
-                            buffer[0] = c;                              
+                            buffer[0] = c;
                             buffer[1] = '\0';
                             processToken(buffer, tokenArray);
                     }
@@ -334,7 +335,7 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
                     buffer[buffer_index] = '\0';
                     printf("String: \"%s\"\n", buffer);  // TODO: Gotta be another parser for str only
                     buffer_index = 0;
-                    state = STATE_NORMAL;
+                    state = STATE_COMMON;
                 } else if (c == '\n'){
                     state = STATE_NEXT_LINE_STRING; // Starts next line
                                                     // TODO: Check if \n needed
@@ -356,7 +357,7 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
 
             case STATE_COMMENT:
                 if (c == '\n') {
-                    state = STATE_NORMAL;   // Return to normal state after comment ##
+                    state = STATE_COMMON;   // Return to normal state after comment ##
                                             // Indexes must be zeros, so no changes needed
                 }
                 break;
@@ -365,7 +366,7 @@ void runLexer(const char* sourceCode, TokenArray *tokenArray) {
     }
 
     // Processing the last token in the buffer ##
-    if (buffer_index > 0 && state == STATE_NORMAL) {
+    if (buffer_index > 0 && state == STATE_COMMON) {
         buffer[buffer_index] = '\0';
         processToken(buffer, tokenArray);
     }

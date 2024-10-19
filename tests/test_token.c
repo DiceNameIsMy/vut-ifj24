@@ -11,8 +11,8 @@
 TokenArray tokenArray;
 
 TEST(add_i32_token)
-    const token_attribute i32Attr = {.integer = 256};
-    const token_t i32Token = {.type = TOKEN_I32_LITERAL, i32Attr};
+    const TokenAttribute i32Attr = {.integer = 256};
+    const Token i32Token = {.type = TOKEN_I32_LITERAL, i32Attr};
     addToken(&tokenArray, i32Token);
 
     if (tokenArray.size != 1) {
@@ -27,9 +27,9 @@ TEST(add_i32_token)
 ENDTEST
 
 TEST(add_string_token)
-    token_attribute strAttr;
+    TokenAttribute strAttr;
     initStringAttribute(&strAttr, "Hello World!");
-    const token_t strToken = {.type = TOKEN_STRING_LITERAL, .attribute = strAttr};
+    const Token strToken = {.type = TOKEN_STRING_LITERAL, .attribute = strAttr};
     addToken(&tokenArray, strToken);
 
     if (tokenArray.size != 2) {

@@ -42,17 +42,17 @@ printf("\n")
 
 #define FAILCOMPI(msg, expected, got) failure_count++;                     \
 printf("\033[0;31m[FAILED]\033[0m ");                                      \
-printf("%s. Expected: %i, Got %i", msg, expected, got);                    \
+printf("%s. Expected: '%i', Got: '%i'", msg, expected, got);               \
 printf("\n")
 
 #define FAILCOMPF(msg, expected, got) failure_count++;                     \
 printf("\033[0;31m[FAILED]\033[0m ");                                      \
-printf("%s. Expected: %f, Got %f", msg, expected, got);                    \
+printf("%s. Expected: '%f', Got: '%f'", msg, expected, got);               \
 printf("\n")
 
 #define FAILCOMPS(msg, expected, got) failure_count++;                     \
 printf("\033[0;31m[FAILED]\033[0m ");                                      \
-printf("%s. Expected: %s, Got %s", msg, expected, got);                    \
+printf("%s. Expected: '%s', Got: '%s'", msg, expected, got);               \
 printf("\n")
 
 

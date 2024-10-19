@@ -14,7 +14,7 @@ TokenArray tokenArray;
 static int idx = 0;
 
 // returns true if token exists
-bool try_get_token(token_t *t) {
+bool try_get_token(Token *t) {
     const bool has_token = tokenArray.size > idx;
     if (has_token) {
         *t = tokenArray.tokens[idx++];
@@ -25,7 +25,7 @@ bool try_get_token(token_t *t) {
 }
 
 // return true if token is valid
-bool check_token(token_t *t, const token_type_t type) {
+bool check_token(Token *t, const TokenType type) {
     if (!try_get_token(t)) {
         FAIL("Failed to load the next token. TokenArray size: %i, idx of a token: %i", (int)tokenArray.size, idx);
         return false;
@@ -44,7 +44,7 @@ TEST(empty)
     idx = 0;
     runLexer("", &tokenArray);
 
-    token_t t;
+    Token t;
     if (try_get_token(&t)) {
         FAIL("There are tokens with empty source code provided");
     }
@@ -56,7 +56,7 @@ TEST(keyword)
     idx = 0;
     runLexer("i32", &tokenArray);
 
-    token_t t;
+    Token t;
     if (!check_token(&t, TOKEN_KEYWORD_I32)) {
         return;
     }
@@ -69,7 +69,7 @@ TEST(string_literal)
     idx = 0;
     runLexer("\"abc\"", &tokenArray);
 
-    token_t t;
+    Token t;
     if (!check_token(&t, TOKEN_STRING_LITERAL)) {
         return;
     }
@@ -81,7 +81,7 @@ TEST(float_literals)
     idx = 0;
     runLexer("1.2; .2; 1.2E3; .2e-3", &tokenArray);
 
-    token_t t;
+    Token t;
 
     // 1.2
     if (!check_token(&t, TOKEN_F64_LITERAL)) {
