@@ -12,20 +12,25 @@ typedef enum {
     BLACK
 } BVS_Color;
 
-BVSBranch *BVSBranch_Init(long data);
+BVSBranch *BVSBranch_Init(long data, BVS_Color color);
 void BVSBranch_Free(BVSBranch *branch);
 BVSBranch *BVSBranch_Insert(BVSBranch *branch, long data);
 bool BVSBranch_Search(BVSBranch *branch, long data);
 bool BVSBranch_Delete(BVSBranch *branch, long data);
 
+// Returns a new subRoot that now must stand in place of *branch
+BVSBranch *BVSBranch_LeftRotate(BVSBranch *branch);
+// Returns a new subRoot that now must stand in place of *branch
+BVSBranch *BVSBranch_RightRotate(BVSBranch *branch);
+
 // Internal definitions
 
-BVSBranch *BVSBranch_Init(const long data) {
+BVSBranch *BVSBranch_Init(const long data, BVS_Color color) {
     BVSBranch *branch = malloc(sizeof(BVSBranch));
     if (branch == NULL) {
         return NULL;
     }
-    branch->color = BLACK;
+    branch->color = color;
     branch->data = data;
     branch->left = NULL;
     branch->right = NULL;
@@ -43,7 +48,7 @@ void BVSBranch_Free(BVSBranch *branch) {
 
 BVSBranch *BVSBranch_Insert(BVSBranch *branch, const long data) {
     if (branch == NULL) {
-        return BVSBranch_Init(data);
+        return BVSBranch_Init(data, RED);
     }
 
     if (branch->data > data) {
@@ -77,6 +82,20 @@ bool BVSBranch_Delete(BVSBranch *branch, long data) {
     return false;
 }
 
+BVSBranch *BVSBranch_LeftRotate(BVSBranch *branch) {
+    BVSBranch *newRoot = branch->right;
+    branch->right = branch->right->left;
+    newRoot->left = branch;
+    return newRoot;
+}
+
+BVSBranch *BVSBranch_RightRotate(BVSBranch *branch) {
+    BVSBranch *newRoot = branch->left;
+    branch->left = branch->left->right;
+    newRoot->right = branch;
+    return newRoot;
+}
+
 // Header file definitions
 
 int BVS_Init(BVS *bvs) {
@@ -93,7 +112,11 @@ void BVS_Free(const BVS *bvs) {
 }
 
 void BVS_Insert(BVS *bvs, const long data) {
-    bvs->root = BVSBranch_Insert(bvs->root, data);
+    if (bvs->root == NULL) {
+        bvs->root = BVSBranch_Init(data, BLACK);
+    } else {
+        bvs->root = BVSBranch_Insert(bvs->root, data);
+    }
 }
 
 bool BVS_Search(BVS *bvs, const long data) {
