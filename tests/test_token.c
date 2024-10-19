@@ -53,5 +53,5 @@ int main() {
 
     freeTokenArray(&tokenArray);
 
-    return 0;
+    SUMMARIZE()
 }

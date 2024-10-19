@@ -125,4 +125,6 @@ ENDTEST
 int main () {
     initDynBuffer(&buffer, 1);
     RUN_TESTS();
+    freeDynBuffer(&buffer);
+    SUMMARIZE()
 }

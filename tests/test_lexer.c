@@ -199,5 +199,7 @@ int main() {
 
     RUN_TESTS();
 
-    return 0;
+    freeTokenArray(&tokenArray);
+
+    SUMMARIZE()
 }

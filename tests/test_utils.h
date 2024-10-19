@@ -63,4 +63,14 @@ for (int i = 0; i < test_count; i++) {                                     \
     test_registry[i]();                                                    \
 }
 
+#define SUMMARIZE()                                                        \
+if (failure_count == 0) {                                                  \
+    printf("\033[32m\nAll tests have suceeded\033[0m\n");                  \
+    return 0;                                                              \
+} else {                                                                   \
+    printf("\033[0;31m\n(%i/%i) Tests have failed\033[0m\n",               \
+        failure_count, test_count);                                        \
+    return 1;                                                              \
+}                                                                          \
+
 #endif //TEST_UTILS_H
