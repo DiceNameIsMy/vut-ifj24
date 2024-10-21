@@ -25,16 +25,16 @@ BVSBranch *BVSBranch_RightRotate(BVSBranch *branch);
 
 // Internal definitions
 
-BVSBranch *BVSBranch_Init(const long data, BVS_Color color) {
-    BVSBranch *branch = malloc(sizeof(BVSBranch));
-    if (branch == NULL) {
+void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //maybe we should put a pointer as an argument? Maybe we should make this a void-function?
+    newbranch = malloc(sizeof(BVSBranch));
+    if (newbranch == NULL) {
         return NULL;
     }
-    branch->color = color;
-    branch->data = data;
-    branch->left = NULL;
-    branch->right = NULL;
-    return branch;
+    newbranch->color = color;
+    newbranch->data = data;
+    newbranch->left = NULL;
+    newbranch->right = NULL;
+    //return newbranch;
 }
 
 void BVSBranch_Free(BVSBranch *branch) {
@@ -46,17 +46,21 @@ void BVSBranch_Free(BVSBranch *branch) {
     free(branch);
 }
 
-BVSBranch *BVSBranch_Insert(BVSBranch *branch, const long data) {
+void BVSBranch_Insert(BVSBranch *branch, const long data) {
+    //TODO: WHY THE FUCK AN INSERT PROCEDURE RETURNS A VALUE? ELIMINATE THIS IMMEDIATELY!
+    static BVSBranch *child = NULL;
     if (branch == NULL) {
-        return BVSBranch_Init(data, RED);
+        BVSBranch_Init(branch, data, RED);
     }
-
+    
     if (branch->data > data) {
-        branch->left = BVSBranch_Insert(branch->left, data);
+        BVSBranch_Insert(branch->left, data);
+        branch->left = child;
     } else if (branch->data < data) {
-        branch->right = BVSBranch_Insert(branch->right, data);
+        BVSBranch_Insert(branch->right, data);
+        branch_right = child;
     }
-    return branch;
+    //return branch; //at the end it returns the branch you modified, at the top level that's the ROOT. TF honestly 
 }
 
 bool BVSBranch_Search(BVSBranch *branch, long data) {
