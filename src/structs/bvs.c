@@ -12,16 +12,17 @@ typedef enum {
     BLACK
 } BVS_Color;
 
-BVSBranch *BVSBranch_Init(long data, BVS_Color color);
+void BVSBranch_Init(BVSBranch *newbranch, long data, BVS_Color color);
 void BVSBranch_Free(BVSBranch *branch);
-BVSBranch *BVSBranch_Insert(BVSBranch *branch, long data);
+void BVSBranch_Insert(BVSBranch *branch, long data);
 bool BVSBranch_Search(BVSBranch *branch, long data);
 bool BVSBranch_Delete(BVSBranch *branch, long data);
 
-// Returns a new subRoot that now must stand in place of *branch
-BVSBranch *BVSBranch_LeftRotate(BVSBranch *branch);
-// Returns a new subRoot that now must stand in place of *branch
-BVSBranch *BVSBranch_RightRotate(BVSBranch *branch);
+// Rotates around the *branch
+void BVSBranch_LeftRotate(BVSBranch *branch);
+void BVSBranch_RightRotate(BVSBranch *branch);
+// Resolves the tree structure after an insert operation
+void BVSBranch_InsertResolve(BVSBranch *branch)
 
 // Internal definitions
 
