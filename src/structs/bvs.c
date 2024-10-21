@@ -34,6 +34,7 @@ void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //
     newbranch->data = data;
     newbranch->left = NULL;
     newbranch->right = NULL;
+    newbranch->parent = NULL;
     //return newbranch;
 }
 
@@ -47,19 +48,21 @@ void BVSBranch_Free(BVSBranch *branch) {
 }
 
 void BVSBranch_Insert(BVSBranch *branch, const long data) {
-    //TODO: WHY THE FUCK AN INSERT PROCEDURE RETURNS A VALUE? ELIMINATE THIS IMMEDIATELY!
-    static BVSBranch *child = NULL;
+    //TODO: WHY THE FUCK DOES AN INSERT PROCEDURE RETURNS A VALUE? ELIMINATE THIS IMMEDIATELY!
     if (branch == NULL) {
         BVSBranch_Init(branch, data, RED);
+        BVSBranch_InsertResolve(branch);
+        return;
     }
     
     if (branch->data > data) {
         BVSBranch_Insert(branch->left, data);
-        branch->left = child;
-    } else if (branch->data < data) {
+        branch->left->parent = branch;
+    } else if (branch->data < data) { //should we consider the case that branch->data == data?
         BVSBranch_Insert(branch->right, data);
-        branch_right = child;
+        branch->right->parent = branch;
     }
+    return;
     //return branch; //at the end it returns the branch you modified, at the top level that's the ROOT. TF honestly 
 }
 

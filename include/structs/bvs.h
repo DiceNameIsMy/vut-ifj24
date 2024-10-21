@@ -12,6 +12,7 @@ typedef struct BVSBranch {
     char color;
     struct BVSBranch *left;
     struct BVSBranch *right;
+    struct BVSBranch *parent; //wer gonna need this for colour resolving routines a lot
 } BVSBranch;
 
 // Vyskove Vyvazeni Binarni Vyhledavaci Strom
