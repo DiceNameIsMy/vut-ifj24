@@ -70,9 +70,26 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
         granpa->color = father->color;
         father->color = buffer;
     }
-    if () //LR-scenario
-    if () //RL-scenario
-    if () //RR-scenario
+    if (branch == father->right && father == granpa->left) { //LR-scenario
+        BVSBranch_LeftRotate(father);
+        BVSBranch_RightRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = father->color;
+        father->color = buffer;
+    }
+    if (branch == father->left && father == granpa->right) {//RL-scenario
+        BVSBranch_RightRotate(father);
+        BVSBranch_LeftRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = father->color;
+        father->color = buffer;
+    }
+    if (branch == father->right && father == granpa->right) {//RR-scenario
+        BVSBranch_LeftRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = father->color;
+        father->color = buffer;
+    }
     
 }
 
@@ -118,18 +135,16 @@ bool BVSBranch_Delete(BVSBranch *branch, long data) {
     return false;
 }
 
-BVSBranch *BVSBranch_LeftRotate(BVSBranch *branch) {
+void BVSBranch_LeftRotate(BVSBranch *branch) {
     BVSBranch *newRoot = branch->right;
     branch->right = branch->right->left;
     newRoot->left = branch;
-    return newRoot;
 }
 
-BVSBranch *BVSBranch_RightRotate(BVSBranch *branch) {
+void BVSBranch_RightRotate(BVSBranch *branch) {
     BVSBranch *newRoot = branch->left;
-    branch->left = branch->left->right;
+    branch->left = branch->left->right; //what if branch->left = NULL
     newRoot->right = branch;
-    return newRoot;
 }
 
 // Header file definitions
