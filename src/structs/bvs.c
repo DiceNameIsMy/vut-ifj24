@@ -22,12 +22,12 @@ bool BVSBranch_Delete(BVSBranch *branch, long data);
 void BVSBranch_LeftRotate(BVSBranch *branch);
 void BVSBranch_RightRotate(BVSBranch *branch);
 // Resolves the tree structure after an insert operation
-void BVSBranch_InsertResolve(BVSBranch *branch)
+void BVSBranch_InsertResolve(BVSBranch *branch);
 
 // Internal definitions
 
 void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //maybe we should put a pointer as an argument? Maybe we should make this a void-function?
-    newbranch = malloc(sizeof(BVSBranch));
+    newbranch = (BVSBranch *)malloc(sizeof(BVSBranch));
     if (newbranch == NULL) {
         return NULL;
     }
@@ -36,6 +36,7 @@ void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //
     newbranch->left = NULL;
     newbranch->right = NULL;
     newbranch->parent = NULL;
+    return;
     //return newbranch;
 }
 
@@ -46,6 +47,7 @@ void BVSBranch_Free(BVSBranch *branch) {
     BVSBranch_Free(branch->left);
     BVSBranch_Free(branch->right);
     free(branch);
+    return;
 }
 
 void BVSBranch_InsertResolve(BVSBranch *branch) {
