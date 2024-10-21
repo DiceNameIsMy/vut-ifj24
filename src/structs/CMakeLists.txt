@@ -1,6 +1,7 @@
 project(StructsLib)
 
 set(SOURCE_FILES
+        bvs.c
         dynBuffer.c
 )
 

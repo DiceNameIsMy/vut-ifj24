@@ -10,3 +10,8 @@ target_compile_definitions(test_lexer PRIVATE DEBUG=1)
 add_executable(test_dynBuffer test_dynBuffer.c test_utils.h)
 target_link_libraries(test_dynBuffer PRIVATE StructsLib)
 target_compile_definitions(test_dynBuffer PRIVATE DEBUG=1)
+
+add_executable(test_bvs test_bvs.c test_utils.h)
+target_link_libraries(test_bvs PRIVATE StructsLib)
+target_compile_definitions(test_bvs PRIVATE DEBUG=1)
+
