@@ -49,7 +49,7 @@ void BVSBranch_Free(BVSBranch *branch) {
 }
 
 void BVSBranch_InsertResolve(BVSBranch *branch) {
-    if (IsRoot(branch)) { //if root, just PAINT IT BLACK(c)
+    if (BVSBranch_IsRoot(branch)) { //if root, just PAINT IT BLACK(c)
         branch->color = BLACK;
         return;
     }
@@ -61,7 +61,7 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     if (granpa->left->color == RED && granpa->right->color == RED) { //The "Red Uncle" case
         granpa->right->color = BLACK;
         granpa->left->color = BLACK;
-        if (!IsRoot(granpa)) { //if not root, paint the grandfather red
+        if (!BVSBranch_IsRoot(granpa)) { //if not root, paint the grandfather red
             granpa->color = RED;
             BVSBranch_InsertResolve(granpa);
         } else {
@@ -145,6 +145,10 @@ void BVSBranch_RightRotate(BVSBranch *branch) {
     BVSBranch *newRoot = branch->left;
     branch->left = branch->left->right; //what if branch->left = NULL
     newRoot->right = branch;
+}
+
+bool BVSBranch_IsRoot(BVSBranch *branch) {
+    return branch == NULL;
 }
 
 // Header file definitions
