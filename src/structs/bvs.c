@@ -71,37 +71,33 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     }
     if (branch == father->left && father == granpa->left) { //LL-scenario
         BVSBranch_RightRotate(granpa);
-        char buffer = granpa->color;
-        granpa->color = father->color;
-        father->color = buffer;
-    }
-    if (branch == father->right && father == granpa->left) { //LR-scenario
+        char buffer = granpa->color; //possibly could be outside the ifs
+        granpa->color = father->color; //possibly could be outside the ifs
+        father->color = buffer; //possibly could be out outside the ifs
+    } else if (branch == father->right && father == granpa->left) { //LR-scenario
         BVSBranch_LeftRotate(father);
         BVSBranch_RightRotate(granpa);
         char buffer = granpa->color;
         granpa->color = father->color;
         father->color = buffer;
-    }
-    if (branch == father->left && father == granpa->right) {//RL-scenario
+    } else if (branch == father->left && father == granpa->right) {//RL-scenario
         BVSBranch_RightRotate(father);
         BVSBranch_LeftRotate(granpa);
         char buffer = granpa->color;
         granpa->color = father->color;
         father->color = buffer;
-    }
-    if (branch == father->right && father == granpa->right) {//RR-scenario
+    } else if (branch == father->right && father == granpa->right) {//RR-scenario
         BVSBranch_LeftRotate(granpa);
         char buffer = granpa->color;
         granpa->color = father->color;
         father->color = buffer;
     }
-    
+    return;
 }
 
 void BVSBranch_Insert(BVSBranch *branch, const long data) {
-    //TODO: WHY THE FUCK DOES AN INSERT PROCEDURE RETURN A VALUE? ELIMINATE THIS IMMEDIATELY!
     if (branch == NULL) {
-        BVSBranch_Init(branch, data, RED);
+        BVSBranch_Init(branch, data, RED);//TODO: cover the case when branch = NULL
         BVSBranch_InsertResolve(branch);
         return;
     }
@@ -114,7 +110,6 @@ void BVSBranch_Insert(BVSBranch *branch, const long data) {
         branch->right->parent = branch;
     }
     return;
-    //return branch; //at the end it returns the branch you modified, at the top level that's the ROOT. TF honestly 
 }
 
 bool BVSBranch_Search(BVSBranch *branch, long data) {
@@ -141,7 +136,7 @@ bool BVSBranch_Delete(BVSBranch *branch, long data) {
 }
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
-    BVSBranch *newRoot = branch->right;
+    BVSBranch *newRoot = branch->right; //propagate an error if branch->right == NULL
     branch->right = branch->right->left;
     newRoot->left = branch;
 }
