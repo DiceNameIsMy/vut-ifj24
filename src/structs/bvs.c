@@ -48,11 +48,15 @@ void BVSBranch_Free(BVSBranch *branch) {
 }
 
 void BVSBranch_InsertResolve(BVSBranch *branch) {
-    if (branch->parent->color == BLACK)
+    if (IsRoot(branch)) { //if root, just PAINT IT BLACK(c)
+        branch->color = BLACK;
+        return;
+    }
+    if (branch->parent->color == BLACK) //also covers the case when father is root
         return;
 
     BVSBranch *father = branch->parent;
-    BVSBranch *granpa = father->parent; //if not ROOT, must CHECK for this!
+    BVSBranch *granpa = father->parent; 
     if (granpa->left->color == RED && granpa->right->color == RED) { //The "Red Uncle" case
         granpa->right->color = BLACK;
         granpa->left->color = BLACK;
