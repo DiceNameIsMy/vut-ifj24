@@ -47,8 +47,37 @@ void BVSBranch_Free(BVSBranch *branch) {
     free(branch);
 }
 
+void BVSBranch_InsertResolve(BVSBranch *branch) {
+    if (branch->parent->color == BLACK)
+        return;
+
+    BVSBranch *father = branch->parent;
+    BVSBranch *granpa = father->parent; //if not ROOT, must CHECK for this!
+    if (granpa->left->color == RED && granpa->right->color == RED) { //The "Red Uncle" case
+        granpa->right->color = BLACK;
+        granpa->left->color = BLACK;
+        if (!IsRoot(granpa)) { //if not root, paint the grandfather red
+            granpa->color = RED;
+            BVSBranch_InsertResolve(granpa);
+        } else {
+            granpa->color = BLACK;
+        }
+        return; //quit to un-nest the ifs
+    }
+    if (branch == father->left && father == granpa->left) { //LL-scenario
+        BVSBranch_RightRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = father->color;
+        father->color = buffer;
+    }
+    if () //LR-scenario
+    if () //RL-scenario
+    if () //RR-scenario
+    
+}
+
 void BVSBranch_Insert(BVSBranch *branch, const long data) {
-    //TODO: WHY THE FUCK DOES AN INSERT PROCEDURE RETURNS A VALUE? ELIMINATE THIS IMMEDIATELY!
+    //TODO: WHY THE FUCK DOES AN INSERT PROCEDURE RETURN A VALUE? ELIMINATE THIS IMMEDIATELY!
     if (branch == NULL) {
         BVSBranch_Init(branch, data, RED);
         BVSBranch_InsertResolve(branch);
