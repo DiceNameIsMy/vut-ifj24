@@ -16,7 +16,8 @@ void BVSBranch_Init(BVSBranch *newbranch, long data, BVS_Color color);
 void BVSBranch_Free(BVSBranch *branch);
 void BVSBranch_Insert(BVSBranch *branch, long data);
 bool BVSBranch_Search(BVSBranch *branch, long data);
-bool BVSBranch_Delete(BVSBranch *branch, long data);
+void BVSBranch_Delete(BVSBranch *branch, long data);
+bool BVSBranch_IsRoot(BVSBranch *branch);
 
 // Rotates around the *branch
 void BVSBranch_LeftRotate(BVSBranch *branch);
@@ -29,7 +30,7 @@ void BVSBranch_InsertResolve(BVSBranch *branch);
 void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //maybe we should put a pointer as an argument? Maybe we should make this a void-function?
     newbranch = (BVSBranch *)malloc(sizeof(BVSBranch));
     if (newbranch == NULL) {
-        return NULL;
+        return;
     }
     newbranch->color = color;
     newbranch->data = data;
@@ -148,9 +149,9 @@ void BVSBranch_Delete(BVSBranch *branch, long data) {
         BVSBranch *not_null = (branch->left == NULL) ? branch->right : branch->left;
         not_null->parent = branch->parent;
         if (branch->parent->left == branch) {
-            parent->left = not_null;
+            branch->parent->left = not_null;
         } else {
-            parent->left = not_null;
+            branch->parent->left = not_null;
         }
         free(branch);
         //here to be a resolving function call
@@ -211,9 +212,9 @@ void BVS_Free(const BVS *bvs) {
 
 void BVS_Insert(BVS *bvs, const long data) {
     if (bvs->root == NULL) {
-        bvs->root = BVSBranch_Init(data, BLACK);
+        BVSBranch_Init(bvs->root, data, BLACK);
     } else {
-        bvs->root = BVSBranch_Insert(bvs->root, data);
+        BVSBranch_Insert(bvs->root, data);
     }
 }
 
