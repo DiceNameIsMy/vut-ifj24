@@ -127,28 +127,69 @@ bool BVSBranch_Search(BVSBranch *branch, long data) {
     return BVSBranch_Search(branch->right, data);
 }
 
-bool BVSBranch_Delete(BVSBranch *branch, long data) {
+void BVSBranch_Delete(BVSBranch *branch, long data) {
     if (branch == NULL)
-        return false;
-
-    // TODO: Implement
-    return false;
+        return;
+    if (branch->left == NULL && branch->right == NULL) { //just delete the node if it has no successors
+        BVSBranch *tmp_father = branch->parent;
+        BVSBranch *tmp = branch;
+        free(branch);
+        if (tmp_father->left == tmp) {
+            tmp_father->left = NULL;
+        } else {
+            tmp_father->right = NULL;
+        }
+        //here to be a resolving function call
+        return;
+    }
+    if (branch->left == NULL || branch->right == NULL) { //exactly one successor
+        BVSBranch *not_null = (branch->left == NULL) ? branch->right : branch->left;
+        not_null->parent = branch->parent;
+        if (branch->parent->left == branch) {
+            parent->left = not_null;
+        } else {
+            parent->left = not_null;
+        }
+        free(branch);
+        //here to be a resolving function call
+        return;
+    }
+    //if there are two successors
+    BVSBranch *leftmost = branch->right;
+    while (leftmost->left != NULL) {
+        leftmost = leftmost->left;
+    }
+    leftmost->parent->left = NULL;
+    leftmost->parent = branch->parent;
+    leftmost->right = branch->right;
+    leftmost->left = branch->left;
+    if (branch->parent->left == branch) {
+        branch->parent->left = leftmost;
+    } else {
+        branch->parent->right = leftmost;
+    }
+    free(branch);
+    //here to be a resolving function call
+    // TODO: Implement the resolving function for deletion (I'll do it)
+    return;
 }
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
     BVSBranch *newRoot = branch->right; //propagate an error if branch->right == NULL
     branch->right = branch->right->left;
     newRoot->left = branch;
+    return;
 }
 
 void BVSBranch_RightRotate(BVSBranch *branch) {
     BVSBranch *newRoot = branch->left;
     branch->left = branch->left->right; //what if branch->left = NULL
     newRoot->right = branch;
+    return;
 }
 
 bool BVSBranch_IsRoot(BVSBranch *branch) {
-    return branch == NULL;
+    return branch->parent == NULL;
 }
 
 // Header file definitions
