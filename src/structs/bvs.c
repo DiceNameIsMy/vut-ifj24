@@ -226,17 +226,36 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
 }
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
-    //TODO: modify so it can work properly (and with parents too)
-    BVSBranch *newRoot = branch->right; //propagate an error if branch->right == NULL
+    //CHECK THIS PLZ!!!
+    branch->right->parent = branch->parent;
+    if (!BVSBranch_IsRoot(branch)) {
+        if (branch->parent->left == branch) {
+            branch->parent->left = branch->right;
+        } else {
+            branch->parent->right = branch->right;
+        }
+    }
+    branch->parent = branch->right;
     branch->right = branch->right->left;
-    newRoot->left = branch;
+    branch->parent->left = branch;
+    branch->right->parent = branch;
     return;
 }
 
 void BVSBranch_RightRotate(BVSBranch *branch) {
-    BVSBranch *newRoot = branch->left;
-    branch->left = branch->left->right; //what if branch->left = NULL
-    newRoot->right = branch;
+    //CHECK THIS PLZ!!!
+    branch->left->parent = branch->parent;
+    if (!BVSBranch_IsRoot(branch)) { 
+        if (branch->parent->left == branch) {
+            branch->parent->left = branch->left);
+        } else {
+            branch->parent->right = branch->left;
+        }
+    }
+    branch->parent = branch->left;
+    branch->left = branch->left->right; //we presume that branch->left != NULL
+    branch->parent->right = branch;
+    branch->left->parent = branch;
     return;
 }
 
