@@ -256,8 +256,7 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
     //CHECK THIS PLZ!!!
-    //TODO: what if the tree doesn't have some of the nodes?
-    branch->right->parent = branch->parent;
+    branch->right->parent = branch->parent; //right must exist...
     if (!BVSBranch_IsRoot(branch)) {
         if (branch->parent->left == branch) {
             branch->parent->left = branch->right;
@@ -265,10 +264,12 @@ void BVSBranch_LeftRotate(BVSBranch *branch) {
             branch->parent->right = branch->right;
         }
     }
-    branch->parent = branch->right;
-    branch->right = branch->right->left;
-    branch->parent->left = branch;
-    branch->right->parent = branch;
+    branch->parent = branch->right; //right must exist =>parent must exist
+    branch->right = branch->right->left; //now it might be NULL
+    branch->parent->left = branch; //parent is always non-zero
+    if (branch->right != NULL) { //might be NULL, trust me
+        branch->right->parent = branch;
+    }
     return;
 }
 
@@ -286,7 +287,9 @@ void BVSBranch_RightRotate(BVSBranch *branch) {
     branch->parent = branch->left;
     branch->left = branch->left->right; //we presume that branch->left != NULL
     branch->parent->right = branch;
-    branch->left->parent = branch;
+    if (branch->left != NULL) {
+        branch->left->parent = branch;
+    }
     return;
 }
 
