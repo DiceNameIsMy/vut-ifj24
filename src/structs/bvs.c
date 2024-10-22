@@ -247,7 +247,7 @@ void BVSBranch_RightRotate(BVSBranch *branch) {
     branch->left->parent = branch->parent;
     if (!BVSBranch_IsRoot(branch)) { 
         if (branch->parent->left == branch) {
-            branch->parent->left = branch->left);
+            branch->parent->left = branch->left;
         } else {
             branch->parent->right = branch->left;
         }
