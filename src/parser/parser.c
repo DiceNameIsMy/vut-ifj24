@@ -5,107 +5,114 @@
 #include "lexer/lexer.h"
 #include "structs/stack.h"
 #include "parser/parser.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 Token token;
+TokenArray *tokenArr;
 
-void parser(lexer_t *lexer){
+void parseInit(TokenArray* array){
     Stack *expStack = (Stack *)malloc(sizeof(Stack));
     initializeStack(expStack, 100);
-    parseProgram(lexer);
+    tokenArr = array;
+    token = get_next_token();
+    parseProgram();
 }
 
-void parseProgram(lexer_t *lexer) {
-    parseProlog(lexer);
-    parseFunctionDefList(lexer);
+void parseProgram() {
+    //parseProlog();
+    parseFunctionDefList();
 }
 
-void match(lexer_t *lexer, token_type_t expected) {
-    if ((token_type_t)token.type == expected) {
-        token = get_next_token(lexer); // Move to the next token
+void match(TokenType expected) {
+    if ((TokenType)token.type == expected) {
+        token = get_next_token(); // Move to the next token
     } else {
         // Handle syntax error
-        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", expected, (token_type_t)token.type);
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
         exit(2); // or handle error gracefully
     }
 }
 
-void parseProlog(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_CONST); // 'const'
-    match(lexer, TOKEN_ID); // 'ifj'
-    match(lexer, TOKEN_ASSIGNMENT); // '='
-    match(lexer, TOKEN_AT); // '@'
-    match(lexer, TOKEN_ID); // 'import'
-    match(lexer, TOKEN_LEFT_ROUND_BRACKET);
-    match(lexer, TOKEN_STRING_LITERAL);
-    match(lexer, TOKEN_RIGHT_ROUND_BRACKET);
-    match(lexer, TOKEN_SEMICOLON);
+void parseProlog() {
+    match(TOKEN_KEYWORD_CONST); // 'const'
+    match(TOKEN_ID); // 'ifj'
+    match(TOKEN_ASSIGNMENT); // '='
+    match(TOKEN_AT); // '@'
+    match(TOKEN_ID); // 'import'
+    match(TOKEN_LEFT_ROUND_BRACKET);
+    match(TOKEN_STRING_LITERAL);
+    match(TOKEN_RIGHT_ROUND_BRACKET);
+    match(TOKEN_SEMICOLON);
 }
 
-void parseFunctionDefList(lexer_t *lexer) {
-    while ((token_type_t)token.type == TOKEN_KEYWORD_PUB) {
-        parseFunctionDef(lexer);
+void parseFunctionDefList() {
+    while ((TokenType)token.type == TOKEN_KEYWORD_PUB) {
+        parseFunctionDef();
     }
 }
 
-void parseFunctionDef(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_PUB);      // Matches 'pub'
-    match(lexer, TOKEN_KEYWORD_FN);       // Matches 'fn'
-    match(lexer, TOKEN_ID);               // Function identifier
-    match(lexer, TOKEN_LEFT_ROUND_BRACKET); // Opening parenthesis
+void parseFunctionDef() {
+    match(TOKEN_KEYWORD_PUB);      // Matches 'pub'
+    match(TOKEN_KEYWORD_FN);       // Matches 'fn'
+    match(TOKEN_ID);               // Function identifier
+    match(TOKEN_LEFT_ROUND_BRACKET); // Opening parenthesis
 
-    parseParamList(lexer);                // Parse the function's parameter list
+    parseParamList();                // Parse the function's parameter list
 
-    match(lexer, TOKEN_RIGHT_ROUND_BRACKET); // Closing parenthesis
+    match(TOKEN_RIGHT_ROUND_BRACKET); // Closing parenthesis
 
-    parseReturnType(lexer);               // Parse the return type (void or other types)
+    parseReturnType();               // Parse the return type (void or other types)
 
-    match(lexer, TOKEN_LEFT_CURLY_BRACKET);  // Opening curly bracket for function body
+    match(TOKEN_LEFT_CURLY_BRACKET);  // Opening curly bracket for function body
 
-    parseStatementList(lexer);            // Parse the function body statements
+    parseStatementList();            // Parse the function body statements
 
-    match(lexer, TOKEN_RIGHT_CURLY_BRACKET); // Closing curly bracket
+    match(TOKEN_RIGHT_CURLY_BRACKET); // Closing curly bracket
 }
 
-void parseParamList(lexer_t *lexer) {
-    if ((token_type_t)token.type == TOKEN_ID) {
-        match(lexer, TOKEN_ID);          // Parameter name
-        match(lexer, TOKEN_COLON);       // Colon
-        parseType(lexer);                // Type
-        parseParamListTail(lexer);       // Check for additional parameters
+void parseParamList() {
+    if ((TokenType)token.type == TOKEN_ID) {
+        match(TOKEN_ID);          // Parameter name
+        match(TOKEN_COLON);       // Colon
+        parseType();                // Type
+        parseParamListTail();       // Check for additional parameters
     }
     // If no parameters, the function definition will skip this part
 }
 
-void parseParamListTail(lexer_t *lexer) {
-    while ((token_type_t)token.type == TOKEN_COMMA) {
-        match(lexer, TOKEN_COMMA);       // Comma for separating parameters
-        match(lexer, TOKEN_ID);          // Next parameter name
-        match(lexer, TOKEN_COLON);       // Colon
-        parseType(lexer);                // Type
+void parseParamListTail() {
+    while ((TokenType)token.type == TOKEN_COMMA) {
+        match(TOKEN_COMMA);       // Comma for separating parameters
+        match(TOKEN_ID);          // Next parameter name
+        match(TOKEN_COLON);       // Colon
+        parseType();                // Type
     }
 }
 
-void parseReturnType(lexer_t *lexer) {
-    if ((token_type_t)token.type == TOKEN_KEYWORD_VOID) {
-        match(lexer, TOKEN_KEYWORD_VOID); // Matches 'void'
+void parseReturnType() {
+    if ((TokenType)token.type == TOKEN_KEYWORD_VOID) {
+        match(TOKEN_KEYWORD_VOID); // Matches 'void'
     } else {
-        parseType(lexer);                 // Parse the type if not void
+        parseType();                 // Parse the type if not void
     }
 }
 
-void parseType(lexer_t *lexer) {
-    if ((token_type_t)token.type == TOKEN_KEYWORD_I32) {
-        match(lexer, TOKEN_KEYWORD_I32);  // Matches 'i32'
-    } else if ((token_type_t)(token_type_t)token.type == TOKEN_KEYWORD_F64) {
-        match(lexer, TOKEN_KEYWORD_F64);  // Matches 'f64'
-    } else if ((token_type_t)token.type == TOKEN_KEYWORD_U8_ARRAY) {
-        match(lexer, TOKEN_KEYWORD_U8_ARRAY);  // Matches '[]u8'
-    } else if ((token_type_t)token.type == TOKEN_KEYWORD_I32_NULLABLE) {
-        match(lexer, TOKEN_KEYWORD_I32_NULLABLE);  // Matches '?i32'
-    } else if ((token_type_t)token.type == TOKEN_KEYWORD_F64_NULLABLE) {
-        match(lexer, TOKEN_KEYWORD_F64_NULLABLE);  // Matches '?f64'
-    } else if ((token_type_t)token.type == TOKEN_KEYWORD_U8_ARRAY_NULLABLE) {
-        match(lexer, TOKEN_KEYWORD_U8_ARRAY_NULLABLE);  // Matches '?[]u8'
+void parseType() {
+    if ((TokenType)token.type == TOKEN_KEYWORD_I32) {
+        match(TOKEN_KEYWORD_I32);  // Matches 'i32'
+    } else if ((TokenType)token.type == TOKEN_KEYWORD_F64) {
+        match(TOKEN_KEYWORD_F64);  // Matches 'f64'
+    } else if ((TokenType)token.type == TOKEN_LEFT_SQUARE_BRACKET) {
+        match(TOKEN_LEFT_SQUARE_BRACKET);
+        match(TOKEN_RIGHT_SQUARE_BRACKET);
+        match(TOKEN_KEYWORD_U8);  // Matches '[]u8'
+    } else if ((TokenType)token.type == TOKEN_KEYWORD_I32_NULLABLE) {
+        match(TOKEN_KEYWORD_I32_NULLABLE);  // Matches '?i32'
+    } else if ((TokenType)token.type == TOKEN_KEYWORD_F64_NULLABLE) {
+        match(TOKEN_KEYWORD_F64_NULLABLE);  // Matches '?f64'
+    } else if ((TokenType)token.type == TOKEN_KEYWORD_U8_ARRAY_NULLABLE) {
+        match(TOKEN_KEYWORD_U8_ARRAY_NULLABLE);  // Matches '?[]u8'
     } else {
         // Handle error for invalid type
         fprintf(stderr,"Syntax error: invalid type\n");
@@ -113,32 +120,32 @@ void parseType(lexer_t *lexer) {
     }
 }
 
-void parseStatementList(lexer_t *lexer) {
-    while ((token_type_t)token.type != TOKEN_RIGHT_CURLY_BRACKET) {  // Stop when '}' is encountered
-        parseStatement(lexer);                        // Parse each statement in the list
+void parseStatementList() {
+    while ((TokenType)token.type != TOKEN_RIGHT_CURLY_BRACKET) {  // Stop when '}' is encountered
+        parseStatement();                        // Parse each statement in the list
     }
 }
 
 
-void parseStatement(lexer_t *lexer) {
-    switch ((token_type_t)token.type) {
+void parseStatement() {
+    switch ((TokenType)token.type) {
         case TOKEN_KEYWORD_CONST:
-            parseConstDeclaration(lexer);
+            parseConstDeclaration();
             break;
         case TOKEN_KEYWORD_VAR:
-            parseVarDeclaration(lexer);
+            parseVarDeclaration();
             break;
         case TOKEN_ID:
-            parseAssignmentOrFunctionCall(lexer);
+            parseAssignmentOrFunctionCall();
             break;
         case TOKEN_KEYWORD_IF:
-            parseIfStatement(lexer);
+            parseIfStatement();
             break;
         case TOKEN_KEYWORD_WHILE:
-            parseWhileStatement(lexer);
+            parseWhileStatement();
             break;
         case TOKEN_KEYWORD_RETURN:
-            parseReturnStatement(lexer);
+            parseReturnStatement();
             break;
         default:
             // Handle syntax error for unexpected token
@@ -147,104 +154,110 @@ void parseStatement(lexer_t *lexer) {
     }
 }
 
-void parseConstDeclaration(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_CONST);  // Match 'const' keyword
-    match(lexer, TOKEN_ID);             // Match the identifier (constant name)
-    match(lexer, TOKEN_COLON);          // Match the colon ':'
-    parseType(lexer);                   // Parse the type
-    match(lexer, TOKEN_ASSIGNMENT);     // Match the assignment operator '='
-    parseExpression(lexer);             // Parse the expression (constant value)
-    match(lexer, TOKEN_SEMICOLON);      // Match the semicolon ';'
+void parseConstDeclaration() {
+    match(TOKEN_KEYWORD_CONST);  // Match 'const' keyword
+    match(TOKEN_ID);             // Match the identifier (constant name)
+    parseVarType();             // Parse the type
+    match(TOKEN_ASSIGNMENT);     // Match the assignment operator '='
+    parseExpression();             // Parse the expression (constant value)
+    match(TOKEN_SEMICOLON);      // Match the semicolon ';'
 }
 
-void parseExpression(lexer_t *lexer) {
-    parseSimpleExpression(lexer);  // Parse the simple expression (like a term or factor)
-
-    // Check if the current token is a relational operator (like <, >, ==, etc.)
-    if ((token_type_t)token.type == TOKEN_LESS_THAN
-    || (token_type_t)token.type == TOKEN_LESS_THAN_OR_EQUAL_TO
-    || (token_type_t)token.type == TOKEN_GREATER_THAN
-    || (token_type_t)token.type == TOKEN_GREATER_THAN_OR_EQUAL_TO
-    || (token_type_t)token.type == TOKEN_EQUAL_TO
-    || (token_type_t)token.type == TOKEN_NOT_EQUAL_TO) {
-        parseRelationalTail(lexer);  // Parse the relational tail if a relational operator is found
+void parseVarType(){
+    if ((TokenType)token.type != TOKEN_ASSIGNMENT){
+        match(TOKEN_COLON);
+        parseType();
     }
 }
 
-void parseRelationalTail(lexer_t *lexer) {
+void parseExpression() {
+    parseSimpleExpression();  // Parse the simple expression (like a term or factor)
+
+    // Check if the current token is a relational operator (like <, >, ==, etc.)
+    if ((TokenType)token.type == TOKEN_LESS_THAN
+    || (TokenType)token.type == TOKEN_LESS_THAN_OR_EQUAL_TO
+    || (TokenType)token.type == TOKEN_GREATER_THAN
+    || (TokenType)token.type == TOKEN_GREATER_THAN_OR_EQUAL_TO
+    || (TokenType)token.type == TOKEN_EQUAL_TO
+    || (TokenType)token.type == TOKEN_NOT_EQUAL_TO) {
+        parseRelationalTail();  // Parse the relational tail if a relational operator is found
+    }
+}
+
+void parseRelationalTail() {
     // Match the relational operator (already verified in parseExpression)
-    switch ((token_type_t)token.type) {
+    switch ((TokenType)token.type) {
         case TOKEN_LESS_THAN:
-            match(lexer, TOKEN_LESS_THAN);
+            match(TOKEN_LESS_THAN);
             break;
         case TOKEN_LESS_THAN_OR_EQUAL_TO:
-            match(lexer, TOKEN_LESS_THAN_OR_EQUAL_TO);
+            match(TOKEN_LESS_THAN_OR_EQUAL_TO);
             break;
         case TOKEN_GREATER_THAN:
-            match(lexer, TOKEN_GREATER_THAN);
+            match(TOKEN_GREATER_THAN);
             break;
         case TOKEN_GREATER_THAN_OR_EQUAL_TO:
-            match(lexer, TOKEN_GREATER_THAN_OR_EQUAL_TO);
+            match(TOKEN_GREATER_THAN_OR_EQUAL_TO);
             break;
         case TOKEN_EQUAL_TO:
-            match(lexer, TOKEN_EQUAL_TO);
+            match(TOKEN_EQUAL_TO);
             break;
         case TOKEN_NOT_EQUAL_TO:
-            match(lexer, TOKEN_NOT_EQUAL_TO);
+            match(TOKEN_NOT_EQUAL_TO);
             break;
         default:
             // Handle error if not a relational operator
             fprintf(stderr,"Syntax error: unexpected token in relational expression\n");
             exit(2);
     }
-    parseSimpleExpression(lexer);  // Parse the expression after the relational operator
+    parseSimpleExpression();  // Parse the expression after the relational operator
 }
 
-void parseSimpleExpression(lexer_t *lexer) {
-    parseTerm(lexer);  // Parse the term (a variable, literal, or subexpression)
+void parseSimpleExpression() {
+    parseTerm();  // Parse the term (a variable, literal, or subexpression)
 
     // Handle addition and subtraction in expressions
-    while ((token_type_t)token.type == TOKEN_ADDITION
-        || (token_type_t)token.type == TOKEN_SUBTRACTION) {
-        if ((token_type_t)token.type == TOKEN_ADDITION) {
-            match(lexer, TOKEN_ADDITION);
+    while ((TokenType)token.type == TOKEN_ADDITION
+        || (TokenType)token.type == TOKEN_SUBTRACTION) {
+        if ((TokenType)token.type == TOKEN_ADDITION) {
+            match(TOKEN_ADDITION);
         } else {
-            match(lexer, TOKEN_SUBTRACTION);
+            match(TOKEN_SUBTRACTION);
         }
-        parseTerm(lexer);  // Parse the next term after the operator
+        parseTerm();  // Parse the next term after the operator
     }
 }
 
-void parseTerm(lexer_t *lexer) {
-    parseFactor(lexer);  // Parse the factor (like a literal or subexpression)
+void parseTerm() {
+    parseFactor();  // Parse the factor (like a literal or subexpression)
 
     // Handle multiplication and division in expressions
-    while ((token_type_t)token.type == TOKEN_MULTIPLICATION
-        || (token_type_t)token.type == TOKEN_DIVISION) {
-        if ((token_type_t)token.type == TOKEN_MULTIPLICATION) {
-            match(lexer, TOKEN_MULTIPLICATION);
+    while ((TokenType)token.type == TOKEN_MULTIPLICATION
+        || (TokenType)token.type == TOKEN_DIVISION) {
+        if ((TokenType)token.type == TOKEN_MULTIPLICATION) {
+            match(TOKEN_MULTIPLICATION);
         } else {
-            match(lexer, TOKEN_DIVISION);
+            match(TOKEN_DIVISION);
         }
-        parseFactor(lexer);  // Parse the next factor after the operator
+        parseFactor();  // Parse the next factor after the operator
     }
 }
 
-void parseFactor(lexer_t *lexer) {
-    if ((token_type_t)token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it's a subexpression in parentheses
-        match(lexer, TOKEN_LEFT_ROUND_BRACKET);
-        parseExpression(lexer);                    // Parse the subexpression
-        match(lexer, TOKEN_RIGHT_ROUND_BRACKET);   // Ensure closing bracket is matched
-    } else if ((token_type_t)token.type == TOKEN_ID) {           // If it's an identifier (variable or function call)
-        match(lexer, TOKEN_ID);
-        if ((token_type_t)token.type == TOKEN_LEFT_ROUND_BRACKET) {
-            parseFunctionCall(lexer);              // Optionally, handle function call if '(' follows
+void parseFactor() {
+    if ((TokenType)token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it's a subexpression in parentheses
+        match(TOKEN_LEFT_ROUND_BRACKET);
+        parseExpression();                    // Parse the subexpression
+        match(TOKEN_RIGHT_ROUND_BRACKET);   // Ensure closing bracket is matched
+    } else if ((TokenType)token.type == TOKEN_ID) {           // If it's an identifier (variable or function call)
+        match(TOKEN_ID);
+        if ((TokenType)token.type == TOKEN_LEFT_ROUND_BRACKET) {
+            parseFunctionCall();              // Optionally, handle function call if '(' follows
         }
-    } else if ((token_type_t)token.type == TOKEN_I32_LITERAL
-        || (token_type_t)token.type == TOKEN_F64_LITERAL
-        || (token_type_t)token.type == TOKEN_STRING_LITERAL
-        || (token_type_t)token.type == TOKEN_KEYWORD_NULL) {
-        match(lexer, (token_type_t)token.type);                  // Match the literal or null keyword
+    } else if ((TokenType)token.type == TOKEN_I32_LITERAL
+        || (TokenType)token.type == TOKEN_F64_LITERAL
+        || (TokenType)token.type == TOKEN_STRING_LITERAL
+        || (TokenType)token.type == TOKEN_KEYWORD_NULL) {
+        match((TokenType)token.type);                  // Match the literal or null keyword
     } else {
         // Handle syntax error if no valid factor is found
         fprintf(stderr,"Syntax error: unexpected token in factor\n");
@@ -252,43 +265,42 @@ void parseFactor(lexer_t *lexer) {
     }
 }
 
-void parseFunctionCall(lexer_t *lexer) {
-    match(lexer, TOKEN_LEFT_ROUND_BRACKET);  // Match '('
+void parseFunctionCall() {
+    match(TOKEN_LEFT_ROUND_BRACKET);  // Match '('
 
     // If there are arguments in the function call
-    if ((token_type_t)token.type != TOKEN_RIGHT_ROUND_BRACKET) {
-        parseExpression(lexer);  // Parse the first argument expression
+    if ((TokenType)token.type != TOKEN_RIGHT_ROUND_BRACKET) {
+        parseExpression();  // Parse the first argument expression
 
         // Parse any additional arguments, separated by commas
-        while ((token_type_t)token.type == TOKEN_COMMA) {
-            match(lexer, TOKEN_COMMA);       // Match ','
-            parseExpression(lexer);          // Parse the next argument
+        while ((TokenType)token.type == TOKEN_COMMA) {
+            match(TOKEN_COMMA);       // Match ','
+            parseExpression();          // Parse the next argument
         }
     }
 
-    match(lexer, TOKEN_RIGHT_ROUND_BRACKET); // Match ')'
+    match(TOKEN_RIGHT_ROUND_BRACKET); // Match ')'
 }
 
-void parseVarDeclaration(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_VAR);  // Match 'var' keyword
-    match(lexer, TOKEN_ID);           // Match the identifier (variable name)
-    match(lexer, TOKEN_COLON);        // Match the colon ':'
-    parseType(lexer);                 // Parse the type
-    match(lexer, TOKEN_ASSIGNMENT);   // Match the assignment operator '='
-    parseExpression(lexer);           // Parse the expression (variable value)
-    match(lexer, TOKEN_SEMICOLON);    // Match the semicolon ';'
+void parseVarDeclaration() {
+    match(TOKEN_KEYWORD_VAR);  // Match 'var' keyword
+    match(TOKEN_ID);           // Match the identifier (variable name)
+    parseVarType();                 // Parse the type
+    match(TOKEN_ASSIGNMENT);   // Match the assignment operator '='
+    parseExpression();           // Parse the expression (variable value)
+    match(TOKEN_SEMICOLON);    // Match the semicolon ';'
 }
 
-void parseAssignmentOrFunctionCall(lexer_t *lexer) {
-    match(lexer, TOKEN_ID);  // Match the identifier
+void parseAssignmentOrFunctionCall() {
+    match(TOKEN_ID);  // Match the identifier
 
-    if ((token_type_t)token.type == TOKEN_ASSIGNMENT) {
-        match(lexer, TOKEN_ASSIGNMENT);  // Match '='
-        parseExpression(lexer);          // Parse the expression for assignment
-        match(lexer, TOKEN_SEMICOLON);   // Match the semicolon
-    } else if ((token_type_t)token.type == TOKEN_LEFT_ROUND_BRACKET) {
-        parseFunctionCall(lexer);        // Parse the function call
-        match(lexer, TOKEN_SEMICOLON);   // Match the semicolon after the function call
+    if ((TokenType)token.type == TOKEN_ASSIGNMENT) {
+        match(TOKEN_ASSIGNMENT);  // Match '='
+        parseExpression();          // Parse the expression for assignment
+        match(TOKEN_SEMICOLON);   // Match the semicolon
+    } else if ((TokenType)token.type == TOKEN_LEFT_ROUND_BRACKET) {
+        parseFunctionCall();        // Parse the function call
+        match(TOKEN_SEMICOLON);   // Match the semicolon after the function call
     } else {
         // Handle error for unexpected token after identifier
         fprintf(stderr,"Syntax error: unexpected token after identifier\n");
@@ -296,46 +308,51 @@ void parseAssignmentOrFunctionCall(lexer_t *lexer) {
     }
 }
 
-void parseIfStatement(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_IF);          // Match 'if'
-    match(lexer, TOKEN_LEFT_ROUND_BRACKET);  // Match '('
-    parseExpression(lexer);                  // Parse the expression (could be a nullable type)
-    match(lexer, TOKEN_RIGHT_ROUND_BRACKET); // Match ')'
+void parseIfStatement() {
+    match(TOKEN_KEYWORD_IF);          // Match 'if'
+    match(TOKEN_LEFT_ROUND_BRACKET);  // Match '('
+    parseExpression();                  // Parse the expression (could be a nullable type)
+    match(TOKEN_RIGHT_ROUND_BRACKET); // Match ')'
 
     // Handle nullable binding
-    if ((token_type_t)token.type == TOKEN_VERTICAL_BAR) {
-        match(lexer, TOKEN_VERTICAL_BAR);    // Match '|'
-        match(lexer, TOKEN_ID);              // Match id_bez_null (identifier)
-        match(lexer, TOKEN_VERTICAL_BAR);    // Match closing '|'
+    if ((TokenType)token.type == TOKEN_VERTICAL_BAR) {
+        match(TOKEN_VERTICAL_BAR);    // Match '|'
+        match(TOKEN_ID);              // Match id_bez_null (identifier)
+        match(TOKEN_VERTICAL_BAR);    // Match closing '|'
     }
 
-    match(lexer, TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
-    parseStatementList(lexer);               // Parse statements inside the 'if' block
-    match(lexer, TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
+    match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
+    parseStatementList();               // Parse statements inside the 'if' block
+    match(TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
 
     // Optional 'else' block
-    if ((token_type_t)token.type == TOKEN_KEYWORD_ELSE) {
-        match(lexer, TOKEN_KEYWORD_ELSE);    // Match 'else'
-        match(lexer, TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
-        parseStatementList(lexer);               // Parse statements inside 'else'
-        match(lexer, TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
+    if ((TokenType)token.type == TOKEN_KEYWORD_ELSE) {
+        match(TOKEN_KEYWORD_ELSE);    // Match 'else'
+        match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
+        parseStatementList();               // Parse statements inside 'else'
+        match(TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
     }
 }
 
-void parseWhileStatement(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_WHILE);     // Match 'while'
-    match(lexer, TOKEN_LEFT_ROUND_BRACKET); // Match '('
-    parseExpression(lexer);                // Parse the condition expression
-    match(lexer, TOKEN_RIGHT_ROUND_BRACKET); // Match ')'
-    match(lexer, TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
-    parseStatementList(lexer);             // Parse the statements inside the loop
-    match(lexer, TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
+void parseWhileStatement() {
+    match(TOKEN_KEYWORD_WHILE);     // Match 'while'
+    match(TOKEN_LEFT_ROUND_BRACKET); // Match '('
+    parseExpression();                // Parse the condition expression
+    match(TOKEN_RIGHT_ROUND_BRACKET); // Match ')'
+    match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
+    parseStatementList();             // Parse the statements inside the loop
+    match(TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
 }
 
-void parseReturnStatement(lexer_t *lexer) {
-    match(lexer, TOKEN_KEYWORD_RETURN);   // Match 'return'
-    if ((token_type_t)token.type != TOKEN_SEMICOLON) {
-        parseExpression(lexer);           // Parse the return expression if present
+void parseReturnStatement() {
+    match(TOKEN_KEYWORD_RETURN);   // Match 'return'
+    if ((TokenType)token.type != TOKEN_SEMICOLON) {
+        parseExpression();           // Parse the return expression if present
     }
-    match(lexer, TOKEN_SEMICOLON);        // Match the semicolon ';'
+    match(TOKEN_SEMICOLON);        // Match the semicolon ';'
+}
+
+Token get_next_token(){
+    static unsigned int stat_index = 0;
+    return tokenArr->tokens[stat_index++];
 }

@@ -6,8 +6,9 @@ add_executable(vut_ifj main.c
         structs/stack.c
         ../include/parser/parser.h
         parser/parser.c
-        structs/sym_table.c
-        ../include/structs/sym_table.h)
+        ../include/structs/dynBuffer.h
+        structs/dynBuffer.c
+)
 target_link_libraries(vut_ifj PRIVATE LexerLib)
 
 # Configure an executable for debug compilation
@@ -15,7 +16,6 @@ add_executable(vut_ifj_debug main.c
         ../include/structs/stack.h
         ../include/parser/parser.h
         parser/parser.c
-        structs/sym_table.c
-        ../include/structs/sym_table.h)
+)
 target_link_libraries(vut_ifj_debug PRIVATE LexerLib)
 target_compile_definitions(vut_ifj_debug PRIVATE DEBUG=1)

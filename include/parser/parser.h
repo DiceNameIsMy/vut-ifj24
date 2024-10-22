@@ -7,29 +7,31 @@
 #include "lexer/token.h"
 #include "lexer/lexer.h"
 
-void parser(lexer_t *lexer);
-void parseProgram(lexer_t *lexer);
-void match(lexer_t *lexer, token_type_t expected);
-void parseProlog(lexer_t *lexer);
-void parseFunctionDefList(lexer_t *lexer);
-void parseFunctionDef(lexer_t *lexer);
-void parseParamList(lexer_t *lexer);
-void parseParamListTail(lexer_t *lexer);
-void parseReturnType(lexer_t *lexer);
-void parseType(lexer_t *lexer);
-void parseStatementList(lexer_t *lexer);
-void parseStatement(lexer_t *lexer);
-void parseConstDeclaration(lexer_t *lexer);
-void parseExpression(lexer_t *lexer);
-void parseRelationalTail(lexer_t *lexer);
-void parseSimpleExpression(lexer_t *lexer);
-void parseTerm(lexer_t *lexer);
-void parseFactor(lexer_t *lexer);
-void parseFunctionCall(lexer_t *lexer);
-void parseVarDeclaration(lexer_t *lexer);
-void parseAssignmentOrFunctionCall(lexer_t *lexer);
-void parseIfStatement(lexer_t *lexer);
-void parseWhileStatement(lexer_t *lexer);
-void parseReturnStatement(lexer_t *lexer);
+void parseInit(TokenArray* array);
+void parseProgram();
+void match(TokenType expected);
+void parseProlog();
+void parseFunctionDefList();
+void parseFunctionDef();
+void parseParamList();
+void parseParamListTail();
+void parseReturnType();
+void parseType();
+void parseVarType();
+void parseStatementList();
+void parseStatement();
+void parseConstDeclaration();
+void parseExpression();
+void parseRelationalTail();
+void parseSimpleExpression();
+void parseTerm();
+void parseFactor();
+void parseFunctionCall();
+void parseVarDeclaration();
+void parseAssignmentOrFunctionCall();
+void parseIfStatement();
+void parseWhileStatement();
+void parseReturnStatement();
+Token get_next_token();
 
 #endif //VUT_IFJ_PARSER_H

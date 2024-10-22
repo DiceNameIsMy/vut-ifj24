@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -7,8 +6,8 @@
 
 #define TOKEN_ARRAY_INIT_CAPACITY 16
 
-int initTokenArray(TokenArray* array) {
-    array->tokens = (token_t*) malloc(TOKEN_ARRAY_INIT_CAPACITY * sizeof(token_t));
+int initTokenArray(TokenArray *array) {
+    array->tokens = (Token *) malloc(TOKEN_ARRAY_INIT_CAPACITY * sizeof(Token));
     if (!array->tokens) {
         fprintf(stderr, "Malloc Memory ERROR\n");
         return -1;
@@ -18,18 +17,18 @@ int initTokenArray(TokenArray* array) {
     return 0;
 }
 
-void freeTokenArray(TokenArray* array) {
+void freeTokenArray(TokenArray *array) {
     free(array->tokens);
     array->tokens = NULL;
     array->size = 0;
     array->capacity = 0;
 }
 
-int addToken(TokenArray* array, const token_t token) {
+int addToken(TokenArray *array, const Token token) {
     // If array is full, expand by 2 times
     if (array->size == array->capacity) {
         array->capacity *= 2;
-        token_t* reallocated = realloc(array->tokens, array->capacity * sizeof(token_t));
+        Token *reallocated = realloc(array->tokens, array->capacity * sizeof(Token));
         if (reallocated == NULL) {
             fprintf(stderr, "Allocating expended memory ERROR\n");
             return -1;
@@ -44,14 +43,15 @@ int addToken(TokenArray* array, const token_t token) {
 }
 
 
-token_t createToken(const token_type_t type, const token_attribute attribute) {
-    token_t token;
+Token createToken(const TokenType type, const TokenAttribute attribute) {
+    Token token;
     token.type = type;
-    token.attribute = attribute;
+    token.attribute = attribute; // TODO: INIT attribute
 
     return token;
 }
-int initStringAttribute(token_attribute* attr, char* str) {
+
+int initStringAttribute(TokenAttribute *attr, char *str) {
     attr->str = malloc(strlen(str) + 1);
     if (attr->str == NULL) {
         return -1;
@@ -60,7 +60,7 @@ int initStringAttribute(token_attribute* attr, char* str) {
     return 0;
 }
 
-void freeToken(token_t* token) {
+void freeToken(Token *token) {
     if (token->attribute.str != NULL) {
         free(token->attribute.str);
         token->attribute.str = NULL;

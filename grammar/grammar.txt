@@ -19,17 +19,21 @@
 [StatementList] ::= [Statement] [StatementList]
 [StatementList] ::= ε
 
-[Statement] ::= 'const' [Identifier] ':' [Type] '=' [Expression] ';'
-[Statement] ::= 'var' [Identifier] ':' [Type] '=' [Expression] ';'
+[Statement] ::= 'const' [Identifier] [VarType] '=' [Expression] ';'
+[Statement] ::= 'var' [Identifier] [VarType] '=' [Expression] ';'
 [Statement] ::= [Identifier] '=' [Expression] ';'
 [Statement] ::= 'if' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}' [OptionalElse]
 [Statement] ::= 'while' '(' [Expression] ')' '{' [StatementList] '}'
 [Statement] ::= 'return' [ReturnValue] ';'
 
+[VarType] ::= ':' [Type]
+[VarType] ::= ε
+
+
 [ReturnValue] ::= [Expression]
 [ReturnValue] ::= ε
 
-[NullableBinding] ::= '|' [Identifier]
+[NullableBinding] ::= '|' [Identifier] '|'
 [NullableBinding] ::= ε
 
 [OptionalElse] ::= 'else' '{' [StatementList] '}'

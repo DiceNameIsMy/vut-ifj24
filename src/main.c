@@ -1,27 +1,47 @@
 #include <stdio.h>
-#include <stdbool.h>
+#include <stdlib.h>
 
-#include "logging.h"
 #include "lexer/lexer.h"
+#include "parser/parser.h"
+#include "logging.h"
+
+#define CHUNK_SIZE 1024
+
+TokenArray tokenArray;
+
+char* readStdinAsString() {
+    char* buffer = NULL;
+    size_t bufferSize = 0;
+    size_t totalSize = 0;
+
+    char temp[CHUNK_SIZE];  // Temporary buffer to read in chunks
+    while (fgets(temp, CHUNK_SIZE, stdin) != NULL) {
+        size_t tempLen = strlen(temp);
+
+        // Allocate (or reallocate) memory for the main buffer
+        char* newBuffer = realloc(buffer, totalSize + tempLen + 1);
+        if (newBuffer == NULL) {
+            perror("Failed to allocate memory");
+            free(buffer);
+            return NULL;
+        }
+
+        buffer = newBuffer;
+
+        // Copy the temporary buffer content into the main buffer
+        strcpy(buffer + totalSize, temp);
+        totalSize += tempLen;
+    }
+
+    return buffer;
+}
 
 int main(void) {
-    loginfo("Hello, World!%i\n", 10);
+    initTokenArray(&tokenArray);
+    const char* source_code = readStdinAsString();
+    runLexer(source_code, &tokenArray);
     printf("Hello, World!\n");
-
-    lexer_t lexer = init_lexer(stdin);
-
-    while (true) {
-        const Token t = get_next_token(&lexer);
-        if (t.type == EndProgram) {
-            loginfo("Program has ended");
-            return 0;
-        }
-        if (t.type == Invalid) {
-            loginfo("Got invalid token");
-            return -1;
-        }
-
-        loginfo("Token type: %i, processing of which is not yet implemented", t.type);
-        return -1;
-    }
+    parseInit(&tokenArray);
 }
+
+
