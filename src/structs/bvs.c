@@ -138,10 +138,10 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
         if (branch->parent->left == sibling) { //and rotate
             //TODO: check if the rotations are done as expected
             BVSBranch_RightRotate(branch->parent); //Left scenario
-            sibling = parent->right;
+            sibling = branch->parent->right;
         } else {
             BVSBranch_LeftRotate(branch->parent); //Right scenario
-            sibling = parent->left;
+            sibling = branch->parent->left;
         }
     } //by now the red sibling scenario is transformed either to second or the third one
     //black sibling with red nephews scenario
