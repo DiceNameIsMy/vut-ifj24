@@ -74,27 +74,18 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     }
     if (branch == father->left && father == granpa->left) { //LL-scenario
         BVSBranch_RightRotate(granpa);
-        char buffer = granpa->color; //possibly could be outside the ifs
-        granpa->color = father->color; //possibly could be outside the ifs
-        father->color = buffer; //possibly could be out outside the ifs
     } else if (branch == father->right && father == granpa->left) { //LR-scenario
         BVSBranch_LeftRotate(father);
         BVSBranch_RightRotate(granpa);
-        char buffer = granpa->color;
-        granpa->color = father->color;
-        father->color = buffer;
     } else if (branch == father->left && father == granpa->right) {//RL-scenario
         BVSBranch_RightRotate(father);
         BVSBranch_LeftRotate(granpa);
-        char buffer = granpa->color;
-        granpa->color = father->color;
-        father->color = buffer;
     } else if (branch == father->right && father == granpa->right) {//RR-scenario
         BVSBranch_LeftRotate(granpa);
-        char buffer = granpa->color;
-        granpa->color = father->color;
-        father->color = buffer;
     }
+    char buffer = granpa->color; //colour swap common for all the rest of the cases
+    granpa->color = father->color;
+    father->color = buffer; 
     return;
 }
 
