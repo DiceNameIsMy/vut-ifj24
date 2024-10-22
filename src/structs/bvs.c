@@ -15,8 +15,8 @@ typedef enum {
 void BVSBranch_Init(BVSBranch *newbranch, long data, BVS_Color color);
 void BVSBranch_Free(BVSBranch *branch);
 void BVSBranch_Insert(BVSBranch *branch, long data);
-bool BVSBranch_Search(BVSBranch *branch, long data);
-void BVSBranch_Delete(BVSBranch *branch, long data);
+bool BVSBranch_Search(BVSBranch *branch, long key);
+void BVSBranch_Delete(BVSBranch *branch, long key); //deletion and search is by the key, data just looks strange
 bool BVSBranch_IsRoot(BVSBranch *branch);
 
 // Rotates around the *branch
@@ -115,24 +115,31 @@ void BVSBranch_Insert(BVSBranch *branch, const long data) {
     return;
 }
 
-bool BVSBranch_Search(BVSBranch *branch, long data) {
+bool BVSBranch_Search(BVSBranch *branch, long key) {
     if (branch == NULL)
         return false;
 
-    if (branch->data == data) {
+    if (branch->data == key) {
         return true;
     }
 
     // Search in branches
-    if (branch->data > data) {
-        return BVSBranch_Search(branch->left, data);
+    if (branch->data > key) {
+        return BVSBranch_Search(branch->left, key);
     }
-    return BVSBranch_Search(branch->right, data);
+    return BVSBranch_Search(branch->right, key);
 }
 
-void BVSBranch_Delete(BVSBranch *branch, long data) {
+void BVSBranch_Delete(BVSBranch *branch, long key) {
     if (branch == NULL)
         return;
+    if (branch->data > key) { //recur until we reach the key or NULL
+        BVSBranch_Delete(branch->left, key);
+        return;
+    } else if (branch->data < key){
+        BVSBranch_Delete(branch->right, key);
+        return;
+    }
     if (branch->left == NULL && branch->right == NULL) { //just delete the node if it has no successors
         BVSBranch *tmp_father = branch->parent;
         BVSBranch *tmp = branch;
@@ -158,7 +165,7 @@ void BVSBranch_Delete(BVSBranch *branch, long data) {
         return;
     }
     //if there are two successors
-    BVSBranch *leftmost = branch->right;
+    BVSBranch *leftmost = branch->right; //basically, we delete this node and copy its data to branch
     while (leftmost->left != NULL) {
         leftmost = leftmost->left;
     }
@@ -166,6 +173,7 @@ void BVSBranch_Delete(BVSBranch *branch, long data) {
     leftmost->parent = branch->parent;
     leftmost->right = branch->right;
     leftmost->left = branch->left;
+    leftmost->color = branch->color;
     if (branch->parent->left == branch) {
         branch->parent->left = leftmost;
     } else {
