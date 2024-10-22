@@ -130,6 +130,10 @@ bool BVSBranch_Search(BVSBranch *branch, long key) {
 
 void Help_RmDoubleBlack(BVSBranch *branch) {
     //TODO: and yes, we can also un-recur this
+    if (BVSBranch_IsRoot(branch)) {
+        branch->color = BLACK;
+        return;
+    }
     BVSBranch *sibling = (branch->parent->left == branch) ? branch->parent->right : branch->parent->left;
     //red sibling scenario
     if (sibling->color == RED) { //sibling is never NULL
@@ -182,6 +186,12 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
         }
     }
     //black sibling with black nephews scenario
+    sibling->color = RED;
+    if (branch->parent->color == RED) {
+        branch->parent->color = BLACK;
+        return;
+    }
+    Help_RmDoubleBlack(branch->parent);
     return;
 }
 
