@@ -24,6 +24,8 @@ void BVSBranch_LeftRotate(BVSBranch *branch);
 void BVSBranch_RightRotate(BVSBranch *branch);
 // Resolves the tree structure after an insert operation
 void BVSBranch_InsertResolve(BVSBranch *branch);
+//resolves the tree structure after a delete operation
+void BVSBranch_DeleteResolve(BVSBranch *branch);
 
 // Internal definitions
 
@@ -119,6 +121,10 @@ bool BVSBranch_Search(BVSBranch *branch, long key) {
         return BVSBranch_Search(branch->left, key);
     }
     return BVSBranch_Search(branch->right, key);
+}
+
+void BVSBranch_DeleteResolve(BVSBranch *branch) {
+    return;
 }
 
 void BVSBranch_Delete(BVSBranch *branch, long key) {
