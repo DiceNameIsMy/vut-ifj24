@@ -138,8 +138,10 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
         if (branch->parent->left == sibling) { //and rotate
             //TODO: check if the rotations are done as expected
             BVSBranch_RightRotate(branch->parent); //Left scenario
+            sibling = parent->right;
         } else {
             BVSBranch_LeftRotate(branch->parent); //Right scenario
+            sibling = parent->left;
         }
     } //by now the red sibling scenario is transformed either to second or the third one
     //black sibling with red nephews scenario
@@ -150,7 +152,34 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
         red_nephew = sibling->right;
     }
     if (red_nephew != NULL) { //there is one or two
-        
+        if (sibling->parent->left == sibling && sibling->left == red_nephew) { //LL-scenario
+            //TODO
+            BVSBranch_RightRotate(branch->parent);
+            red_nephew->color = BLACK;
+            return;
+        } //THERE'S NO ELSE...
+        if (sibling->parent->left == sibling && sibling->right == red_nephew) { //LR-scenario
+            //TODO
+            red_nephew->color = BLACK;
+            sibling->color = RED;
+            BVSBranch_LeftRotate(sibling);
+            BVSBranch_RightRotate(branch->parent);
+            return;
+        }
+        if (sibling->parent->right == sibling && sibling->left == red_nephew) { //RL-scenario
+            //TODO
+            red_nephew->color = BLACK;
+            sibling->color = RED;
+            BVSBranch_RightRotate(sibling);
+            BVSBranch_LeftRotate(branch->parent);
+            return;
+        }
+        if (sibling->parent->right == sibling && sibling->right == red_nephew) { //RR-scenario
+            //TODO
+            BVSBranch_LeftRotate(branch->parent);
+            red_nephew->color = BLACK;
+            return;
+        }
     }
     //black sibling with black nephews scenario
     return;
@@ -227,6 +256,7 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
     //CHECK THIS PLZ!!!
+    //TODO: what if the tree doesn't have some of the nodes?
     branch->right->parent = branch->parent;
     if (!BVSBranch_IsRoot(branch)) {
         if (branch->parent->left == branch) {
@@ -244,6 +274,7 @@ void BVSBranch_LeftRotate(BVSBranch *branch) {
 
 void BVSBranch_RightRotate(BVSBranch *branch) {
     //CHECK THIS PLZ!!!
+    //TODO: what if the tree doesn't have some of the nodes?
     branch->left->parent = branch->parent;
     if (!BVSBranch_IsRoot(branch)) { 
         if (branch->parent->left == branch) {
