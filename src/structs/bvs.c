@@ -26,6 +26,7 @@ void BVSBranch_RightRotate(BVSBranch *branch);
 void BVSBranch_InsertResolve(BVSBranch *branch);
 //resolves the tree structure after a delete operation
 void BVSBranch_DeleteResolve(BVSBranch *branch);
+void Help_RmDoubleBlack(BVSBranch *branch); //removes doubleblack property from the node
 
 // Internal definitions
 
@@ -123,7 +124,26 @@ bool BVSBranch_Search(BVSBranch *branch, long key) {
     return BVSBranch_Search(branch->right, key);
 }
 
+void Help_RmDoubleBlack(BVSBranch *branch) {
+    return;
+}
+
 void BVSBranch_DeleteResolve(BVSBranch *branch) {
+    //TODO: implement for one descendant and no descendants
+    if (branch->color == RED) { //if red node removed, nothing to do
+        return;
+    }
+    BVSBranch *red_son = NULL;
+    if (branch->left != NULL && branch->left->color == RED) {
+        red_son = branch->left;
+    } else if (branch->right != NULL && branch->right->color == RED) {
+        red_son = branch->right;
+    }
+    if (red_son == NULL) { //for black children
+        Help_RmDoubleBlack(branch); //in certain scenario, recur for its parent
+        return;          
+    }
+    red_son->color = BLACK;
     return;
 }
 
