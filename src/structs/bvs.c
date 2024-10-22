@@ -133,14 +133,14 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
     }
     if (branch->left == NULL && branch->right == NULL) { //just delete the node if it has no successors
         BVSBranch *tmp_father = branch->parent;
-        BVSBranch *tmp = branch;
-        free(branch);
-        if (tmp_father->left == tmp) {
+        //BVSBranch *tmp = branch;
+        if (tmp_father->left == branch) {
             tmp_father->left = NULL;
         } else {
             tmp_father->right = NULL;
         }
-        //here to be a resolving function call
+        BVSBranch_DeleteResolve(branch); //to resolve the deletion we should act as if the node is still there
+        free(branch);
         return;
     }
     if (branch->left == NULL || branch->right == NULL) { //exactly one successor
@@ -149,10 +149,10 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
         if (branch->parent->left == branch) {
             branch->parent->left = not_null;
         } else {
-            branch->parent->left = not_null;
+            branch->parent->right = not_null;
         }
+        BVSBranch_DeleteResolve(branch);
         free(branch);
-        //here to be a resolving function call
         return;
     }
     //if there are two successors
@@ -160,18 +160,13 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
     while (leftmost->left != NULL) {
         leftmost = leftmost->left;
     }
-    leftmost->parent->left = NULL;
-    leftmost->parent = branch->parent;
-    leftmost->right = branch->right;
-    leftmost->left = branch->left;
-    leftmost->color = branch->color;
-    if (branch->parent->left == branch) {
-        branch->parent->left = leftmost;
-    } else {
-        branch->parent->right = leftmost;
+    branch->data = leftmost->data; //we replace node's data with the data of its in-order successor
+    leftmost->parent->left = leftmost->right; //we delete the leftmost node
+    if (leftmost->right != NULL) { //if any right successor
+        leftmost->right->parent = leftmost->parent;
     }
-    free(branch);
-    //here to be a resolving function call
+    BVSBranch_DeleteResolve(leftmost);
+    free(leftmost);
     // TODO: Implement the resolving function for deletion (I'll do it)
     return;
 }
