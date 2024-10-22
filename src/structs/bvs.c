@@ -45,6 +45,7 @@ void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //
 }
 
 void BVSBranch_Free(BVSBranch *branch) {
+    //TODO: maybe we can un-recur this 
     if (branch == NULL) {
         return;
     }
@@ -55,6 +56,7 @@ void BVSBranch_Free(BVSBranch *branch) {
 }
 
 void BVSBranch_InsertResolve(BVSBranch *branch) {
+    //TODO: perhaps we even can un-recur this...
     if (BVSBranch_IsRoot(branch)) { //if root, just PAINT IT BLACK(c)
         branch->color = BLACK;
         return;
@@ -93,6 +95,7 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
 }
 
 void BVSBranch_Insert(BVSBranch *branch, const long data) {
+    //Todo: un-recur this (probably)
     if (branch == NULL) {
         BVSBranch_Init(branch, data, RED);//TODO: cover the case when branch = NULL
         BVSBranch_InsertResolve(branch);
@@ -110,6 +113,7 @@ void BVSBranch_Insert(BVSBranch *branch, const long data) {
 }
 
 bool BVSBranch_Search(BVSBranch *branch, long key) {
+    //TODO: un-recur this
     if (branch == NULL)
         return false;
 
@@ -125,6 +129,30 @@ bool BVSBranch_Search(BVSBranch *branch, long key) {
 }
 
 void Help_RmDoubleBlack(BVSBranch *branch) {
+    //TODO: and yes, we can also un-recur this
+    BVSBranch *sibling = (branch->parent->left == branch) ? branch->parent->right : branch->parent->left;
+    //red sibling scenario
+    if (sibling->color == RED) { //sibling is never NULL
+        branch->parent->color = RED; //recolor nodes
+        sibling->color = BLACK;
+        if (branch->parent->left == sibling) { //and rotate
+            //TODO: check if the rotations are done as expected
+            BVSBranch_RightRotate(branch->parent); //Left scenario
+        } else {
+            BVSBranch_LeftRotate(branch->parent); //Right scenario
+        }
+    } //by now the red sibling scenario is transformed either to second or the third one
+    //black sibling with red nephews scenario
+    BVSBranch *red_nephew = NULL; //check for a red nephew
+    if (sibling->left != NULL && sibling->left->color == RED) {
+        red_nephew = sibling->left;
+    } else if (sibling->right != NULL && sibling->right->color == RED) {
+        red_nephew = sibling->right;
+    }
+    if (red_nephew != NULL) { //there is one or two
+        
+    }
+    //black sibling with black nephews scenario
     return;
 }
 
@@ -139,11 +167,11 @@ void BVSBranch_DeleteResolve(BVSBranch *branch) {
     } else if (branch->right != NULL && branch->right->color == RED) {
         red_son = branch->right;
     }
-    if (red_son == NULL) { //for black children
+    if (red_son == NULL) { //for no descendants
         Help_RmDoubleBlack(branch); //in certain scenario, recur for its parent
         return;          
     }
-    red_son->color = BLACK;
+    red_son->color = BLACK; //for one (obviously RED) descendant
     return;
 }
 
@@ -198,6 +226,7 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
 }
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
+    //TODO: modify so it can work properly (and with parents too)
     BVSBranch *newRoot = branch->right; //propagate an error if branch->right == NULL
     branch->right = branch->right->left;
     newRoot->left = branch;
