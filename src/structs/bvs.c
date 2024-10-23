@@ -31,7 +31,7 @@ void Help_RmDoubleBlack(BVSBranch *branch); //removes doubleblack property from 
 
 // Internal definitions
 
-void BVSBranch_Init(BVSBranch **newbranch, const long data, BVS_Color color) { //maybe we should put a pointer as an argument? Maybe we should make this a void-function?
+void BVSBranch_Init(BVSBranch **newbranch, const long data, BVS_Color color) { 
     *newbranch = (BVSBranch *)malloc(sizeof(BVSBranch));
     if (*newbranch == NULL) {
         return;
@@ -42,7 +42,6 @@ void BVSBranch_Init(BVSBranch **newbranch, const long data, BVS_Color color) { /
     (*newbranch)->right = NULL;
     (*newbranch)->parent = NULL;
     return;
-    //return newbranch;
 }
 
 void BVSBranch_Free(BVSBranch *branch) {
@@ -177,13 +176,11 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
     }
     if (red_nephew != NULL) { //there is one or two
         if (sibling->parent->left == sibling && sibling->left == red_nephew) { //LL-scenario
-            //TODO
             BVSBranch_RightRotate(branch->parent);
             red_nephew->color = BLACK;
             return;
         } //THERE'S NO ELSE...
         if (sibling->parent->left == sibling && sibling->right == red_nephew) { //LR-scenario
-            //TODO
             red_nephew->color = BLACK;
             sibling->color = RED;
             BVSBranch_LeftRotate(sibling);
@@ -191,7 +188,6 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
             return;
         }
         if (sibling->parent->right == sibling && sibling->left == red_nephew) { //RL-scenario
-            //TODO
             red_nephew->color = BLACK;
             sibling->color = RED;
             BVSBranch_RightRotate(sibling);
@@ -199,7 +195,6 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
             return;
         }
         if (sibling->parent->right == sibling && sibling->right == red_nephew) { //RR-scenario
-            //TODO
             BVSBranch_LeftRotate(branch->parent);
             red_nephew->color = BLACK;
             return;
@@ -216,7 +211,6 @@ void Help_RmDoubleBlack(BVSBranch *branch) {
 }
 
 void BVSBranch_DeleteResolve(BVSBranch *branch) {
-    //TODO: implement for one descendant and no descendants
     if (branch->color == RED) { //if red node removed, nothing to do
         return;
     }
