@@ -33,6 +33,41 @@ TEST(insert_2)
     }
 ENDTEST
 
+TEST(insert_many)
+    BVS_Free(&bvs);
+    BVS_Init(&bvs);
+
+    BVS_Insert(&bvs, 10);
+    BVS_Insert(&bvs, 20);
+    BVS_Insert(&bvs, 3);
+    BVS_Insert(&bvs, 15);
+    BVS_Insert(&bvs, 0);
+    BVS_Insert(&bvs, 14);
+    BVS_Insert(&bvs, 12);
+    if(!BVS_Search(&bvs, 10)) {
+        FAIL("Not found");
+    }
+    if(!BVS_Search(&bvs, 20)) {
+        FAIL("Not found");
+    }
+    if(!BVS_Search(&bvs, 3)) {
+        FAIL("Not found");
+    }
+    if(!BVS_Search(&bvs, 15)) {
+        FAIL("Not found");
+    }
+    if(!BVS_Search(&bvs, 0)) {
+        FAIL("Not found");
+    }
+    if(!BVS_Search(&bvs, 14)) {
+        FAIL("Not found");
+    }
+    if(!BVS_Search(&bvs, 12)) {
+        FAIL("Not found");
+    }
+
+ENDTEST
+
 TEST(search_not_existing_element)
     BVS_Free(&bvs);
     BVS_Init(&bvs);
