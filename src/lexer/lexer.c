@@ -24,7 +24,7 @@ typedef enum {
 // Array of keywords
 const char *keywords[] = {
     "const", "var", "if", "else", "while", "fn", "pub",
-    "null", "return", "void",
+    "null", "return", "void", "@import",
     "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
 };
 
@@ -70,6 +70,8 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
         *keywordType = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "void") == 0) {
         *keywordType = TOKEN_KEYWORD_VOID;
+    } else if (strcmp(str, "@return") == 0) {
+        *keywordType = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "i32") == 0) {
         *keywordType = TOKEN_KEYWORD_I32;
     } else if (strcmp(str, "?i32") == 0) {
@@ -183,9 +185,6 @@ bool tryGetSymbol(const char *str, TokenType *tokenType) {
         *tokenType = TOKEN_EQUAL_TO;
     } else if (strcmp(str, "!=") == 0) {
         *tokenType = TOKEN_NOT_EQUAL_TO;
-    } else if (strcmp(str, "@") == 0) {
-        // Special symbols
-        *tokenType = TOKEN_AT;
     } else if (strcmp(str, ";") == 0) {
         *tokenType = TOKEN_SEMICOLON;
     } else if (strcmp(str, ",") == 0) {
@@ -242,8 +241,19 @@ void processToken(const char *buf_str, TokenArray *array) {
 
 bool isSeparator(char c) {
     // Checking all possible separators
-    if (strchr("+-*/=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {
-        // Why is it red?
+    if (strchr("+-*=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {
+        return true;
+    }
+    return false;
+}
+
+bool isPairedSymbol(char c, char c_next){
+    if ((c == '=' && c_next == '=') || 
+            (c == '!' && c_next == '=') || 
+            (c == '>' && c_next == '=') || 
+            (c == '<' && c_next == '=') || 
+            (c == '&' && c_next == '&') || 
+            (c == '|' && c_next == '|')) {
         return true;
     }
     return false;
@@ -260,11 +270,16 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
-
-        const bool soloSymbol = strchr("+-*/=()[]{}&|,;:", c) != NULL;
-        if (soloSymbol) {
-            // Todo -> few rows above
-            appendDynBuffer(buff, c); // TODO: ==, >=, <=, !=, check all symbols
+        const bool soloSymbol = strchr("+-*=()[]{}&|,;:", c) != NULL;
+        // Check for == >= <= != || &&
+        if (isPairedSymbol(c, sourceCode[(*i) + 1])){
+            appendDynBuffer(buff, c);
+            (*i)++; // skip next symbol 
+            appendDynBuffer(buff, sourceCode[*i]);
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        } else if (soloSymbol) {
+            appendDynBuffer(buff, c);
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
@@ -277,15 +292,20 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             emptyDynBuffer(buff);
         }
         nextState = STATE_ONE_LINE_STRING; // Start String status
-    } else if (c == '/' && sourceCode[*i + 1] == '/') {
-        // Comment starts
-        if (!bufferIsEmpty) {
-            // TODO: MAKE IT A FUNC
+    } else if (c == '/') {
+        // Process buffer data
+        if (!bufferIsEmpty){
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
-        (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
-        nextState = STATE_COMMENT;
+        if (sourceCode[*i + 1] == '/'){
+            (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
+            nextState = STATE_COMMENT;
+        }else {
+            appendDynBuffer(buff, c);
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
     } else {
         appendDynBuffer(buff, c);
     }
@@ -381,3 +401,5 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
         ; // TODO: ERROR OCCURED
     }
 }
+
+
