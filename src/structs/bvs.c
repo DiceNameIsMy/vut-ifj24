@@ -15,7 +15,7 @@ typedef enum {
 
 void BVSBranch_Init(BVSBranch **newbranch, long data, BVS_Color color);
 void BVSBranch_Free(BVSBranch *branch);
-void BVSBranch_Insert(BVSBranch **branch, long data);
+void BVSBranch_Insert(BVSBranch *branch, long data);
 bool BVSBranch_Search(BVSBranch *branch, long key);
 void BVSBranch_Delete(BVSBranch *branch, long key); //deletion and search is by the key, data just looks strange
 bool BVSBranch_IsRoot(BVSBranch *branch);
@@ -63,13 +63,19 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
         return;
     }
     if (branch->parent->color == BLACK) //also covers the case when father is root
+    {
+        fprintf(stderr, "Father is black, returning...\n");
         return;
+    }
 
+    fprintf(stderr, "Not root, the father is red\n");
     BVSBranch *father = branch->parent;
     BVSBranch *granpa = father->parent; 
-    if (granpa->left->color == RED && granpa->right->color == RED) { //The "Red Uncle" case
-        granpa->right->color = BLACK;
-        granpa->left->color = BLACK;
+    fprintf(stderr, "Father ang granpa exist\n");
+    BVSBranch *uncle = (granpa->left == father) ? granpa->right : granpa->left;
+    if (uncle != NULL && uncle->color == RED) { //The "Red Uncle" case
+        father->color = BLACK;
+        uncle->color = BLACK;
         if (!BVSBranch_IsRoot(granpa)) { //if not root, paint the grandfather red
             granpa->color = RED;
             BVSBranch_InsertResolve(granpa);
@@ -78,6 +84,7 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
         }
         return; //quit to un-nest the ifs
     }
+    //black uncle case
     if (branch == father->left && father == granpa->left) { //LL-scenario
         BVSBranch_RightRotate(granpa);
     } else if (branch == father->right && father == granpa->left) { //LR-scenario
@@ -95,26 +102,32 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     return;
 }
 
-void BVSBranch_Insert(BVSBranch **branch, const long data) {
-    //Todo: un-recur this (probably)
-    fprintf(stderr, "No segfault this far...\n");
-    if (*branch == NULL) {
-        BVSBranch_Init(branch, data, RED);//TODO: cover the case when branch = NULL
-        fprintf(stderr, "Branch (%ld) initialized successfully\n", data);
-        BVSBranch_InsertResolve(*branch);
-        fprintf(stderr, "Resolved\n");
-        return;
-    }
+void BVSBranch_Insert(BVSBranch *branch, const long data) {
+    BVSBranch *current = NULL;
+    BVSBranch *next = branch;
     
-    if ((*branch)->data > data) {
-        BVSBranch_Insert(&((*branch)->left), data);
-        (*branch)->left->parent = *branch;
-    } else if ((*branch)->data < data) { //should we consider the case that branch->data == data?
-        BVSBranch_Insert(&((*branch)->right), data);
-        if ((*branch)->right == NULL) {
-            fprintf(stderr,"NULL, failure\n");
-        }
-        (*branch)->right->parent = *branch;
+
+    while (true) {
+        current = next;
+        if (data < current->data) {
+            next = next->left;
+            if (next == NULL) {
+                fprintf(stderr, "Initializing %ld on the left of %ld\n", data, current->data);
+                BVSBranch_Init(&(current->left), data, RED);
+                current->left->parent = current;
+                BVSBranch_InsertResolve(current->left);
+                break;
+            }
+        } else if (data > current->data) {
+            next = next->right;
+            if (next == NULL) {
+                fprintf(stderr, "Initializing %ld on the right of %ld\n", data, current->data);
+                BVSBranch_Init(&(current->right), data, RED);
+                current->right->parent = current;
+                BVSBranch_InsertResolve(current->right);
+                break;
+            }
+        } else break;
     }
     return;
 }
@@ -273,6 +286,7 @@ void BVSBranch_Delete(BVSBranch *branch, long key) {
 
 void BVSBranch_LeftRotate(BVSBranch *branch) {
     //CHECK THIS PLZ!!!
+    fprintf(stderr, "LEFTROTATE (%ld)!\n", branch->data);
     branch->right->parent = branch->parent; //right must exist...
     if (!BVSBranch_IsRoot(branch)) {
         if (branch->parent->left == branch) {
@@ -292,7 +306,7 @@ void BVSBranch_LeftRotate(BVSBranch *branch) {
 
 void BVSBranch_RightRotate(BVSBranch *branch) {
     //CHECK THIS PLZ!!!
-    //TODO: what if the tree doesn't have some of the nodes?
+    fprintf(stderr, "RIGHTROTATE (%ld)!\n", branch->data);
     branch->left->parent = branch->parent;
     if (!BVSBranch_IsRoot(branch)) { 
         if (branch->parent->left == branch) {
@@ -333,7 +347,7 @@ void BVS_Insert(BVS *bvs, const long data) {
     if (bvs->root == NULL) {
         BVSBranch_Init(&(bvs->root), data, BLACK);
     } else {
-        BVSBranch_Insert(&(bvs->root), data);
+        BVSBranch_Insert(bvs->root, data);
     }
 }
 
