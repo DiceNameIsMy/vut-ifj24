@@ -78,19 +78,20 @@ TEST(insert_many_and_test)
     srand(time(NULL));
     BVS_Free(&bvs);
     BVS_Init(&bvs);
+    int max = 50000;
     long bvs_arr[50000] = {0};
-    for (int i = 0; i < 50000; i++) {
-        fprintf(stderr, "NEW INPUT (%d)\n", i);
-        bvs_arr[i] = (i*i)<<4 | (i*i)>>1;
+    for (int i = 0; i < max; i++) {
+        //fprintf(stderr, "NEW INPUT (%d)\n", i);
+        bvs_arr[i] = ((i*i)<<4 | (i*i)>>1)*(rand()%59);
+        //BVS_Insert(&bvs, i);
         BVS_Insert(&bvs, bvs_arr[i]);
-        //BVS_Insert(&bvs, (i*i)<<4 | (i*i)>>1);
         
         //if (!BVS_IsBallanced(&bvs)) {
         //    FAIL("Ballance is corrupted!\n"); IRRELEVANT DUE TO RB-TREE PROPERTIES
         //    exit(-1);
         //}
     }
-    for (int i = 0; i < 50000; i++) {
+    for (int i = 0; i < max; i++) {
         if(!BVS_Search(&bvs, bvs_arr[i])) {
             FAIL("Not found");
            // exit(-1);
