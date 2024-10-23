@@ -28,6 +28,8 @@ void BVSBranch_InsertResolve(BVSBranch *branch);
 //resolves the tree structure after a delete operation
 void BVSBranch_DeleteResolve(BVSBranch *branch);
 void Help_RmDoubleBlack(BVSBranch *branch); //removes doubleblack property from the node
+bool BVSBranch_IsBallanced(BVSBranch *branch);
+int BVSBranch_Height(BVSBranch *branch);
 
 // Internal definitions
 
@@ -73,31 +75,42 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     fprintf(stderr, "Father ang granpa exist\n");
     BVSBranch *uncle = (granpa->left == father) ? granpa->right : granpa->left;
     if (uncle != NULL && uncle->color == RED) { //The "Red Uncle" case
+        fprintf(stderr, "Uncle is red, recurring...\n");
         father->color = BLACK;
         uncle->color = BLACK;
-        if (!BVSBranch_IsRoot(granpa)) { //if not root, paint the grandfather red
+        //if (!BVSBranch_IsRoot(granpa)) { //if not root, paint the grandfather red
             granpa->color = RED;
             BVSBranch_InsertResolve(granpa);
-        } else {
-            granpa->color = BLACK;
-        }
+        //} else {
+        //    fprintf(stderr, "recursion reached the root, stop\n");
+        //    granpa->color = BLACK;
+        //}
         return; //quit to un-nest the ifs
     }
     //black uncle case
     if (branch == father->left && father == granpa->left) { //LL-scenario
         BVSBranch_RightRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = father->color;
+        father->color = buffer; 
     } else if (branch == father->right && father == granpa->left) { //LR-scenario
         BVSBranch_LeftRotate(father);
         BVSBranch_RightRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = branch->color;
+        branch->color = buffer; 
     } else if (branch == father->left && father == granpa->right) {//RL-scenario
         BVSBranch_RightRotate(father);
         BVSBranch_LeftRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = branch->color;
+        branch->color = buffer; 
     } else if (branch == father->right && father == granpa->right) {//RR-scenario
         BVSBranch_LeftRotate(granpa);
+        char buffer = granpa->color;
+        granpa->color = father->color;
+        father->color = buffer; 
     }
-    char buffer = granpa->color; //colour swap common for all the rest of the cases
-    granpa->color = father->color;
-    father->color = buffer; 
     return;
 }
 
@@ -107,6 +120,7 @@ void BVSBranch_Insert(BVSBranch *branch, const long data) {
     
 
     while (true) {
+        //fprintf(stderr, "WEEEHEEE\n");
         current = next;
         if (data < current->data) {
             next = next->left;
@@ -133,17 +147,23 @@ void BVSBranch_Insert(BVSBranch *branch, const long data) {
 
 bool BVSBranch_Search(BVSBranch *branch, long key) {
     //TODO: un-recur this
-    if (branch == NULL)
+    fprintf(stderr, "New round\n");
+    if (branch == NULL) {
+        fprintf(stderr, "Reached the bottom ;)\n");
         return false;
+    }
 
     if (branch->data == key) {
+        fprintf(stderr, "Found (%ld)\n", branch->data);
         return true;
     }
 
     // Search in branches
     if (branch->data > key) {
+        fprintf(stderr, "(%ld) < (%ld), proceeding to left\n", key, branch->data);
         return BVSBranch_Search(branch->left, key);
     }
+    fprintf(stderr, "(%ld) > (%ld), proceeding to right\n", key, branch->data);
     return BVSBranch_Search(branch->right, key);
 }
 
@@ -343,8 +363,36 @@ void BVS_Insert(BVS *bvs, const long data) {
     } else {
         BVSBranch_Insert(bvs->root, data);
     }
+    fprintf(stderr, "Tree height is %d\n", BVSBranch_Height(bvs->root));
 }
 
 bool BVS_Search(BVS *bvs, const long data) {
+    fprintf(stderr, "Searching for (%ld)...\n", data);
     return BVSBranch_Search(bvs->root, data);
+}
+
+bool BVS_IsBallanced(BVS *bvs) {
+    return BVSBranch_IsBallanced(bvs->root);
+}
+
+bool BVSBranch_IsBallanced(BVSBranch *branch) {
+    if (branch == NULL)
+        return true;
+    int right_height = BVSBranch_Height(branch->right);
+    int left_height = BVSBranch_Height(branch->left);
+    bool right_bal = BVSBranch_IsBallanced(branch->right);
+    bool left_bal = BVSBranch_IsBallanced(branch->left);
+    return right_bal && left_bal && (right_height - left_height >= -1) && (right_height - left_height <= 1);
+}
+
+int BVSBranch_Height(BVSBranch *branch) {
+    if (branch == NULL)
+    {
+        return 0;
+    }
+    int right = BVSBranch_Height(branch->right); 
+    int left = BVSBranch_Height(branch->left);
+    if (right > left)
+        return right + 1;
+    else return left + 1;
 }

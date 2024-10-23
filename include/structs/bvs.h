@@ -25,5 +25,6 @@ void BVS_Free(const BVS *bvs);
 
 void BVS_Insert(BVS *bvs, long data);
 bool BVS_Search(BVS *bvs, long data);
+bool BVS_IsBallanced(BVS *bvs);
 
 #endif //BVS_H

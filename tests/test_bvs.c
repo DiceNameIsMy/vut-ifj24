@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 #include <structs/bvs.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include "test_utils.h"
 
@@ -65,7 +67,35 @@ TEST(insert_many)
     if(!BVS_Search(&bvs, 12)) {
         FAIL("Not found");
     }
+    //if(!BVS_IsBallanced(&bvs)) {
+    //    FAIL("Ballance is corrupted!\n"); IRRELEVANT DUE TO RB TREE PROPERTIES
+    //    exit(-1);
+    //}
 
+ENDTEST
+
+TEST(insert_many_and_test)
+    srand(time(NULL));
+    BVS_Free(&bvs);
+    BVS_Init(&bvs);
+    long bvs_arr[50000] = {0};
+    for (int i = 0; i < 50000; i++) {
+        fprintf(stderr, "NEW INPUT (%d)\n", i);
+        bvs_arr[i] = (i*i)<<4 | (i*i)>>1;
+        BVS_Insert(&bvs, bvs_arr[i]);
+        //BVS_Insert(&bvs, (i*i)<<4 | (i*i)>>1);
+        
+        //if (!BVS_IsBallanced(&bvs)) {
+        //    FAIL("Ballance is corrupted!\n"); IRRELEVANT DUE TO RB-TREE PROPERTIES
+        //    exit(-1);
+        //}
+    }
+    for (int i = 0; i < 50000; i++) {
+        if(!BVS_Search(&bvs, bvs_arr[i])) {
+            FAIL("Not found");
+           // exit(-1);
+        }
+    }
 ENDTEST
 
 TEST(search_not_existing_element)
@@ -81,6 +111,10 @@ TEST(search_not_existing_element)
     if (BVS_Search(&bvs, 3)) {
         FAIL("Search on non-empty BVS found a non-existent item");
     }
+ENDTEST
+
+TEST(delete_a_node)
+    
 ENDTEST
 
 int main() {
