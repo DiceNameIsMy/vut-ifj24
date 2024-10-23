@@ -4,6 +4,7 @@
 #include "structs/bvs.h"
 
 #include <stdlib.h>
+#include<stdio.h>
 
 // Internal declarations
 
@@ -12,9 +13,9 @@ typedef enum {
     BLACK
 } BVS_Color;
 
-void BVSBranch_Init(BVSBranch *newbranch, long data, BVS_Color color);
+void BVSBranch_Init(BVSBranch **newbranch, long data, BVS_Color color);
 void BVSBranch_Free(BVSBranch *branch);
-void BVSBranch_Insert(BVSBranch *branch, long data);
+void BVSBranch_Insert(BVSBranch **branch, long data);
 bool BVSBranch_Search(BVSBranch *branch, long key);
 void BVSBranch_Delete(BVSBranch *branch, long key); //deletion and search is by the key, data just looks strange
 bool BVSBranch_IsRoot(BVSBranch *branch);
@@ -30,16 +31,16 @@ void Help_RmDoubleBlack(BVSBranch *branch); //removes doubleblack property from 
 
 // Internal definitions
 
-void BVSBranch_Init(BVSBranch *newbranch, const long data, BVS_Color color) { //maybe we should put a pointer as an argument? Maybe we should make this a void-function?
-    newbranch = (BVSBranch *)malloc(sizeof(BVSBranch));
-    if (newbranch == NULL) {
+void BVSBranch_Init(BVSBranch **newbranch, const long data, BVS_Color color) { //maybe we should put a pointer as an argument? Maybe we should make this a void-function?
+    *newbranch = (BVSBranch *)malloc(sizeof(BVSBranch));
+    if (*newbranch == NULL) {
         return;
     }
-    newbranch->color = color;
-    newbranch->data = data;
-    newbranch->left = NULL;
-    newbranch->right = NULL;
-    newbranch->parent = NULL;
+    (*newbranch)->color = color;
+    (*newbranch)->data = data;
+    (*newbranch)->left = NULL;
+    (*newbranch)->right = NULL;
+    (*newbranch)->parent = NULL;
     return;
     //return newbranch;
 }
@@ -94,20 +95,26 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     return;
 }
 
-void BVSBranch_Insert(BVSBranch *branch, const long data) {
+void BVSBranch_Insert(BVSBranch **branch, const long data) {
     //Todo: un-recur this (probably)
-    if (branch == NULL) {
+    fprintf(stderr, "No segfault this far...\n");
+    if (*branch == NULL) {
         BVSBranch_Init(branch, data, RED);//TODO: cover the case when branch = NULL
-        BVSBranch_InsertResolve(branch);
+        fprintf(stderr, "Branch (%ld) initialized successfully\n", data);
+        BVSBranch_InsertResolve(*branch);
+        fprintf(stderr, "Resolved\n");
         return;
     }
     
-    if (branch->data > data) {
-        BVSBranch_Insert(branch->left, data);
-        branch->left->parent = branch;
-    } else if (branch->data < data) { //should we consider the case that branch->data == data?
-        BVSBranch_Insert(branch->right, data);
-        branch->right->parent = branch;
+    if ((*branch)->data > data) {
+        BVSBranch_Insert(&((*branch)->left), data);
+        (*branch)->left->parent = *branch;
+    } else if ((*branch)->data < data) { //should we consider the case that branch->data == data?
+        BVSBranch_Insert(&((*branch)->right), data);
+        if ((*branch)->right == NULL) {
+            fprintf(stderr,"NULL, failure\n");
+        }
+        (*branch)->right->parent = *branch;
     }
     return;
 }
@@ -324,9 +331,9 @@ void BVS_Free(const BVS *bvs) {
 
 void BVS_Insert(BVS *bvs, const long data) {
     if (bvs->root == NULL) {
-        BVSBranch_Init(bvs->root, data, BLACK);
+        BVSBranch_Init(&(bvs->root), data, BLACK);
     } else {
-        BVSBranch_Insert(bvs->root, data);
+        BVSBranch_Insert(&(bvs->root), data);
     }
 }
 
