@@ -78,38 +78,33 @@ void BVSBranch_InsertResolve(BVSBranch *branch, BVS *bvs) {
         //fprintf(stderr, "Uncle is red, recurring...\n");
         father->color = BLACK;
         uncle->color = BLACK;
-        //if (!BVSBranch_IsRoot(granpa)) { //if not root, paint the grandfather red
-            granpa->color = RED;
-            BVSBranch_InsertResolve(granpa, bvs);
-        //} else {
-        //    fprintf(stderr, "recursion reached the root, stop\n");
-        //    granpa->color = BLACK;
-        //}
+        granpa->color = RED;
+        BVSBranch_InsertResolve(granpa, bvs);
         return; //quit to un-nest the ifs
     }
     //black uncle case
+    if (granpa->color == RED) {
+	    fprintf(stderr, "WRONG GRANPA COLOR\n");
+	    exit(-1);
+    } 
     if (branch == father->left && father == granpa->left) { //LL-scenario
         BVSBranch_RightRotate(granpa, bvs);
-        char buffer = granpa->color;
-        granpa->color = father->color;
-        father->color = buffer; 
+        granpa->color = RED;
+        father->color = BLACK; 
     } else if (branch == father->right && father == granpa->left) { //LR-scenario
         BVSBranch_LeftRotate(father, bvs);
         BVSBranch_RightRotate(granpa, bvs);
-        char buffer = granpa->color;
-        granpa->color = branch->color;
-        branch->color = buffer; 
+        granpa->color = RED;
+        branch->color = BLACK; 
     } else if (branch == father->left && father == granpa->right) {//RL-scenario
         BVSBranch_RightRotate(father, bvs);
         BVSBranch_LeftRotate(granpa, bvs);
-        char buffer = granpa->color;
-        granpa->color = branch->color;
-        branch->color = buffer; 
+        granpa->color = RED;
+        branch->color = BLACK; 
     } else if (branch == father->right && father == granpa->right) {//RR-scenario
         BVSBranch_LeftRotate(granpa, bvs);
-        char buffer = granpa->color;
-        granpa->color = father->color;
-        father->color = buffer; 
+        granpa->color = RED;
+        father->color = BLACK; 
     }
     return;
 }
@@ -165,24 +160,29 @@ bool BVSBranch_Search(BVSBranch *branch, long key) {
 void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
     //TODO: and yes, we can also un-recur this
     if (BVSBranch_IsRoot(branch)) {
+        fprintf(stderr, "Ended up in root, stop recurring\n");
         branch->color = BLACK;
         return;
     }
-    BVSBranch *sibling = (branch->parent->left == branch) ? branch->parent->right : branch->parent->left;
+    BVSBranch *sibling = (branch->parent->left == NULL) ? branch->parent->right : branch->parent->left; //remember we nullified the father's right/left?
     //red sibling scenario
+    fprintf(stderr, "Calculated the former sibling\n");
     if (sibling->color == RED) { //sibling is never NULL
+        fprintf(stderr, "Sibling was red\n");
         branch->parent->color = RED; //recolor nodes
         sibling->color = BLACK;
         if (branch->parent->left == sibling) { //and rotate
-            //TODO: check if the rotations are done as expected
+            fprintf(stderr, "Left scenario\n");
             BVSBranch_RightRotate(branch->parent, bvs); //Left scenario
-            sibling = branch->parent->right;
-        } else {
-            BVSBranch_LeftRotate(branch->parent, bvs); //Right scenario
             sibling = branch->parent->left;
+        } else {
+            fprintf(stderr, "Right scenario\n");
+            BVSBranch_LeftRotate(branch->parent, bvs); //Right scenario
+            sibling = branch->parent->right;
         }
     } //by now the red sibling scenario is transformed either to second or the third one
     //black sibling with red nephews scenario
+    fprintf(stderr, "By now sibling (new one) is black\n");
     BVSBranch *red_nephew = NULL; //check for a red nephew
     if (sibling->left != NULL && sibling->left->color == RED) {
         red_nephew = sibling->left;
@@ -227,18 +227,26 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
 
 void BVSBranch_DeleteResolve(BVSBranch *branch, BVS *bvs) {
     if (branch->color == RED) { //if red node removed, nothing to do
+        fprintf(stderr, "Red node removed, nothing to resolve\n");
         return;
+    }
+    BVSBranch *sibling = (branch->parent->left == NULL) ? branch->parent->right : branch->parent->left; //we NULLified father's connection to branch earlier
+    if (sibling == NULL) {
+        fprintf(stderr, "We have a black node without any siblings\n");
     }
     BVSBranch *red_son = NULL;
     if (branch->left != NULL && branch->left->color == RED) {
         red_son = branch->left;
-    } else if (branch->right != NULL && branch->right->color == RED) {
+    }
+    if (branch->right != NULL && branch->right->color == RED) {
         red_son = branch->right;
     }
     if (red_son == NULL) { //for no descendants
+        fprintf(stderr, "No red sons, we hit doubleblack situation...\n");
         Help_RmDoubleBlack(branch, bvs); //in certain scenario, recur for its parent
         return;          
     }
+    fprintf(stderr, "Resolved by re-coloring the red son\n");
     red_son->color = BLACK; //for one (obviously RED) descendant
     return;
 }
@@ -253,33 +261,43 @@ void BVSBranch_Delete(BVSBranch *branch, long key, BVS *bvs) {
         BVSBranch_Delete(branch->right, key, bvs);
         return;
     }
+        BVSBranch *sibling = (branch->parent->left == branch) ? branch->parent->right : branch->parent->left;
+        if (sibling == NULL && branch->color == BLACK) {
+            fprintf(stderr, "BLACK WITH NO SIBLINGS\n");
+        }
     if (branch->left == NULL && branch->right == NULL) { //just delete the node if it has no successors
-        BVSBranch *tmp_father = branch->parent;
+        fprintf(stderr, "Deleting a leaf\n");
+        BVSBranch *tmp_father = branch->parent; //what if father is NULL?
         //BVSBranch *tmp = branch;
-        if (tmp_father->left == branch) {
+        if (tmp_father->left == branch) { //here we NULLify some of parent's nodes
             tmp_father->left = NULL;
         } else {
             tmp_father->right = NULL;
         }
+        fprintf(stderr, "Unlinked the leaf, preparing to resolve...\n");
         BVSBranch_DeleteResolve(branch, bvs); //to resolve the deletion we should act as if the node is still there
         free(branch);
         return;
     }
     if (branch->left == NULL || branch->right == NULL) { //exactly one successor
+        fprintf(stderr, "Deleting an internal with one child\n");
         BVSBranch *not_null = (branch->left == NULL) ? branch->right : branch->left;
-        not_null->parent = branch->parent;
+        not_null->parent = branch->parent;//what if parent is NULL?
         if (branch->parent->left == branch) {
             branch->parent->left = not_null;
         } else {
             branch->parent->right = not_null;
         }
+        fprintf(stderr, "Unlinked the node, preparing to resolve...\n");
         BVSBranch_DeleteResolve(branch, bvs);
         free(branch);
         return;
     }
     //if there are two successors
+    fprintf(stderr, "Deleting an internal\n");
     BVSBranch *leftmost = branch->right; //basically, we delete this node and copy its data to branch
-    while (leftmost->left != NULL) {
+    while (leftmost->left != NULL) { 
+        fprintf(stderr, "Not leftmost yet, proceeding to left...\n");
         leftmost = leftmost->left;
     }
     branch->data = leftmost->data; //we replace node's data with the data of its in-order successor
@@ -287,6 +305,7 @@ void BVSBranch_Delete(BVSBranch *branch, long key, BVS *bvs) {
     if (leftmost->right != NULL) { //if any right successor
         leftmost->right->parent = leftmost->parent;
     }
+    fprintf(stderr, "Unlinked the leftmost, preparing to resolve...\n");
     BVSBranch_DeleteResolve(leftmost, bvs);
     free(leftmost);
     return;
@@ -349,6 +368,10 @@ int BVS_Init(BVS *bvs) {
     return 0;
 }
 
+
+void BVS_Delete(BVS *bvs, const long key) {
+    BVSBranch_Delete(bvs->root, key, bvs);    
+}
 
 void BVS_Free(const BVS *bvs) {
     if (bvs->root == NULL) {

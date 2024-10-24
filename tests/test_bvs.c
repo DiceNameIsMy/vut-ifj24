@@ -97,6 +97,12 @@ TEST(insert_many_and_test)
            // exit(-1);
         }
     }
+    for (int i = 0; i < 5; i++) {
+        BVS_Delete(&bvs, bvs_arr[i]);
+        if (BVS_Search(&bvs, bvs_arr[i])) {
+            FAIL("Failed to delete");
+        }
+    }
 ENDTEST
 
 TEST(search_not_existing_element)
