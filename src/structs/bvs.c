@@ -164,7 +164,7 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
         branch->color = BLACK;
         return;
     }
-    BVSBranch *sibling = (branch->parent->left == NULL) ? branch->parent->right : branch->parent->left; //remember we nullified the father's right/left?
+    BVSBranch *sibling = (branch->parent->left == NULL || branch->parent->left == branch) ? branch->parent->right : branch->parent->left; //remember we nullified the father's right/left?
     //red sibling scenario
     fprintf(stderr, "Calculated the former sibling\n");
     if (sibling->color == RED) { //sibling is never NULL
@@ -184,12 +184,16 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
     //black sibling with red nephews scenario
     fprintf(stderr, "By now sibling (new one) is black\n");
     BVSBranch *red_nephew = NULL; //check for a red nephew
+    if (sibling == NULL) {
+        fprintf(stderr, "something terrible is going to happen...\n");
+    }
     if (sibling->left != NULL && sibling->left->color == RED) {
         red_nephew = sibling->left;
     } else if (sibling->right != NULL && sibling->right->color == RED) {
         red_nephew = sibling->right;
     }
     if (red_nephew != NULL) { //there is one or two
+        fprintf(stderr, "there is a red nephew\n");
         if (sibling->parent->left == sibling && sibling->left == red_nephew) { //LL-scenario
             BVSBranch_RightRotate(branch->parent, bvs);
             red_nephew->color = BLACK;
@@ -197,14 +201,14 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
         } //THERE'S NO ELSE...
         if (sibling->parent->left == sibling && sibling->right == red_nephew) { //LR-scenario
             red_nephew->color = BLACK;
-            sibling->color = RED;
+            //sibling->color = RED;
             BVSBranch_LeftRotate(sibling, bvs);
             BVSBranch_RightRotate(branch->parent, bvs);
             return;
         }
         if (sibling->parent->right == sibling && sibling->left == red_nephew) { //RL-scenario
             red_nephew->color = BLACK;
-            sibling->color = RED;
+            //sibling->color = RED;
             BVSBranch_RightRotate(sibling, bvs);
             BVSBranch_LeftRotate(branch->parent, bvs);
             return;
@@ -221,6 +225,7 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
         branch->parent->color = BLACK;
         return;
     }
+    fprintf(stderr, "Black sibling and black nephews, recurring...\n");
     Help_RmDoubleBlack(branch->parent, bvs);
     return;
 }
@@ -230,7 +235,7 @@ void BVSBranch_DeleteResolve(BVSBranch *branch, BVS *bvs) {
         fprintf(stderr, "Red node removed, nothing to resolve\n");
         return;
     }
-    BVSBranch *sibling = (branch->parent->left == NULL) ? branch->parent->right : branch->parent->left; //we NULLified father's connection to branch earlier
+    BVSBranch *sibling = (branch->parent->left == NULL || branch->parent->left == branch) ? branch->parent->right : branch->parent->left; //we NULLified father's connection to branch earlier
     if (sibling == NULL) {
         fprintf(stderr, "We have a black node without any siblings\n");
     }
