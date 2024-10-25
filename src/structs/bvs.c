@@ -204,14 +204,14 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
             sibling->color = branch->parent->color;
             branch->parent->color = BLACK;
             BVSBranch_RightRotate(branch->parent, bvs);
-            red_nephew->color = BLACK;
+            red_nephew->color = BLACK;//we don't know which nephew we paint black...
             return;
         } //THERE'S NO ELSE...
         if (sibling->parent->right == sibling && (sibling->right == red_nephew || red_nephew_cnt == 2)) { //RR-scenario
             sibling->color = branch->parent->color;
             branch->parent->color = BLACK;
             BVSBranch_LeftRotate(branch->parent, bvs);
-            red_nephew->color = BLACK;
+            red_nephew->color = BLACK; //same as above
             return;
         }
         if (sibling->parent->left == sibling && sibling->right == red_nephew) { //LR-scenario
@@ -266,6 +266,7 @@ void BVSBranch_DeleteResolve(BVSBranch *branch, BVS *bvs) {
     fprintf(stderr, "Resolved by re-coloring the red son\n");
     red_son->color = BLACK; //for one (obviously RED) descendant
     return;
+    //what if the root is changed?!
 }
 
 void BVSBranch_Delete(BVSBranch *branch, long key, BVS *bvs) {
@@ -302,7 +303,8 @@ void BVSBranch_Delete(BVSBranch *branch, long key, BVS *bvs) {
     if (branch->left == NULL || branch->right == NULL) { //exactly one successor
         fprintf(stderr, "Deleting an internal with one child\n");
         BVSBranch *not_null = (branch->left == NULL) ? branch->right : branch->left;
-        not_null->parent = branch->parent;//what if parent is NULL?
+        not_null->parent = branch->parent;//what if branch is root?
+        fprintf(stderr, "This far, no errors Ig..?\n");
         if (branch->parent != NULL) {
             if (branch->parent->left == branch) {
                 branch->parent->left = not_null;
@@ -311,7 +313,7 @@ void BVSBranch_Delete(BVSBranch *branch, long key, BVS *bvs) {
             }
         }
         fprintf(stderr, "Unlinked the node, preparing to resolve...\n");
-        BVSBranch_DeleteResolve(branch, bvs);
+        BVSBranch_DeleteResolve(branch, bvs);//how do re resolve a root situation?
         free(branch);
         return;
     }
@@ -323,13 +325,20 @@ void BVSBranch_Delete(BVSBranch *branch, long key, BVS *bvs) {
         leftmost = leftmost->left;
     }
     branch->data = leftmost->data; //we replace node's data with the data of its in-order successor
-    leftmost->parent->left = leftmost->right; //we delete the leftmost node
+    if (branch->right != leftmost) {
+        leftmost->parent->left = leftmost->right; //we delete the leftmost node
+    } else {
+        branch->right = leftmost->right;
+    }
+    fprintf(stderr, "This far, no errors Ig..?\n");
     if (leftmost->right != NULL) { //if any right successor
         leftmost->right->parent = leftmost->parent;
     }
     fprintf(stderr, "Unlinked the leftmost, preparing to resolve...\n");
     BVSBranch_DeleteResolve(leftmost, bvs);
+    fprintf(stderr, "before free\n");
     free(leftmost);
+    fprintf(stderr, "After free\n");
     return;
 }
 

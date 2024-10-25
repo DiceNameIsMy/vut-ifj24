@@ -78,7 +78,7 @@ TEST(insert_many_and_test)
     srand(time(NULL));
     BVS_Free(&bvs);
     BVS_Init(&bvs);
-    int max = 10;
+    int max = 50;
     long bvs_arr[50000] = {0};
     for (int i = 0; i < max; i++) {
         bvs_arr[i] = ((i*i)<<4 | (i*i)>>1)*(rand()%59);
