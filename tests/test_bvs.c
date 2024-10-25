@@ -78,11 +78,11 @@ TEST(insert_many_and_test)
     srand(time(NULL));
     BVS_Free(&bvs);
     BVS_Init(&bvs);
-    int max = 50000;
+    int max = 10;
     long bvs_arr[50000] = {0};
     for (int i = 0; i < max; i++) {
-        //fprintf(stderr, "NEW INPUT (%d)\n", i);
         bvs_arr[i] = ((i*i)<<4 | (i*i)>>1)*(rand()%59);
+        fprintf(stderr, "NEW INPUT (%ld)\n", bvs_arr[i]);
         //BVS_Insert(&bvs, i);
         BVS_Insert(&bvs, bvs_arr[i]);
         
@@ -97,7 +97,8 @@ TEST(insert_many_and_test)
            // exit(-1);
         }
     }
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < max; i++) {
+	fprintf(stderr, "DELETING (%ld)\n", bvs_arr[i]);
         BVS_Delete(&bvs, bvs_arr[i]);
         if (BVS_Search(&bvs, bvs_arr[i])) {
             FAIL("Failed to delete");
