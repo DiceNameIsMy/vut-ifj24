@@ -203,15 +203,15 @@ void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs) {
         if (sibling->parent->left == sibling && (sibling->left == red_nephew || red_nephew_cnt == 2)) { //LL-scenario
             sibling->color = branch->parent->color;
             branch->parent->color = BLACK;
+            sibling->left->color = BLACK;
             BVSBranch_RightRotate(branch->parent, bvs);
-            red_nephew->color = BLACK;//we don't know which nephew we paint black...
             return;
         } //THERE'S NO ELSE...
         if (sibling->parent->right == sibling && (sibling->right == red_nephew || red_nephew_cnt == 2)) { //RR-scenario
             sibling->color = branch->parent->color;
             branch->parent->color = BLACK;
+            sibling->right->color = BLACK;
             BVSBranch_LeftRotate(branch->parent, bvs);
-            red_nephew->color = BLACK; //same as above
             return;
         }
         if (sibling->parent->left == sibling && sibling->right == red_nephew) { //LR-scenario
