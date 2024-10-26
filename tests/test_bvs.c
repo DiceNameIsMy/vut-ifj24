@@ -45,6 +45,7 @@ TEST(insert_many)
     BVS_Insert(&bvs, 0);
     BVS_Insert(&bvs, 14);
     BVS_Insert(&bvs, 12);
+
     if(BVS_Search(&bvs, 10) == NULL) {
 	fprintf (stderr, "Failed to find (10)\n");
         FAIL("Not found");
@@ -70,6 +71,7 @@ TEST(insert_many)
         FAIL("Not found");
     }
     if(BVS_Search(&bvs, 12) == NULL) {
+
 	fprintf (stderr, "Failed to find (12)\n");
         FAIL("Not found");
     }
@@ -82,6 +84,7 @@ TEST(insert_many)
 ENDTEST
 
 TEST(insert_random_and_delete)
+
     srand(time(NULL));
     BVS_Init(&bvs);
     int max = 1000000;
@@ -103,6 +106,7 @@ TEST(insert_random_and_delete)
         if(BVS_Search(&bvs, bvs_arr[i]) == NULL) {
             FAIL("Not found");
 	    fprintf (stderr, "Failed to find (%ld)\n", bvs_arr[i]);
+
         }
     }
     for (int i = 0; i < max; i++) {

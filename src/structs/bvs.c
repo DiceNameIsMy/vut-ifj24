@@ -429,6 +429,7 @@ void BVS_Insert(BVS *bvs, const long data) {
 BVSBranch *BVS_Search(BVS *bvs, const long data) { //we can make this return a pointer to a found item, if needed
     //fprintf(stderr, "Searching for (%ld)...\n", data);
     return BVSBranch_Search(bvs->root, data);
+
 }
 
 /*bool BVS_IsBalanced(BVS *bvs) {
