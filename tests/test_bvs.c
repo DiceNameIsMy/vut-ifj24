@@ -46,24 +46,31 @@ TEST(insert_many)
     BVS_Insert(&bvs, 14);
     BVS_Insert(&bvs, 12);
     if(!BVS_Search(&bvs, 10)) {
+	fprintf (stderr, "Failed to find (10)\n");
         FAIL("Not found");
     }
     if(!BVS_Search(&bvs, 20)) {
+	fprintf (stderr, "Failed to find (20)\n");
         FAIL("Not found");
     }
     if(!BVS_Search(&bvs, 3)) {
+	fprintf (stderr, "Failed to find (3)\n");
         FAIL("Not found");
     }
     if(!BVS_Search(&bvs, 15)) {
+	fprintf (stderr, "Failed to find (15)\n");
         FAIL("Not found");
     }
     if(!BVS_Search(&bvs, 0)) {
+	fprintf (stderr, "Failed to find (0)\n");
         FAIL("Not found");
     }
     if(!BVS_Search(&bvs, 14)) {
+	fprintf (stderr, "Failed to find (14)\n");
         FAIL("Not found");
     }
     if(!BVS_Search(&bvs, 12)) {
+	fprintf (stderr, "Failed to find (12)\n");
         FAIL("Not found");
     }
     //if(!BVS_IsBallanced(&bvs)) {
@@ -81,7 +88,7 @@ TEST(insert_many_and_test)
     long bvs_arr[1000000] = {0};
     int q = -1;
     for (int i = 0; i < max; i++) {
-        bvs_arr[i] = q*(1000000-i);
+        bvs_arr[i] = rand()%50000000;
         //fprintf(stderr, "NEW INPUT (%ld)\n", bvs_arr[i]);
         //BVS_Insert(&bvs, i);
         BVS_Insert(&bvs, bvs_arr[i]);
@@ -95,11 +102,24 @@ TEST(insert_many_and_test)
     for (int i = 0; i < max; i++) {
         if(!BVS_Search(&bvs, bvs_arr[i])) {
             FAIL("Not found");
+	    fprintf (stderr, "Failed to find (%ld)\n", bvs_arr[i]);
            // exit(-1);
         }
     }
     for (int i = 0; i < max; i++) {
 	//fprintf(stderr, "DELETING (%ld)\n", bvs_arr[i]);
+	if (!BVS_Search(&bvs, bvs_arr[i])) {
+	    bool found = false;
+	    for (int j = 0; j < i; j++) {
+		if (bvs_arr[j] == bvs_arr[i]) {
+			found = true;
+			break;
+		}
+	    }
+	    if (!found) {
+	        FAIL("Deleted too early");
+	    }
+	}
         BVS_Delete(&bvs, bvs_arr[i]);
         if (BVS_Search(&bvs, bvs_arr[i])) {
             FAIL("Failed to delete");
