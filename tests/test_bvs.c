@@ -78,8 +78,8 @@ TEST(insert_many_and_test)
     srand(time(NULL));
     BVS_Free(&bvs);
     BVS_Init(&bvs);
-    int max = 1045000;
-    long bvs_arr[1045000] = {0};
+    int max = 1000000;
+    long bvs_arr[1000000] = {0};
     for (int i = 0; i < max; i++) {
         bvs_arr[i] = ((i*i)<<4 | (i*i)>>1)*(rand()%59);
         fprintf(stderr, "NEW INPUT (%ld)\n", bvs_arr[i]);

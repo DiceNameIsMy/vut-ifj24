@@ -258,6 +258,9 @@ void BVSBranch_DeleteResolve(BVSBranch *branch, BVS *bvs) {
     if (branch->right != NULL && branch->right->color == RED) {
         red_son = branch->right;
     }
+    if (BVSBranch_IsRoot(branch)) {
+        bvs->root = red_son;
+    }
     if (red_son == NULL) { //for no descendants
         fprintf(stderr, "No red sons, we hit doubleblack situation...\n");
         Help_RmDoubleBlack(branch, bvs); //in certain scenario, recur for its parent
