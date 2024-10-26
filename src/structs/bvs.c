@@ -29,7 +29,6 @@ void Help_RmDoubleBlack(BVSBranch *branch); //removes doubleblack property from 
 void BVSBranch_LeftRotate(BVSBranch *branch);
 void BVSBranch_RightRotate(BVSBranch *branch);
 
-//bool BVSBranch_IsBalanced(BVSBranch *branch);
 int BVSBranch_Height(BVSBranch *branch);
 BVSBranch *BVSBranch_Root(BVSBranch *BVSBranch); //finds a corresponding root
 bool BVSBranch_IsRoot(BVSBranch *branch); //predicate if the nose is root
@@ -386,16 +385,6 @@ BVSBranch *BVSBranch_Root(BVSBranch *branch) {
     return current;
 }
 
-/*bool BVSBranch_IsBalanced(BVSBranch *branch) {
-    if (branch == NULL)
-        return true;
-    int right_height = BVSBranch_Height(branch->right);
-    int left_height = BVSBranch_Height(branch->left);
-    bool right_bal = BVSBranch_IsBalanced(branch->right);
-    bool left_bal = BVSBranch_IsBalanced(branch->left);
-    return right_bal && left_bal && (right_height - left_height >= -1) && (right_height - left_height <= 1);
-}*/
-
 // Header file definitions
 
 int BVS_Init(BVS *bvs) {
@@ -426,11 +415,8 @@ void BVS_Insert(BVS *bvs, const long data) {
     return;
 }
 
-bool BVS_Search(BVS *bvs, const long data) { //we can make this return a pointer to a found item, if needed
+BVSBranch *BVS_Search(BVS *bvs, const long data) { //we can make this return a pointer to a found item, if needed
     //fprintf(stderr, "Searching for (%ld)...\n", data);
-    return BVSBranch_Search(bvs->root, data) != NULL;
-}
+    return BVSBranch_Search(bvs->root, data);
 
-/*bool BVS_IsBalanced(BVS *bvs) {
-    return BVSBranch_IsBalanced(bvs->root);
-}*/ 
+}
