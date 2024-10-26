@@ -28,7 +28,7 @@ void BVSBranch_InsertResolve(BVSBranch *branch, BVS *bvs);
 //resolves the tree structure after a delete operation
 void BVSBranch_DeleteResolve(BVSBranch *branch, BVS *bvs);
 void Help_RmDoubleBlack(BVSBranch *branch, BVS *bvs); //removes doubleblack property from the node
-bool BVSBranch_IsBallanced(BVSBranch *branch);
+bool BVSBranch_IsBalanced(BVSBranch *branch);
 int BVSBranch_Height(BVSBranch *branch);
 
 // Internal definitions
@@ -410,17 +410,17 @@ bool BVS_Search(BVS *bvs, const long data) {
     return BVSBranch_Search(bvs->root, data);
 }
 
-bool BVS_IsBallanced(BVS *bvs) {
-    return BVSBranch_IsBallanced(bvs->root);
+bool BVS_IsBalanced(BVS *bvs) {
+    return BVSBranch_IsBalanced(bvs->root);
 }
 
-bool BVSBranch_IsBallanced(BVSBranch *branch) {
+bool BVSBranch_IsBalanced(BVSBranch *branch) {
     if (branch == NULL)
         return true;
     int right_height = BVSBranch_Height(branch->right);
     int left_height = BVSBranch_Height(branch->left);
-    bool right_bal = BVSBranch_IsBallanced(branch->right);
-    bool left_bal = BVSBranch_IsBallanced(branch->left);
+    bool right_bal = BVSBranch_IsBalanced(branch->right);
+    bool left_bal = BVSBranch_IsBalanced(branch->left);
     return right_bal && left_bal && (right_height - left_height >= -1) && (right_height - left_height <= 1);
 }
 
