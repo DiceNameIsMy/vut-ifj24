@@ -1,6 +1,7 @@
 //
 // Created by nur on 5.10.24.
 //
+// Modified by oleh 26.10.24
 
 #include <stdio.h>
 #include <structs/bvs.h>
@@ -75,11 +76,6 @@ TEST(insert_many)
 	fprintf (stderr, "Failed to find (12)\n");
         FAIL("Not found");
     }
-    //if(!BVS_IsBallanced(&bvs)) {
-    //    FAIL("Ballance is corrupted!\n"); IRRELEVANT DUE TO RB TREE PROPERTIES
-    //    exit(-1);
-    //}
-
     BVS_Free(&bvs);
 ENDTEST
 
@@ -95,11 +91,6 @@ TEST(insert_random_and_delete)
         //fprintf(stderr, "NEW INPUT (%ld)\n", bvs_arr[i]);
         BVS_Insert(&bvs, bvs_arr[i]);
         
-        /*if (!BVS_IsBallanced(&bvs)) {
-        //    FAIL("Ballance is corrupted!\n"); IRRELEVANT DUE TO RB-TREE PROPERTIES
-        //    exit(-1);
-        //}*/
-	
 	//q*=q;
     }
     for (int i = 0; i < max; i++) {
