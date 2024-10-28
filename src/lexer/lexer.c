@@ -30,7 +30,7 @@ const char *keywords[] = {
 
 // If str is one of keywords, set keywordType value to the proper token type and return true.
 // False otherwise.
-bool tryGetKeyword(const char *str, TokenType *keywordType);
+bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array);
 
 bool tryGetI32(const char *str, int *i32);
 
@@ -44,12 +44,18 @@ bool isIdentifier(const char *str);
 
 void processToken(const char *buf_str, TokenArray *array);
 
+void processTokenI32(TokenType *keywordType, TokenArray *array);
+
+void processTokenF64(TokenType *keywordType, TokenArray *array);
+
+void processTokenU8(TokenType *keywordType, TokenArray *array);
+
 // Token reader Buffer size
 #define BUFFER_SIZE 256
 
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
 
-bool tryGetKeyword(const char *str, TokenType *keywordType) {
+bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
     if (strcmp(str, "const") == 0) {
         *keywordType = TOKEN_KEYWORD_CONST;
     } else if (strcmp(str, "var") == 0) {
@@ -73,23 +79,65 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
     } else if (strcmp(str, "@return") == 0) {
         *keywordType = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "i32") == 0) {
-        *keywordType = TOKEN_KEYWORD_I32;
-    } else if (strcmp(str, "?i32") == 0) {
-        *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
+        processTokenI32(keywordType, array);
     } else if (strcmp(str, "f64") == 0) {
-        *keywordType = TOKEN_KEYWORD_F64;
-    } else if (strcmp(str, "?f64") == 0) {
-        *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
+        processTokenF64(keywordType, array);
     } else if (strcmp(str, "u8") == 0) {
-        *keywordType = TOKEN_KEYWORD_U8;
-    } else if (strcmp(str, "[]u8") == 0) {
-        *keywordType = TOKEN_KEYWORD_U8_ARRAY;
-    } else if (strcmp(str, "?[]u8") == 0) {
-        *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
+        processTokenU8(keywordType, array);
     } else {
         return false;
     }
     return true;
+}
+
+void processTokenI32(TokenType *keywordType, TokenArray *array){
+    if (array->size >= 1)
+        // ?i32 case
+        if (array->tokens[array->size - 1].type == TOKEN_QUESTIONMARK){
+            deleteLastToken(array);
+            *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
+            fprintf(stderr, "remaking into ?i32");
+        }
+    // i32 case
+    *keywordType = TOKEN_KEYWORD_I32;
+}
+
+void processTokenF64(TokenType *keywordType, TokenArray *array){
+    if (array->size >= 1)
+        // ?f64 case
+        if (array->tokens[array->size - 1].type == TOKEN_QUESTIONMARK){
+            deleteLastToken(array);
+            *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
+            
+            fprintf(stderr, "remaking into ?f64");
+        }
+        // f64 case
+    *keywordType = TOKEN_KEYWORD_F64;
+}
+
+void processTokenU8(TokenType *keywordType, TokenArray *array){
+    // ?[]u8 case
+    if (array->size >= 3 &&
+        array->tokens[array->size - 3].type == TOKEN_QUESTIONMARK &&
+        array->tokens[array->size - 2].type == TOKEN_LEFT_SQUARE_BRACKET &&
+        array->tokens[array->size - 1].type == TOKEN_RIGHT_SQUARE_BRACKET){
+        deleteLastToken(array);
+        deleteLastToken(array);
+        deleteLastToken(array);
+        *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
+        fprintf(stderr, "remaking into ?[]u8");
+    }
+    // []u8 case
+    if (array->size >= 2 &&
+        array->tokens[array->size - 2].type == TOKEN_LEFT_SQUARE_BRACKET &&
+        array->tokens[array->size - 1].type == TOKEN_RIGHT_SQUARE_BRACKET){
+        deleteLastToken(array);
+        deleteLastToken(array);
+        *keywordType = TOKEN_KEYWORD_U8_ARRAY;
+        fprintf(stderr, "remaking into []u8");
+        }
+    // u8 case
+    *keywordType = TOKEN_KEYWORD_U8;
 }
 
 // function to check if this is an identifier
@@ -193,6 +241,8 @@ bool tryGetSymbol(const char *str, TokenType *tokenType) {
         *tokenType = TOKEN_DOT;
     } else if (strcmp(str, ":") == 0) {
         *tokenType = TOKEN_COLON;
+    } else if (strcmp(str, "?") == 0) {
+        *tokenType = TOKEN_QUESTIONMARK;
     } else {
         return false;
     }
@@ -205,7 +255,7 @@ void processToken(const char *buf_str, TokenArray *array) {
     TokenType tokenType;
     TokenAttribute attribute;
 
-    if (tryGetKeyword(buf_str, &tokenType)) {
+    if (tryGetKeyword(buf_str, &tokenType, array)) {
         printf("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
 
     } else if (isIdentifier(buf_str)) {
@@ -220,11 +270,11 @@ void processToken(const char *buf_str, TokenArray *array) {
 
     } else if (tryGetI32(buf_str, &attribute.integer)) {
         tokenType = TOKEN_I32_LITERAL;
-        printf("Number: %s\n", buf_str); // Process num
+        printf("Integer number: %s\n", buf_str); // Process num
 
     } else if (tryGetF64(buf_str, &attribute.real)) {
         tokenType = TOKEN_F64_LITERAL;
-        printf("Number: %s\n", buf_str); // Process num
+        printf("Float number: %s\n", buf_str); // Process num
 
     } else if (tryGetSymbol(buf_str, &tokenType)) {
         printf("Special symbol: %s\n", buf_str); // Process special symbol
@@ -241,7 +291,7 @@ void processToken(const char *buf_str, TokenArray *array) {
 
 bool isSeparator(char c) {
     // Checking all possible separators
-    if (strchr("+-*=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {
+    if (strchr("+-*=()[]{}<>&|!,;:?", c) != NULL || isspace(c)) {
         return true;
     }
     return false;
@@ -270,7 +320,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
-        const bool soloSymbol = strchr("+-*=()[]{}&|,;:", c) != NULL;
+        const bool soloSymbol = strchr("+-*=()[]{}&|,;:?", c) != NULL;
         // Check for == >= <= != || &&
         if (isPairedSymbol(c, sourceCode[(*i) + 1])){
             appendDynBuffer(buff, c);
