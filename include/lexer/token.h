@@ -51,6 +51,7 @@ typedef enum {
     TOKEN_RIGHT_CURLY_BRACKET, // }
     TOKEN_VERTICAL_BAR, // |
     // Special symbols
+    TOKEN_QUESTIONMARK,
     TOKEN_SEMICOLON, // ;
     TOKEN_COMMA, // ,
     TOKEN_DOT, // .
