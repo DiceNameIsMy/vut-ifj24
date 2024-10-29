@@ -3,11 +3,13 @@
 
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "structs/ast.h"
 #include "logging.h"
 
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
+ASTNode** astNode;
 
 char* readStdinAsString() {
     char* buffer = NULL;
@@ -41,7 +43,7 @@ int main(void) {
     const char* source_code = readStdinAsString();
     runLexer(source_code, &tokenArray);
     printf("Hello, World!\n");
-    parseInit(&tokenArray);
+    parseInit(&tokenArray, astNode);
 }
 
 

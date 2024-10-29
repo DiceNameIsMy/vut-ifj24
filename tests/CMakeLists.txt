@@ -6,6 +6,7 @@ add_executable(test_lexer test_lexer.c
         ../src/parser/parser.c
         ../include/structs/dynBuffer.h
         ../src/structs/dynBuffer.c
+        ../include/structs/ast.h
 )
 target_link_libraries(test_lexer PRIVATE LexerLib)
 target_compile_definitions(test_lexer PRIVATE DEBUG=1)
@@ -28,6 +29,7 @@ add_executable(test_parser test_parser.c
         ../src/parser/parser.c
         ../include/structs/dynBuffer.h
         ../src/structs/dynBuffer.c
+        ../include/structs/ast.h
 )
 target_link_libraries(test_parser PRIVATE LexerLib)
 target_compile_definitions(test_parser PRIVATE DEBUG=1)

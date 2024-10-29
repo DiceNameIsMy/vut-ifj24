@@ -7,31 +7,32 @@
 #include "lexer/token.h"
 #include "lexer/lexer.h"
 
-void parseInit(TokenArray* array);
-void parseProgram();
+ASTNode* parseInit(TokenArray* array);
+ASTNode* parseProgram();
 void match(TokenType expected);
-void parseProlog();
-void parseFunctionDefList();
-void parseFunctionDef();
-void parseParamList();
-void parseParamListTail();
-void parseReturnType();
-void parseType();
-void parseVarType();
-void parseStatementList();
-void parseStatement();
-void parseConstDeclaration();
-void parseExpression();
-void parseRelationalTail();
-void parseSimpleExpression();
-void parseTerm();
-void parseFactor();
-void parseFunctionCall();
-void parseVarDeclaration();
-void parseAssignmentOrFunctionCall();
-void parseIfStatement();
-void parseWhileStatement();
-void parseReturnStatement();
+ASTNode* parseProlog();
+ASTNode* parseFunctionDefList();
+ASTNode* parseFunctionDef();
+ASTNode* parseParamList();
+ASTNode* parseParamListTail();
+ASTNode* parseReturnType();
+ASTNode* parseType();
+ASTNode* parseVarType();
+ASTNode* parseStatementList();
+ASTNode* parseStatement();
+ASTNode* parseConstDeclaration();
+ASTNode* parseExpression();
+ASTNode* parseRelationalTail(ASTNode* left);
+ASTNode* parseSimpleExpression();
+ASTNode* parseTerm();
+ASTNode* parseFactor();
+ASTNode* parseFunctionCall();
+ASTNode* parseVarDeclaration();
+ASTNode* parseAssignmentOrFunctionCall();
+ASTNode* parseIfStatement();
+ASTNode* parseWhileStatement();
+ASTNode* parseReturnStatement();
 Token get_next_token();
+Token get_previous_token()
 
 #endif //VUT_IFJ_PARSER_H

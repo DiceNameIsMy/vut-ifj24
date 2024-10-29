@@ -23,8 +23,9 @@
 [Statement] ::= 'var' [Identifier] [VarType] '=' [Expression] ';'
 [Statement] ::= [Identifier] '=' [Expression] ';'
 [Statement] ::= 'if' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}' [OptionalElse]
-[Statement] ::= 'while' '(' [Expression] ')' '{' [StatementList] '}'
+[Statement] ::= 'while' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}'
 [Statement] ::= 'return' [ReturnValue] ';'
+[Statement] ::= [Expression] ';'
 
 [VarType] ::= ':' [Type]
 [VarType] ::= ε

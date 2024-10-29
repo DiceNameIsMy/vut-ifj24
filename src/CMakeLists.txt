@@ -8,6 +8,7 @@ add_executable(vut_ifj main.c
         parser/parser.c
         ../include/structs/dynBuffer.h
         structs/dynBuffer.c
+        ../include/structs/ast.h
 )
 target_link_libraries(vut_ifj PRIVATE LexerLib)
 
@@ -16,6 +17,7 @@ add_executable(vut_ifj_debug main.c
         ../include/structs/stack.h
         ../include/parser/parser.h
         parser/parser.c
+        ../include/structs/ast.h
 )
 target_link_libraries(vut_ifj_debug PRIVATE LexerLib)
 target_compile_definitions(vut_ifj_debug PRIVATE DEBUG=1)
