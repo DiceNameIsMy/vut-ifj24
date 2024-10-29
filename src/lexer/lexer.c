@@ -76,8 +76,8 @@ bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
         *keywordType = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "void") == 0) {
         *keywordType = TOKEN_KEYWORD_VOID;
-    } else if (strcmp(str, "@return") == 0) {
-        *keywordType = TOKEN_KEYWORD_RETURN;
+    } else if (strcmp(str, "@import") == 0) {
+        *keywordType = TOKEN_KEYWORD_IMPORT;
     } else if (strcmp(str, "i32") == 0) {
         processTokenI32(keywordType, array);
     } else if (strcmp(str, "f64") == 0) {
@@ -91,15 +91,17 @@ bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
 }
 
 void processTokenI32(TokenType *keywordType, TokenArray *array){
-    if (array->size >= 1)
-        // ?i32 case
-        if (array->tokens[array->size - 1].type == TOKEN_QUESTIONMARK){
+    // ?i32 case
+    if (array->size >= 1 && 
+        array->tokens[array->size - 1].type == TOKEN_QUESTIONMARK){
             deleteLastToken(array);
             *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
             fprintf(stderr, "remaking into ?i32");
         }
     // i32 case
-    *keywordType = TOKEN_KEYWORD_I32;
+    else{
+        *keywordType = TOKEN_KEYWORD_I32;
+    }
 }
 
 void processTokenF64(TokenType *keywordType, TokenArray *array){
@@ -111,8 +113,10 @@ void processTokenF64(TokenType *keywordType, TokenArray *array){
             
             fprintf(stderr, "remaking into ?f64");
         }
-        // f64 case
-    *keywordType = TOKEN_KEYWORD_F64;
+    // f64 case
+    else{
+        *keywordType = TOKEN_KEYWORD_F64;
+    }
 }
 
 void processTokenU8(TokenType *keywordType, TokenArray *array){
@@ -128,16 +132,18 @@ void processTokenU8(TokenType *keywordType, TokenArray *array){
         fprintf(stderr, "remaking into ?[]u8");
     }
     // []u8 case
-    if (array->size >= 2 &&
+    else if (array->size >= 2 &&
         array->tokens[array->size - 2].type == TOKEN_LEFT_SQUARE_BRACKET &&
         array->tokens[array->size - 1].type == TOKEN_RIGHT_SQUARE_BRACKET){
         deleteLastToken(array);
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_U8_ARRAY;
         fprintf(stderr, "remaking into []u8");
-        }
+    } 
     // u8 case
-    *keywordType = TOKEN_KEYWORD_U8;
+    else{
+        *keywordType = TOKEN_KEYWORD_U8;
+    }
 }
 
 // function to check if this is an identifier
@@ -317,8 +323,13 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
 
     if (isSeparator(c)) {
         if (!bufferIsEmpty) {
-            processToken(buff->data, tokenArray);
-            emptyDynBuffer(buff);
+            double d_plug; // func plug
+            // In case of 0.2E-2 or 0.1e+1
+            if ((c == '-' || c == '+') && tolower(sourceCode[(*i) - 1]) == 'e' && tryGetF64(buff->data, &d_plug));
+            else{
+                processToken(buff->data, tokenArray);
+                emptyDynBuffer(buff);
+            }
         }
         const bool soloSymbol = strchr("+-*=()[]{}&|,;:?", c) != NULL;
         // Check for == >= <= != || &&
@@ -329,9 +340,17 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         } else if (soloSymbol) {
-            appendDynBuffer(buff, c);
-            processToken(buff->data, tokenArray);
-            emptyDynBuffer(buff);
+            double d_plug; // func plug
+            // In case of 0.2E-2 or 0.1e+1
+            if ((c == '-' || c == '+') && tolower(sourceCode[(*i) - 1]) == 'e' && tryGetF64(buff->data, &d_plug)){
+                appendDynBuffer(buff, c);
+            }
+            else{
+                // normal solo symbol
+                appendDynBuffer(buff, c);
+                processToken(buff->data, tokenArray);
+                emptyDynBuffer(buff);
+            }
         }
         // Check if it isn't whitespace and increase buffer otherwise
         // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
@@ -451,5 +470,3 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
         ; // TODO: ERROR OCCURED
     }
 }
-
-
