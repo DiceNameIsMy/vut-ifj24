@@ -194,6 +194,156 @@ TEST(assignment)
 
 ENDTEST
 
+
+TEST(nullable_array)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("id ?[]u8 id1;", &tokenArray);
+
+    Token t;
+    // id
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "id") != 0) {
+        FAILCOMPS("Wrong attribute value", "id", t.attribute.str);
+    }
+    // ?[]u8
+    if (!check_token(&t, TOKEN_KEYWORD_U8_ARRAY_NULLABLE)) {
+        return;
+    }
+    // id1
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "id1") != 0) {
+        FAILCOMPS("Wrong attribute value", "id1", t.attribute.str);
+    }
+ENDTEST
+
+/* Must define miltiline
+TEST(multiline_string)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("id \" in string \n \\\\ still inside\" \n dif_id", &tokenArray);
+
+    Token t;
+    // id
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "id") != 0) {
+        FAILCOMPS("Wrong attribute value", "id", t.attribute.str);
+    }
+    // " in string \n \\ still inside"
+    if (!check_token(&t, TOKEN_STRING_LITERAL)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, " in string \n \\ still inside") != 0) {
+        FAILCOMPS("Wrong attribute value", " in string \n \\ still inside", t.attribute.str);
+    }
+    // dif_id
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "dif_id") != 0) {
+        FAILCOMPS("Wrong attribute value", "dif_id", t.attribute.str);
+    }
+ENDTEST
+*/
+
+TEST(double_symbol_comparison)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("if (a >= b);", &tokenArray);
+
+    Token t;
+    // if
+    if (!check_token(&t, TOKEN_KEYWORD_IF)) {
+        return;
+    }
+    // (
+    if (!check_token(&t, TOKEN_LEFT_ROUND_BRACKET)) {
+        return;
+    }
+    // a
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    // >=
+    if (!check_token(&t, TOKEN_GREATER_THAN_OR_EQUAL_TO)) {
+        return;
+    }
+    // b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "b") != 0) {
+        FAILCOMPS("Wrong attribute value", "b", t.attribute.str);
+    }
+    // )
+    if (!check_token(&t, TOKEN_RIGHT_ROUND_BRACKET)) {
+        return;
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+ENDTEST
+
+TEST(const_import)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("const ifj = @import(\"ifj24.zig\");", &tokenArray);
+
+    Token t;
+    // const
+    if (!check_token(&t, TOKEN_KEYWORD_CONST)) {
+        return;
+    }
+    // ifj
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifj") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifj", t.attribute.str);
+    }
+    // =
+    if (!check_token(&t, TOKEN_ASSIGNMENT)) {
+        return;
+    }
+    // @import
+    if (!check_token(&t, TOKEN_KEYWORD_IMPORT)) {
+        return;
+    }
+    // (
+    if (!check_token(&t, TOKEN_LEFT_ROUND_BRACKET)) {
+        return;
+    }
+    // "ifj24.zig"
+    if (!check_token(&t, TOKEN_STRING_LITERAL)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifj24.zig") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifj24.zig", t.attribute.str);
+    }
+    // )
+    if (!check_token(&t, TOKEN_RIGHT_ROUND_BRACKET)) {
+        return;
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+ENDTEST
+
 int main() {
     initTokenArray(&tokenArray);
 
