@@ -73,6 +73,7 @@ void freeToken(Token *token) {
     switch (token->type) {
         case TOKEN_ID:
         case TOKEN_STRING_LITERAL:
+        case TOKEN_ERROR:
             if (token->attribute.str != NULL) {
                 free(token->attribute.str);
                 token->attribute.str = NULL;
