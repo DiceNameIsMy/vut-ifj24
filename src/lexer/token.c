@@ -45,7 +45,7 @@ int addToken(TokenArray *array, const Token token) {
 void deleteLastToken(TokenArray *array){
     if (array->size == 0){
         fprintf(stderr, "Deleting non existing element\n");
-        return -1;
+        return;
     }
     array->size--;
 }
