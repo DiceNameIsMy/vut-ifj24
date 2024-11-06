@@ -93,7 +93,7 @@ bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
 void processTokenI32(TokenType *keywordType, TokenArray *array){
     // ?i32 case
     if (array->size >= 1 && 
-        array->tokens[array->size - 1].type == TOKEN_QUESTIONMARK){
+        array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK){
             deleteLastToken(array);
             *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
             fprintf(stderr, "remaking into ?i32");
@@ -107,7 +107,7 @@ void processTokenI32(TokenType *keywordType, TokenArray *array){
 void processTokenF64(TokenType *keywordType, TokenArray *array){
     if (array->size >= 1)
         // ?f64 case
-        if (array->tokens[array->size - 1].type == TOKEN_QUESTIONMARK){
+        if (array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK){
             deleteLastToken(array);
             *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
             
@@ -122,7 +122,7 @@ void processTokenF64(TokenType *keywordType, TokenArray *array){
 void processTokenU8(TokenType *keywordType, TokenArray *array){
     // ?[]u8 case
     if (array->size >= 3 &&
-        array->tokens[array->size - 3].type == TOKEN_QUESTIONMARK &&
+        array->tokens[array->size - 3].type == TOKEN_QUESTION_MARK &&
         array->tokens[array->size - 2].type == TOKEN_LEFT_SQUARE_BRACKET &&
         array->tokens[array->size - 1].type == TOKEN_RIGHT_SQUARE_BRACKET){
         deleteLastToken(array);
@@ -248,7 +248,7 @@ bool tryGetSymbol(const char *str, TokenType *tokenType) {
     } else if (strcmp(str, ":") == 0) {
         *tokenType = TOKEN_COLON;
     } else if (strcmp(str, "?") == 0) {
-        *tokenType = TOKEN_QUESTIONMARK;
+        *tokenType = TOKEN_QUESTION_MARK;
     } else {
         return false;
     }
