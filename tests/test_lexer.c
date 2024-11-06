@@ -63,11 +63,23 @@ TEST(keyword)
 
 ENDTEST
 
-TEST(invalid_i32_literal_starting_with_leading_zeros)
+TEST(i32_literal_starting_with_leading_zeros)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
     runLexer("02;", &tokenArray);
+
+    Token t;
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
+ENDTEST
+
+TEST(f64_literal_starting_with_leading_zeros)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("02.3;", &tokenArray);
 
     Token t;
     if (!check_token(&t, TOKEN_ERROR)) {
