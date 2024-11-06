@@ -58,7 +58,7 @@ TEST(keyword)
 
     Token t;
     if (!check_token(&t, TOKEN_KEYWORD_I32)) {
-        return;
+        FAIL("Invalid token type for keyword. Expected TOKEN_KEYWORD_I32");
     }
 
 ENDTEST
@@ -71,7 +71,7 @@ TEST(string_literal)
 
     Token t;
     if (!check_token(&t, TOKEN_STRING_LITERAL)) {
-        return;
+        FAIL("Invalid token type for string literal. Expected TOKEN_STRING_LITERAL");
     }
 ENDTEST
 
@@ -83,7 +83,7 @@ TEST(oneline_string_literal_not_terminated)
 
     Token t;
     if (!check_token(&t, TOKEN_ERROR)) {
-        return;
+        FAIL("Didn't get an error when fed with an unfinished string literal");
     }
 ENDTEST
 
