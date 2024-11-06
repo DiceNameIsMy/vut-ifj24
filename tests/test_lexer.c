@@ -31,7 +31,7 @@ bool check_token(Token *t, const TokenType type) {
         return false;
     }
     if (t->type != type) {
-        FAIL("Invalid token type. Expected %i, but got %i", type, t->type);
+        FAIL("Invalid token type. Expected %s, but got %s", getTokenTypeName(type), getTokenTypeName(t->type));
         return false;
     }
     return true;
@@ -61,6 +61,18 @@ TEST(keyword)
         FAIL("Invalid token type for keyword. Expected TOKEN_KEYWORD_I32");
     }
 
+ENDTEST
+
+TEST(invalid_i32_literal_starting_with_leading_zeros)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("02;", &tokenArray);
+
+    Token t;
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
 ENDTEST
 
 TEST(string_literal)
@@ -222,37 +234,21 @@ TEST(nullable_array)
     }
 ENDTEST
 
-/* Must define miltiline
 TEST(multiline_string)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
-    runLexer("id \" in string \n \\\\ still inside\" \n dif_id", &tokenArray);
+    runLexer("\\\\multiline 1\n\\\\multiline2\n     \\\\multiline3\n;", &tokenArray);
 
     Token t;
     // id
-    if (!check_token(&t, TOKEN_ID)) {
-        return;
-    }
-    if (strcmp(t.attribute.str, "id") != 0) {
-        FAILCOMPS("Wrong attribute value", "id", t.attribute.str);
-    }
-    // " in string \n \\ still inside"
     if (!check_token(&t, TOKEN_STRING_LITERAL)) {
         return;
     }
-    if (strcmp(t.attribute.str, " in string \n \\ still inside") != 0) {
-        FAILCOMPS("Wrong attribute value", " in string \n \\ still inside", t.attribute.str);
-    }
-    // dif_id
-    if (!check_token(&t, TOKEN_ID)) {
-        return;
-    }
-    if (strcmp(t.attribute.str, "dif_id") != 0) {
-        FAILCOMPS("Wrong attribute value", "dif_id", t.attribute.str);
+    if (strcmp(t.attribute.str, "multiline 1\nmultiline2\nmultiline3") != 0) {
+        FAILCOMPS("Wrong attribute value", "multiline 1\nmultiline2\nmultiline3", t.attribute.str);
     }
 ENDTEST
-*/
 
 TEST(double_symbol_comparison)
     freeTokenArray(&tokenArray);
