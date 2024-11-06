@@ -323,7 +323,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
 
     if (isSeparator(c)) {
         if (!bufferIsEmpty) {
-            double d_plug; // func plug
+            double d_plug; // this is a plug, so we can check if it's a number in tryGetF64
             // In case of 0.2E-2 or 0.1e+1
             if ((c == '-' || c == '+') && tolower(sourceCode[(*i) - 1]) == 'e' && tryGetF64(buff->data, &d_plug));
             else{
@@ -340,7 +340,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         } else if (soloSymbol) {
-            double d_plug; // func plug
+            double d_plug; // this is a plug, so we can check if it's a number in tryGetF64
             // In case of 0.2E-2 or 0.1e+1
             if ((c == '-' || c == '+') && tolower(sourceCode[(*i) - 1]) == 'e' && tryGetF64(buff->data, &d_plug)){
                 appendDynBuffer(buff, c);
