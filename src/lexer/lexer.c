@@ -17,7 +17,8 @@
 typedef enum {
     STATE_COMMON,
     STATE_ONE_LINE_STRING,
-    STATE_NEXT_LINE_STRING,
+    STATE_MULTILINE_STRING,
+    STATE_MULTILINE_STRING_SKIP_WHITESPACE,
     STATE_COMMENT,
 } LexerState; // FSM which decides, how we approach characters
 
@@ -357,7 +358,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             }
         }
         // Check if it isn't whitespace and increase buffer otherwise
-        // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
+        // Maybe add state AFTER_SPECIAL SYMBOL or process it right away
     } else if (c == '"') {
         // String starts
         if (!bufferIsEmpty) {
@@ -374,6 +375,20 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
         if (sourceCode[*i + 1] == '/') {
             (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
             nextState = STATE_COMMENT;
+        } else {
+            appendDynBuffer(buff, c);
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+    }  else if (c == '\\') {
+        // Process buffer data
+        if (!bufferIsEmpty) {
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+        if (sourceCode[*i + 1] == '\\') {
+            (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
+            nextState = STATE_MULTILINE_STRING;
         } else {
             appendDynBuffer(buff, c);
             processToken(buff->data, tokenArray);
@@ -438,15 +453,47 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                 state = fsmStepOnOneLineStringParsing(sourceCode, &i, tokenArray, &buff);
                 break;
 
-            case STATE_NEXT_LINE_STRING:
-                if (isspace(c) == false) {
-                    if (c == '\\' && sourceCode[i + 1] == '\\') {
-                        //TODO: Can it raise an ERROR at the end?
-                        i++;
-                        state = STATE_ONE_LINE_STRING;
+            case STATE_MULTILINE_STRING:
+                if (c == '\n') {
+                    state = STATE_MULTILINE_STRING_SKIP_WHITESPACE;
+                } else {
+                    appendDynBuffer(&buff, c);
+                }
+                break;
+
+            case STATE_MULTILINE_STRING_SKIP_WHITESPACE:
+                const bool isWhitespace = c == ' ' || c == '\t';
+                if (isWhitespace) {
+                    break;
+                }
+                if (c == ';') {
+                    Token stringToken = {.type = TOKEN_STRING_LITERAL};
+                    initStringAttribute(&stringToken.attribute, buff.data);
+                    addToken(tokenArray, stringToken);
+
+                    emptyDynBuffer(&buff);
+
+                    state = STATE_COMMON;
+
+                    break;
+                }
+                if (c == '\\') {
+                    if (sourceCode[i + 1] == '\\') {
+                        // Multiline string continues -> a newline for that must be added
+                        appendDynBuffer(&buff, '\n');
+                        state = STATE_MULTILINE_STRING;
                     } else {
-                        ; // TODO: ERROR OCCURE bc string isn't closed
+                        Token errorToken = {.type = TOKEN_ERROR};
+                        initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
+                        addToken(tokenArray, errorToken);
+                        state = STATE_COMMON;
                     }
+                    i++;
+                } else {
+                    Token errorToken = {.type = TOKEN_ERROR};
+                    initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
+                    addToken(tokenArray, errorToken);
+                    state = STATE_COMMON;
                 }
                 break;
 

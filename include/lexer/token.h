@@ -85,8 +85,10 @@ int addToken(TokenArray *array, Token token);
 
 Token createToken(const TokenType type, const TokenAttribute attribute);
 
-int initStringAttribute(TokenAttribute *attr, char *str);
+int initStringAttribute(TokenAttribute *attr, const char *str);
 
 void freeToken(Token *token);
+
+const char* getTokenTypeName(TokenType token);
 
 #endif // TOKEN_H
