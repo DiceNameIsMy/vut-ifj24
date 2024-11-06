@@ -177,6 +177,11 @@ bool tryGetI32(const char *str, int *i32) {
     regfree(&i32_regex);
 
     if (match) {
+        // i32 can not start with leading zeros
+        if (str[0] == '0' && strlen(str) > 1) {
+            return false;
+        }
+
         *i32 = (int) strtol(str, NULL, 10);
         return true;
     }
@@ -197,6 +202,13 @@ bool tryGetF64(const char *str, double *f64) {
     regfree(&f64_regex);
 
     if (match) {
+        // f64 can not start with leading zeros
+        const bool firstIsZero = str[0] == '0';
+        const bool secondIsNumber = str[1] >= '0' && str[1] <= '9';
+        if (firstIsZero && secondIsNumber) {
+            return false;
+        }
+
         if (f64 != NULL) {
             *f64 = strtod(str, NULL);
         }
