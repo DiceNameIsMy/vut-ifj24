@@ -42,7 +42,7 @@ int addToken(TokenArray *array, const Token token) {
     return 0;
 }
 
-int deleteLastToken(TokenArray *array){
+void deleteLastToken(TokenArray *array){
     if (array->size == 0){
         fprintf(stderr, "Deleting non existing element\n");
         return -1;
@@ -68,9 +68,18 @@ int initStringAttribute(TokenAttribute *attr, char *str) {
     return 0;
 }
 
-void freeToken(Token *token) {  // TODO: Potentially broken due to token->attribute.str
-    if (token->attribute.str) {
-        free(token->attribute.str);
-        token->attribute.str = NULL;
+void freeToken(Token *token) {
+    // free only if TokenType requires string attribute
+    switch (token->type) {
+        case TOKEN_ID:
+        case TOKEN_STRING_LITERAL:
+            if (token->attribute.str != NULL) {
+                free(token->attribute.str);
+                token->attribute.str = NULL;
+            }
+            break;
+        default:
+            // Otherwise do nothing
+            break;
     }
 }
