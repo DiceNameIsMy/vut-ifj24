@@ -9,7 +9,7 @@
 int initTokenArray(TokenArray *array) {
     array->tokens = (Token *) malloc(TOKEN_ARRAY_INIT_CAPACITY * sizeof(Token));
     if (!array->tokens) {
-        fprintf(stderr, "Malloc Memory ERROR\n");
+        loginfo("Malloc Memory ERROR\n");
         return -1;
     }
     array->size = 0;
@@ -30,7 +30,7 @@ int addToken(TokenArray *array, const Token token) {
         array->capacity *= 2;
         Token *reallocated = realloc(array->tokens, array->capacity * sizeof(Token));
         if (reallocated == NULL) {
-            fprintf(stderr, "Allocating expended memory ERROR\n");
+            loginfo("Allocating expended memory ERROR\n");
             return -1;
         }
         array->tokens = reallocated;
@@ -44,7 +44,7 @@ int addToken(TokenArray *array, const Token token) {
 
 void deleteLastToken(TokenArray *array){
     if (array->size == 0){
-        fprintf(stderr, "Deleting non existing element\n");
+        loginfo("Deleting non existing element\n");
         return;
     }
     array->size--;

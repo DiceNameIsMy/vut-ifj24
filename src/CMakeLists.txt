@@ -7,5 +7,5 @@ target_link_libraries(vut_ifj PRIVATE LexerLib StructsLib)
 
 # Configure an executable for debug compilation
 add_executable(vut_ifj_debug main.c)
-target_link_libraries(vut_ifj_debug PRIVATE LexerLib StructsLib)
+target_link_libraries(vut_ifj_debug PRIVATE LexerLibDbg StructsLibDbg)
 target_compile_definitions(vut_ifj_debug PRIVATE DEBUG=1)
