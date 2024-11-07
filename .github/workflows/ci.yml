@@ -18,7 +18,7 @@ jobs:
           build-dir: build
 
       - name: Allow script execution
-        run: chmod +x ./run_tests.sh
+        run: chmod +x ./scripts/run_tests.sh
 
       - name: Run tests
         run: find . -type f -wholename "./build/tests/test_*" -executable | ./scripts/run_tests.sh
