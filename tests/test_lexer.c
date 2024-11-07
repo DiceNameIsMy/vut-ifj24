@@ -250,7 +250,7 @@ TEST(multiline_string)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
-    runLexer("\\\\multiline 1\n\\\\multiline2\n     \\\\multiline3\n;", &tokenArray);
+    runLexer("\\\\multiline 1\n\\\\multiline2\n     \\\\multiline3\n\t ;", &tokenArray);
 
     Token t;
     // id
@@ -259,6 +259,10 @@ TEST(multiline_string)
     }
     if (strcmp(t.attribute.str, "multiline 1\nmultiline2\nmultiline3") != 0) {
         FAILCOMPS("Wrong attribute value", "multiline 1\nmultiline2\nmultiline3", t.attribute.str);
+    }
+
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
     }
 ENDTEST
 
