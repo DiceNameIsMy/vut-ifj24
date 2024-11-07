@@ -485,6 +485,9 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
 
                     emptyDynBuffer(&buff);
 
+                    const Token semicolonToken = {.type = TOKEN_SEMICOLON};
+                    addToken(tokenArray, semicolonToken);
+
                     state = STATE_COMMON;
 
                     break;
