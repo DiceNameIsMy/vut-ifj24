@@ -16,6 +16,7 @@ typedef enum {
     TOKEN_KEYWORD_NULL,
     TOKEN_KEYWORD_RETURN,
     TOKEN_KEYWORD_VOID,
+    TOKEN_KEYWORD_IMPORT, // @import
     // Data types
     TOKEN_KEYWORD_I32, // i32
     TOKEN_KEYWORD_I32_NULLABLE, // ?i32
@@ -50,7 +51,7 @@ typedef enum {
     TOKEN_RIGHT_CURLY_BRACKET, // }
     TOKEN_VERTICAL_BAR, // |
     // Special symbols
-    TOKEN_AT, // @    When do we use it?
+    TOKEN_QUESTION_MARK,
     TOKEN_SEMICOLON, // ;
     TOKEN_COMMA, // ,
     TOKEN_DOT, // .
@@ -84,8 +85,10 @@ int addToken(TokenArray *array, Token token);
 
 Token createToken(const TokenType type, const TokenAttribute attribute);
 
-int initStringAttribute(TokenAttribute *attr, char *str);
+int initStringAttribute(TokenAttribute *attr, const char *str);
 
 void freeToken(Token *token);
+
+const char* getTokenTypeName(TokenType token);
 
 #endif // TOKEN_H

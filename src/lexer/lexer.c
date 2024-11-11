@@ -12,25 +12,25 @@
 #include "lexer/token.h"
 #include "structs/dynBuffer.h"
 #include "token.c"
-#include "logging.h"
 
 typedef enum {
     STATE_COMMON,
     STATE_ONE_LINE_STRING,
-    STATE_NEXT_LINE_STRING,
+    STATE_MULTILINE_STRING,
+    STATE_MULTILINE_STRING_SKIP_WHITESPACE,
     STATE_COMMENT,
 } LexerState; // FSM which decides, how we approach characters
 
 // Array of keywords
 const char *keywords[] = {
     "const", "var", "if", "else", "while", "fn", "pub",
-    "null", "return", "void",
+    "null", "return", "void", "@import",
     "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
 };
 
 // If str is one of keywords, set keywordType value to the proper token type and return true.
 // False otherwise.
-bool tryGetKeyword(const char *str, TokenType *keywordType);
+bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array);
 
 bool tryGetI32(const char *str, int *i32);
 
@@ -44,12 +44,18 @@ bool isIdentifier(const char *str);
 
 void processToken(const char *buf_str, TokenArray *array);
 
+void processTokenI32(TokenType *keywordType, TokenArray *array);
+
+void processTokenF64(TokenType *keywordType, TokenArray *array);
+
+void processTokenU8(TokenType *keywordType, TokenArray *array);
+
 // Token reader Buffer size
 #define BUFFER_SIZE 256
 
-#define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
+#define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of keywords
 
-bool tryGetKeyword(const char *str, TokenType *keywordType) {
+bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
     if (strcmp(str, "const") == 0) {
         *keywordType = TOKEN_KEYWORD_CONST;
     } else if (strcmp(str, "var") == 0) {
@@ -70,24 +76,74 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
         *keywordType = TOKEN_KEYWORD_RETURN;
     } else if (strcmp(str, "void") == 0) {
         *keywordType = TOKEN_KEYWORD_VOID;
+    } else if (strcmp(str, "@import") == 0) {
+        *keywordType = TOKEN_KEYWORD_IMPORT;
     } else if (strcmp(str, "i32") == 0) {
-        *keywordType = TOKEN_KEYWORD_I32;
-    } else if (strcmp(str, "?i32") == 0) {
-        *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
+        processTokenI32(keywordType, array);
     } else if (strcmp(str, "f64") == 0) {
-        *keywordType = TOKEN_KEYWORD_F64;
-    } else if (strcmp(str, "?f64") == 0) {
-        *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
+        processTokenF64(keywordType, array);
     } else if (strcmp(str, "u8") == 0) {
-        *keywordType = TOKEN_KEYWORD_U8;
-    } else if (strcmp(str, "[]u8") == 0) {
-        *keywordType = TOKEN_KEYWORD_U8_ARRAY;
-    } else if (strcmp(str, "?[]u8") == 0) {
-        *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
+        processTokenU8(keywordType, array);
     } else {
         return false;
     }
     return true;
+}
+
+void processTokenI32(TokenType *keywordType, TokenArray *array) {
+    // ?i32 case
+    if (array->size >= 1 &&
+        array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK) {
+        deleteLastToken(array);
+        *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
+        loginfo("remaking into ?i32");
+    }
+    // i32 case
+    else {
+        *keywordType = TOKEN_KEYWORD_I32;
+    }
+}
+
+void processTokenF64(TokenType *keywordType, TokenArray *array) {
+    if (array->size >= 1)
+        // ?f64 case
+        if (array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK) {
+            deleteLastToken(array);
+            *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
+
+            loginfo("remaking into ?f64");
+        }
+        // f64 case
+        else {
+            *keywordType = TOKEN_KEYWORD_F64;
+        }
+}
+
+void processTokenU8(TokenType *keywordType, TokenArray *array) {
+    // ?[]u8 case
+    if (array->size >= 3 &&
+        array->tokens[array->size - 3].type == TOKEN_QUESTION_MARK &&
+        array->tokens[array->size - 2].type == TOKEN_LEFT_SQUARE_BRACKET &&
+        array->tokens[array->size - 1].type == TOKEN_RIGHT_SQUARE_BRACKET) {
+        deleteLastToken(array);
+        deleteLastToken(array);
+        deleteLastToken(array);
+        *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
+        loginfo("remaking into ?[]u8");
+    }
+    // []u8 case
+    else if (array->size >= 2 &&
+             array->tokens[array->size - 2].type == TOKEN_LEFT_SQUARE_BRACKET &&
+             array->tokens[array->size - 1].type == TOKEN_RIGHT_SQUARE_BRACKET) {
+        deleteLastToken(array);
+        deleteLastToken(array);
+        *keywordType = TOKEN_KEYWORD_U8_ARRAY;
+        loginfo("remaking into []u8");
+    }
+    // u8 case
+    else {
+        *keywordType = TOKEN_KEYWORD_U8;
+    }
 }
 
 // function to check if this is an identifier
@@ -120,9 +176,18 @@ bool tryGetI32(const char *str, int *i32) {
     regfree(&i32_regex);
 
     if (match) {
+        // i32 can not start with leading zeros
+        if (str[0] == '0' && strlen(str) > 1) {
+            return false;
+        }
+
         *i32 = (int) strtol(str, NULL, 10);
         return true;
     }
+    return false;
+}
+
+bool isF64(const char *str) {
     return false;
 }
 
@@ -136,7 +201,16 @@ bool tryGetF64(const char *str, double *f64) {
     regfree(&f64_regex);
 
     if (match) {
-        *f64 = strtod(str, NULL);
+        // f64 can not start with leading zeros
+        const bool firstIsZero = str[0] == '0';
+        const bool secondIsNumber = str[1] >= '0' && str[1] <= '9';
+        if (firstIsZero && secondIsNumber) {
+            return false;
+        }
+
+        if (f64 != NULL) {
+            *f64 = strtod(str, NULL);
+        }
         return true;
     }
     return false;
@@ -183,9 +257,6 @@ bool tryGetSymbol(const char *str, TokenType *tokenType) {
         *tokenType = TOKEN_EQUAL_TO;
     } else if (strcmp(str, "!=") == 0) {
         *tokenType = TOKEN_NOT_EQUAL_TO;
-    } else if (strcmp(str, "@") == 0) {
-        // Special symbols
-        *tokenType = TOKEN_AT;
     } else if (strcmp(str, ";") == 0) {
         *tokenType = TOKEN_SEMICOLON;
     } else if (strcmp(str, ",") == 0) {
@@ -194,6 +265,8 @@ bool tryGetSymbol(const char *str, TokenType *tokenType) {
         *tokenType = TOKEN_DOT;
     } else if (strcmp(str, ":") == 0) {
         *tokenType = TOKEN_COLON;
+    } else if (strcmp(str, "?") == 0) {
+        *tokenType = TOKEN_QUESTION_MARK;
     } else {
         return false;
     }
@@ -206,33 +279,28 @@ void processToken(const char *buf_str, TokenArray *array) {
     TokenType tokenType;
     TokenAttribute attribute;
 
-    if (tryGetKeyword(buf_str, &tokenType)) {
-        printf("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
-
+    if (tryGetKeyword(buf_str, &tokenType, array)) {
+        loginfo("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
     } else if (isIdentifier(buf_str)) {
         tokenType = TOKEN_ID;
-        printf("Identifier: %s\n", buf_str); // Process id
+        loginfo("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
 
         if (attribute.str == NULL) {
-            fprintf(stderr, "Error memory allocation\n");
+            loginfo("Error memory allocation\n");
             exit(0); // TODO: clean
         }
-
     } else if (tryGetI32(buf_str, &attribute.integer)) {
         tokenType = TOKEN_I32_LITERAL;
-        printf("Number: %s\n", buf_str); // Process num
-
+        loginfo("Integer number: %s\n", buf_str); // Process num
     } else if (tryGetF64(buf_str, &attribute.real)) {
         tokenType = TOKEN_F64_LITERAL;
-        printf("Number: %s\n", buf_str); // Process num
-
+        loginfo("Float number: %s\n", buf_str); // Process num
     } else if (tryGetSymbol(buf_str, &tokenType)) {
-        printf("Special symbol: %s\n", buf_str); // Process special symbol
-
+        loginfo("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
-        printf("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
-        printf("Possible ERROR!\n\n");
+        loginfo("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
+        loginfo("Possible ERROR!\n\n");
         tokenType = TOKEN_ERROR;
         attribute.str = "Unrecognized token";
     }
@@ -242,8 +310,19 @@ void processToken(const char *buf_str, TokenArray *array) {
 
 bool isSeparator(char c) {
     // Checking all possible separators
-    if (strchr("+-*/=()[]{}<>&|!,;:", c) != NULL || isspace(c)) {
-        // Why is it red?
+    if (strchr("+-*=()[]{}<>&|!,;:?", c) != NULL || isspace(c)) {
+        return true;
+    }
+    return false;
+}
+
+bool isPairedSymbol(char c, char c_next) {
+    if ((c == '=' && c_next == '=') ||
+        (c == '!' && c_next == '=') ||
+        (c == '>' && c_next == '=') ||
+        (c == '<' && c_next == '=') ||
+        (c == '&' && c_next == '&') ||
+        (c == '|' && c_next == '|')) {
         return true;
     }
     return false;
@@ -257,19 +336,40 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
 
     if (isSeparator(c)) {
         if (!bufferIsEmpty) {
-            processToken(buff->data, tokenArray);
-            emptyDynBuffer(buff);
-        }
+            // In case of 0.2E-2 or 0.1e+1
 
-        const bool soloSymbol = strchr("+-*/=()[]{}&|,;:", c) != NULL;
-        if (soloSymbol) {
-            // Todo -> few rows above
-            appendDynBuffer(buff, c); // TODO: ==, >=, <=, !=, check all symbols
+            const bool is_f64 = (c == '-' || c == '+')
+                && tolower(sourceCode[(*i) - 1]) == 'e'
+                && tryGetF64(buff->data, NULL);
+            if (is_f64) {
+
+            }
+            else {
+                processToken(buff->data, tokenArray);
+                emptyDynBuffer(buff);
+            }
+        }
+        const bool soloSymbol = strchr("+-*=()[]{}&|,;:?", c) != NULL;
+        // Check for == >= <= != || &&
+        if (isPairedSymbol(c, sourceCode[(*i) + 1])) {
+            appendDynBuffer(buff, c);
+            (*i)++; // skip next symbol
+            appendDynBuffer(buff, sourceCode[*i]);
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
+        } else if (soloSymbol) {
+            // In case of 0.2E-2 or 0.1e+1
+            if ((c == '-' || c == '+') && tolower(sourceCode[(*i) - 1]) == 'e' && tryGetF64(buff->data, NULL)) {
+                appendDynBuffer(buff, c);
+            } else {
+                // normal solo symbol
+                appendDynBuffer(buff, c);
+                processToken(buff->data, tokenArray);
+                emptyDynBuffer(buff);
+            }
         }
         // Check if it isn't whitespace and increase buffer otherwise
-        // Maybe add state AFTER_SPECIAL SIMBOL or process it right away
+        // Maybe add state AFTER_SPECIAL SYMBOL or process it right away
     } else if (c == '"') {
         // String starts
         if (!bufferIsEmpty) {
@@ -277,15 +377,34 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             emptyDynBuffer(buff);
         }
         nextState = STATE_ONE_LINE_STRING; // Start String status
-    } else if (c == '/' && sourceCode[*i + 1] == '/') {
-        // Comment starts
+    } else if (c == '/') {
+        // Process buffer data
         if (!bufferIsEmpty) {
-            // TODO: MAKE IT A FUNC
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
-        (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
-        nextState = STATE_COMMENT;
+        if (sourceCode[*i + 1] == '/') {
+            (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
+            nextState = STATE_COMMENT;
+        } else {
+            appendDynBuffer(buff, c);
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+    }  else if (c == '\\') {
+        // Process buffer data
+        if (!bufferIsEmpty) {
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
+        if (sourceCode[*i + 1] == '\\') {
+            (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
+            nextState = STATE_MULTILINE_STRING;
+        } else {
+            appendDynBuffer(buff, c);
+            processToken(buff->data, tokenArray);
+            emptyDynBuffer(buff);
+        }
     } else {
         appendDynBuffer(buff, c);
     }
@@ -302,7 +421,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
         (*i)++;
     } else if (c == '"') {
         // end of the string
-        printf("String: \"%s\"\n", buff->data); // TODO: Gotta be another parser for str only
+        loginfo("String: \"%s\"\n", buff->data); // TODO: Gotta be another parser for str only
 
         Token stringToken = {.type = TOKEN_STRING_LITERAL};
         initStringAttribute(&stringToken.attribute, buff->data);
@@ -345,15 +464,50 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                 state = fsmStepOnOneLineStringParsing(sourceCode, &i, tokenArray, &buff);
                 break;
 
-            case STATE_NEXT_LINE_STRING:
-                if (isspace(c) == false) {
-                    if (c == '\\' && sourceCode[i + 1] == '\\') {
-                        //TODO: Can it raise an ERROR at the end?
-                        i++;
-                        state = STATE_ONE_LINE_STRING;
+            case STATE_MULTILINE_STRING:
+                if (c == '\n') {
+                    state = STATE_MULTILINE_STRING_SKIP_WHITESPACE;
+                } else {
+                    appendDynBuffer(&buff, c);
+                }
+                break;
+
+            case STATE_MULTILINE_STRING_SKIP_WHITESPACE:
+                const bool isWhitespace = c == ' ' || c == '\t';
+                if (isWhitespace) {
+                    break;
+                }
+                if (c == ';') {
+                    Token stringToken = {.type = TOKEN_STRING_LITERAL};
+                    initStringAttribute(&stringToken.attribute, buff.data);
+                    addToken(tokenArray, stringToken);
+
+                    emptyDynBuffer(&buff);
+
+                    const Token semicolonToken = {.type = TOKEN_SEMICOLON};
+                    addToken(tokenArray, semicolonToken);
+
+                    state = STATE_COMMON;
+
+                    break;
+                }
+                if (c == '\\') {
+                    if (sourceCode[i + 1] == '\\') {
+                        // Multiline string continues -> a newline for that must be added
+                        appendDynBuffer(&buff, '\n');
+                        state = STATE_MULTILINE_STRING;
                     } else {
-                        ; // TODO: ERROR OCCURE bc string isn't closed
+                        Token errorToken = {.type = TOKEN_ERROR};
+                        initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
+                        addToken(tokenArray, errorToken);
+                        state = STATE_COMMON;
                     }
+                    i++;
+                } else {
+                    Token errorToken = {.type = TOKEN_ERROR};
+                    initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
+                    addToken(tokenArray, errorToken);
+                    state = STATE_COMMON;
                 }
                 break;
 
@@ -373,11 +527,11 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
             processToken(buff.data, tokenArray);
         } else if (state == STATE_ONE_LINE_STRING) {
             Token errorToken = {.type = TOKEN_ERROR};
-            initStringAttribute(&errorToken.attribute, "Got \\n whilst parsing a double quote string");
+            initStringAttribute(&errorToken.attribute, "One line string literal was not ended");
             addToken(tokenArray, errorToken);
         }
         emptyDynBuffer(&buff);
     } else {
-        ; // TODO: ERROR OCCURED
+        ; // TODO: ERROR OCCURRED
     }
 }

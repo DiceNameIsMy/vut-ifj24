@@ -26,12 +26,13 @@ set(SOURCE_FILES
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
+add_library(${PROJECT_NAME}Dbg ${SOURCE_FILES})
 ```
 
 To use the component in main.c, add the following to the `src/CMakeLists.txt`
 ```cmake
 target_link_libraries(vut_ifj PRIVATE LexerLib)
-target_link_libraries(vut_ifj_debug PRIVATE LexerLib)
+target_link_libraries(vut_ifj_debug PRIVATE LexerLibDbg)
 ```
 
 ##### Testing
