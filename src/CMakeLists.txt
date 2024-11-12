@@ -20,8 +20,6 @@ add_executable(vut_ifj_debug main.c
         parser/parser.c
         ../include/structs/ast.h
 )
-target_link_libraries(vut_ifj_debug PRIVATE LexerLib)
-
-add_executable(vut_ifj_debug main.c)
 target_link_libraries(vut_ifj_debug PRIVATE LexerLibDbg StructsLibDbg)
+
 target_compile_definitions(vut_ifj_debug PRIVATE DEBUG=1)
