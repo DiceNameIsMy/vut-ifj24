@@ -352,6 +352,126 @@ TEST(const_import)
     }
 ENDTEST
 
+TEST (dot_id_error)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a.b;", &tokenArray);
+
+    Token t;
+    // a.b
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    } 
+ENDTEST
+
+TEST (dot_id_space_separator)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a . b;", &tokenArray);
+
+    Token t;
+    // a .b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    // .
+    if (!check_token(&t, TOKEN_DOT)) {
+        return;
+    }
+    // b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "b") != 0) {
+        FAILCOMPS("Wrong attribute value", "b", t.attribute.str);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    } 
+ENDTEST
+
+TEST (ifj_dot)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("ifj.write now", &tokenArray);
+
+    Token t;
+    // ifj.write
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifj.write") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifj.write", t.attribute.str);
+    }
+    // now
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "now") != 0) {
+        FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
+    }
+ENDTEST
+
+TEST (ifj_tab_next_line)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("ifj\n.\twrite now", &tokenArray);
+
+    Token t;
+    // ifj.write
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifj.write") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifj.write", t.attribute.str);
+    }
+    // now
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "now") != 0) {
+        FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
+    }
+ENDTEST
+
+TEST (ifj_part_of_id)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("ifjword u8 now", &tokenArray);
+    Token t;
+    // ifjword
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifjword") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifjword", t.attribute.str);
+    }
+    // u8
+    if (!check_token(&t, TOKEN_KEYWORD_U8)) {
+        return;
+    }
+    // now
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "now") != 0) {
+        FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
+    }    
+ENDTEST
+
 int main() {
     initTokenArray(&tokenArray);
 

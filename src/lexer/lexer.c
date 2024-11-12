@@ -20,6 +20,7 @@ typedef enum {
     STATE_MULTILINE_STRING,
     STATE_MULTILINE_STRING_SKIP_WHITESPACE,
     STATE_COMMENT,
+    STATE_IFJ
 } LexerState; // FSM which decides, how we approach characters
 
 // Array of keywords
@@ -160,13 +161,24 @@ bool isIdentifier(const char *str) {
     // Free the regex
     regfree(&regex);
 
-    // check not solo _
-    if (result == 0 && strcmp(str, "_") == 0) {
-        return false;
+    // Additional check: ensure the string is not made up entirely of '_'
+    if (result == 0) {
+        bool allUnderscores = true;
+        for (const char *p = str; *p != '\0'; ++p) {
+            if (*p != '_') {
+                allUnderscores = false;
+                break;
+            }
+        }
+        // If all characters are '_', return false
+        if (allUnderscores) {
+            return false;
+        }
     }
     // Return true if the regex matched the string, otherwise false
     return result == 0;
 }
+
 
 bool tryGetI32(const char *str, int *i32) {
     const char *i32_pattern = "^[0-9]+$";
@@ -335,6 +347,16 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
 
     const bool bufferIsEmpty = isDynBufferEmpty(buff);
 
+    // Check for the prefix "ifj" and switch to STATE_IFJ if found
+    if (strncasecmp(&sourceCode[*i], "ifj", 3) == 0) {
+        // Append each character of "ifj" to the buffer
+        appendDynBuffer(buff, sourceCode[*i]);
+        appendDynBuffer(buff, sourceCode[*i + 1]);
+        appendDynBuffer(buff, sourceCode[*i + 2]);
+        *i += 2; // Skip the next two characters
+        return STATE_IFJ; // Switch to STATE_IFJ
+    }
+
     if (isSeparator(c)) {
         if (!bufferIsEmpty) {
             // In case of 0.2E-2 or 0.1e+1
@@ -343,7 +365,8 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
                 && tolower(sourceCode[(*i) - 1]) == 'e'
                 && tryGetF64(buff->data, NULL);
             if (is_f64) {
-
+                // that's a part of a float number
+                // wait for the end of the number
             }
             else {
                 processToken(buff->data, tokenArray);
@@ -460,6 +483,67 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
             case STATE_COMMON:
                 state = fsmParseOnCommonState(sourceCode, &i, tokenArray, &buff);
                 break;
+
+            // Will be used to handle the 'ifj' till the end without any outer influence
+            case STATE_IFJ: {
+                // Skip spaces until the first dot
+                while (sourceCode[i] != '\0' && isspace(sourceCode[i])) {
+                    i++;
+                }
+
+                // Expecting a dot next
+                if (sourceCode[i] == '.') {
+                    appendDynBuffer(&buff, sourceCode[i]);
+                    i++;
+
+                    // Skip spaces before the next word
+                    while (sourceCode[i] != '\0' && isspace(sourceCode[i])) {
+                        i++;
+                    }
+
+                    int check_i = i;
+                    // Read the next word into the buffer
+                    while (sourceCode[i] != '\0' && !isspace(sourceCode[i]) && !isSeparator(sourceCode[i])) {
+                        appendDynBuffer(&buff, sourceCode[i]);
+                        i++;
+                    }
+
+                    if (check_i == i) {
+                        // If the buffer is empty, handle as an error or unexpected token
+                        processToken("Error: Expected '.' after 'ifj'", tokenArray);
+                        state = STATE_COMMON;
+                        break;
+                    }
+
+                    // Process the word as a token
+                    TokenType tokenType;
+                    TokenAttribute attribute;
+                    printf("IFJ: %s\n", buff.data);
+                    attribute.str = strdup(buff.data);
+                    const Token token = createToken(TOKEN_ID, attribute);
+                    addToken(tokenArray, token);
+                    emptyDynBuffer(&buff);
+
+                    // Check for separator and return to STATE_COMMON
+                    if (isSeparator(sourceCode[i])) {
+                        state = STATE_COMMON;
+                        i--; // Decrement i to process the separator in the next iteration
+                    }
+                } else {
+                    if (isSeparator(sourceCode[i])) {
+                        processToken(buff.data, tokenArray);
+                        emptyDynBuffer(&buff);
+
+                        i--; // Decrement i to process the separator in the next iteration
+                        state = STATE_COMMON;
+                    } else {
+                        // ifj is a part of an identifier (ifjword)
+                        appendDynBuffer(&buff, sourceCode[i]);
+                        state = STATE_COMMON;
+                    }
+                }
+                break;
+            }
 
             case STATE_ONE_LINE_STRING:
                 state = fsmStepOnOneLineStringParsing(sourceCode, &i, tokenArray, &buff);
