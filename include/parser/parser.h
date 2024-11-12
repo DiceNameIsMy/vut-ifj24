@@ -33,6 +33,6 @@ ASTNode* parseIfStatement();
 ASTNode* parseWhileStatement();
 ASTNode* parseReturnStatement();
 Token get_next_token();
-Token get_previous_token()
+Token get_previous_token();
 
 #endif //VUT_IFJ_PARSER_H

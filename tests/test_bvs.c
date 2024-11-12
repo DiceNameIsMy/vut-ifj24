@@ -83,11 +83,11 @@ TEST(insert_random_and_delete)
 
     srand(time(NULL));
     BVS_Init(&bvs);
-    int max = 1000000;
-    long bvs_arr[1000000] = {0};
+    int max = 10000000;
+    long bvs_arr[10000000] = {0};
     //int q = -1;
     for (int i = 0; i < max; i++) {
-        bvs_arr[i] = rand()%50000000;
+        bvs_arr[i] = rand()%5000000000;
         //fprintf(stderr, "NEW INPUT (%ld)\n", bvs_arr[i]);
         BVS_Insert(&bvs, bvs_arr[i]);
         
