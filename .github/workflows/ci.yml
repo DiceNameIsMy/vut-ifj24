@@ -22,3 +22,9 @@ jobs:
 
       - name: Run tests
         run: find . -type f -wholename "./build/tests/test_*" -executable | ./scripts/run_tests.sh
+
+      - name: Run your script with debugging
+        run: |
+          set -x   # Enable debugging output
+          find . -type f -wholename "./build/tests/test_*" -executable | ./scripts/run_tests.sh
+          echo "Script exited with status: $?"
