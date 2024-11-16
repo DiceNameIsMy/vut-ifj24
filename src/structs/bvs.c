@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-#include <stdio.h> //for logs
+//#include <stdio.h> for logs
 
 // Internal declarations
 
@@ -18,7 +18,7 @@ typedef enum {
 
 void BVSBranch_Init(BVSBranch **newbranch, char *key, void *data, size_t size); //size field is a crutch
 void BVSBranch_Free(BVSBranch *branch);
-BVSBranch *BVSBranch_Search(BVSBranch *branch, char *key);
+void *BVSBranch_Search(BVSBranch *branch, char *key);
 
 BVSBranch *BVSBranch_Insert(BVSBranch *branch, char *key, void *data, size_t size);
 void BVSBranch_InsertResolve(BVSBranch *branch); // Resolves the tree structure after an insert operation
@@ -138,7 +138,7 @@ BVSBranch *BVSBranch_Insert(BVSBranch *branch, char *key, void *data, size_t siz
     return BVSBranch_Root(current);
 }
 
-BVSBranch *BVSBranch_Search(BVSBranch *branch, char *key) {
+void *BVSBranch_Search(BVSBranch *branch, char *key) {
 
     BVSBranch *current = branch;
     while (current != NULL && strcmp(current->key, key) != 0) {
@@ -149,7 +149,9 @@ BVSBranch *BVSBranch_Search(BVSBranch *branch, char *key) {
         }
     }
 
-    return current;
+    if (current != NULL)
+        return current->data;
+    return NULL;
 }
 
 void Help_RmDoubleBlack(BVSBranch *branch) {
@@ -428,7 +430,7 @@ void BVS_Insert(BVS *bvs, char *key, void *data, size_t size) {
     return;
 }
 
-BVSBranch *BVS_Search(BVS *bvs, char *key) { //we can make this return a pointer to a found item, if needed
+void *BVS_Search(BVS *bvs, char *key) { //returns found data, if found
     //fprintf(stderr, "Searching for (%ld)...\n", data);
     return BVSBranch_Search(bvs->root, key);
 

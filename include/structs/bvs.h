@@ -31,6 +31,6 @@ int BVS_Init(BVS *bvs);
 void BVS_Free(BVS *bvs);
 void BVS_Delete(BVS *BVS, char *key);
 void BVS_Insert(BVS *bvs, char *key, void *data, size_t size); //size field is a crutch so that we can work with a copy of the data
-BVSBranch *BVS_Search(BVS *bvs, char *key);
+void *BVS_Search(BVS *bvs, char *key); //returns found data
 
 #endif //BVS_H
