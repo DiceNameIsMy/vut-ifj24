@@ -4,12 +4,14 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "structs/ast.h"
+#include "structs/bvs.c"
 #include "logging.h"
 
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
 ASTNode** astNode;
+BVS *symTable;
 
 char* readStdinAsString() {
     char* buffer = NULL;
@@ -41,7 +43,8 @@ char* readStdinAsString() {
 int main(void) {
     char* source_code;
     streamToString(stdin, &source_code);
-
+    
+    BVS_Init(symTable);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code);
