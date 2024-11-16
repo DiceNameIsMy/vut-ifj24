@@ -7,11 +7,8 @@ exit_status=0
 while IFS= read -r file; do
     # Check if the file is executable
     if [[ -x "$file" ]]; then
-        # Execute the file
-        "$file"
-
-        # Capture the exit status of the command
-        if [[ $? -ne 0 ]]; then
+        # Execute the file. If failed, Capture the exit status of the command
+        if ! "$file"; then
             # Set exit_status to 1 if any command fails
             exit_status=1
         fi
