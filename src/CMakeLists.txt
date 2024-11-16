@@ -1,5 +1,6 @@
 add_subdirectory(lexer)
 add_subdirectory(structs)
+add_subdirectory(parser)
 add_subdirectory(target_gen)
 
 # Configure the main executable
