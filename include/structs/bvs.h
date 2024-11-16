@@ -8,7 +8,8 @@
 #include <stdbool.h>
 
 typedef struct BVSBranch {
-    long data;
+    const char *key; //differentiate key and data
+    void *data;
     char color;
     struct BVSBranch *left;
     struct BVSBranch *right;
@@ -22,8 +23,8 @@ typedef struct {
 
 int BVS_Init(BVS *bvs);
 void BVS_Free(const BVS *bvs);
-void BVS_Delete(BVS *BVS, const long key);
-void BVS_Insert(BVS *bvs, long data);
-BVSBranch *BVS_Search(BVS *bvs, long data);
+void BVS_Delete(BVS *BVS, const char *key);
+void BVS_Insert(BVS *bvs, const char *key, void *data);
+BVSBranch *BVS_Search(BVS *bvs, const char *key);
 
 #endif //BVS_H

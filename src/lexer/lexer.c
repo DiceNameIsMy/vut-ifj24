@@ -11,6 +11,7 @@
 #include "lexer/lexer.h"
 #include "lexer/token.h"
 #include "structs/dynBuffer.h"
+#include "structs/bvs.h"
 #include "token.c"
 
 typedef enum {
@@ -282,6 +283,8 @@ void processToken(const char *buf_str, TokenArray *array) {
     if (tryGetKeyword(buf_str, &tokenType, array)) {
         loginfo("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
     } else if (isIdentifier(buf_str)) {
+        //TODO: initialize a symbol
+        //BVS_Insert(symTable, newSymbol->str, (void *)newSymbol); //ID = "symbol". Symbols should be in the symbol table.
         tokenType = TOKEN_ID;
         loginfo("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
