@@ -444,6 +444,32 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
 }
 
 
+int streamToString(FILE *stream, char **str) {
+    if (str == NULL) {
+        return -1;
+    }
+
+    DynBuffer buff;
+    initDynBuffer(&buff, -1);
+
+    char buffer[512];
+    // TODO: Is fgets of 512 is correct when buffer size is 512?
+    while (fgets(buffer, 512, stream)) {
+        if (appendStringDynBuffer(&buff, buffer) == -1) {
+            freeDynBuffer(&buff);
+            return -1;
+        }
+    }
+
+    if (copyFromDynBuffer(&buff, str) == -1) {
+        freeDynBuffer(&buff);
+        return -1;
+    }
+
+    freeDynBuffer(&buff);
+    return 0;
+}
+
 // The main function of the lexer ##
 void runLexer(const char *sourceCode, TokenArray *tokenArray) {
     LexerState state = STATE_COMMON; // Initial state

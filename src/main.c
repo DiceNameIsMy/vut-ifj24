@@ -39,8 +39,10 @@ char* readStdinAsString() {
 }
 
 int main(void) {
+    char* source_code;
+    streamToString(stdin, &source_code);
+
     initTokenArray(&tokenArray);
-    char* source_code = readStdinAsString();
     runLexer(source_code, &tokenArray);
     free(source_code);
 

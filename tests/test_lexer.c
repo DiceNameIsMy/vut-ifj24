@@ -37,6 +37,34 @@ bool check_token(Token *t, const TokenType type) {
     return true;
 }
 
+bool check_tokens(const Token *expected, const int size) {
+    int i = 0;
+    while (i < size) {
+        const Token expectedToken = expected[i];
+
+        Token t;
+        if (!check_token(&t, expectedToken.type)) {
+            return false;
+        }
+        i++;
+    }
+    return true;
+}
+
+bool has_error_in_tokens() {
+    const int idx_before = idx;
+    idx = 0;
+    Token t;
+    while (try_get_token(&t)) {
+        if (t.type == TOKEN_ERROR) {
+            idx = idx_before;
+            return true;
+        }
+    }
+    idx = idx_before;
+    return false;
+}
+
 TEST(empty)
     // Reinit token array on each test run
     freeTokenArray(&tokenArray);
@@ -353,6 +381,24 @@ TEST(const_import)
     // ;
     if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
+    }
+ENDTEST
+
+TEST(parse_basic_program)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer("const ifj = @import(\"ifj24.zig\"); pub fn main() void { return 1; }", &tokenArray);
+
+    const Token expected[] = {
+        {.type = TOKEN_KEYWORD_CONST},
+        {.type = TOKEN_ID, .attribute.str = "ifj"},
+    };
+    check_tokens(expected, 2);
+
+    if (has_error_in_tokens()) {
+        FAIL("Lexer failed to parse valid source code");
     }
 ENDTEST
 

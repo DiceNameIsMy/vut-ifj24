@@ -3,8 +3,13 @@
 //
 #include <stdio.h>
 
+#include "test_utils.h"
+
+
 int main(int count, char **argv){
     printf("Hello, World!\n");
 
-    return 0;
+    RUN_TESTS();
+
+    SUMMARIZE()
 }
