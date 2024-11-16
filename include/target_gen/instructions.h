@@ -146,9 +146,19 @@ typedef struct
     Operand opThird;
 } Instruction;
 
-int initInstruction(Instruction *inst, InstType type, Operand *opFirst, Operand *opSecond, Operand *opThird);
+Operand initOperand(OperandType type, OperandAttribute attr);
+Operand initEmptyOperand();
+
+void destroyOperand(Operand op);
+
+int initInstr(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird);
+int initInstr0(Instruction *inst, InstType type);
+int initInstr1(Instruction *inst, InstType type, Operand opFirst);
+int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond);
+int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird);
+
 void destroyInstruction(Instruction *inst);
 
-void printInstruction(Instruction *inst);
+void printInstruction(Instruction *inst, FILE* stream);
 
 #endif // INSTRUCTIONS_H

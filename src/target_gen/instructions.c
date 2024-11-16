@@ -1,7 +1,12 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <inttypes.h>
 
+#include "logging.h"
 #include "target_gen/instructions.h"
+
+FILE *outputStream;
 
 /**********************************************************/
 /* Function Declarations */
@@ -26,6 +31,111 @@ void printOperand(Operand *op);
 void printFirstOperand(Instruction *inst);
 void printSecondOperand(Instruction *inst);
 void printThirdOperand(Instruction *inst);
+
+/**********************************************************/
+/* Public Functions Definitions */
+/**********************************************************/
+
+Operand initOperand(OperandType type, OperandAttribute attr)
+{
+    Operand op;
+    op.type = type;
+    op.attr = attr;
+
+    return op;
+}
+
+Operand initEmptyOperand()
+{
+    Operand op;
+    op.type = OP_NONE;
+    op.attr.boolean = false;
+
+    return op;
+}
+
+void destroyOperand(Operand op)
+{
+    if (op.type == OP_CONST_STRING)
+        free(op.attr.string);
+    else if (op.type == OP_VAR)
+        free(op.attr.var.name);
+}
+
+int initInstr(Instruction *inst, InstType type,
+              Operand opFirst, Operand opSecond, Operand opThird)
+{
+    if (inst == NULL)
+        return -1;
+
+    inst->type = type;
+    inst->opFirst = opFirst;
+    inst->opSecond = opSecond;
+    inst->opThird = opThird;
+
+    return 0;
+}
+
+int initInstr0(Instruction *inst, InstType type)
+{
+    return initInstr(inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand());
+}
+
+int initInstr1(Instruction *inst, InstType type, Operand opFirst)
+{
+    return initInstr(inst, type, opFirst, initEmptyOperand(), initEmptyOperand());
+}
+
+int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond)
+{
+    return initInstr(inst, type, opFirst, opSecond, initEmptyOperand());
+}
+
+int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird)
+{
+    return initInstr(inst, type, opFirst, opSecond, opThird);
+}
+
+void destroyInstruction(Instruction *inst)
+{
+    if (inst == NULL)
+        return;
+
+    destroyOperand(inst->opFirst);
+    destroyOperand(inst->opSecond);
+    destroyOperand(inst->opThird);
+}
+
+void printInstruction(Instruction *inst, FILE *stream)
+{
+    if (inst == NULL)
+    {
+        return;
+    }
+    outputStream = stream == NULL ? stdout : stream;
+
+    printInstructionKeyword(inst);
+
+    if (hasNoOperands(inst))
+    {
+    }
+    else if (hasOneOperand(inst))
+    {
+        printFirstOperand(inst);
+    }
+    else if (hasTwoOperands(inst))
+    {
+        printFirstOperand(inst);
+        printSecondOperand(inst);
+    }
+    else if (hasThreeOperands(inst))
+    {
+        printFirstOperand(inst);
+        printSecondOperand(inst);
+        printThirdOperand(inst);
+    }
+    fprintf(outputStream, "\n");
+}
 
 /**********************************************************/
 /* Function Definitions */
@@ -166,7 +276,7 @@ const char *getInstructionKeyword(Instruction *inst)
 
 void printInstructionKeyword(Instruction *inst)
 {
-    printf("%s", getInstructionKeyword(inst));
+    fprintf(outputStream, "%s", getInstructionKeyword(inst));
 }
 
 bool hasNoOperands(Instruction *inst)
@@ -282,7 +392,7 @@ void printVar(Operand *op)
     else
         loginfo("Invalid frame type %d\n", op->attr.var.frame);
 
-    printf("%s@%s", frame, op->attr.var.name);
+    fprintf(outputStream, " %s@%s", frame, op->attr.var.name);
 }
 
 void printConst(Operand *op)
@@ -290,34 +400,34 @@ void printConst(Operand *op)
     switch (op->type)
     {
     case OP_CONST_BOOL:
-        printf("bool@%s", op->attr.boolean ? "true" : "false");
+        fprintf(outputStream, " bool@%s", op->attr.boolean ? "true" : "false");
         break;
     case OP_CONST_INT64:
         // PRId64 is used to ensure that it would be correctly printed
-        printf("int@%" PRId64, op->attr.i64);
+        fprintf(outputStream, " int@%" PRId64, op->attr.i64);
         break;
     case OP_CONST_FLOAT64:
-        printf("float@%.14gp+0", op->attr.f64);
+        fprintf(outputStream, " float@%.14gp+0", op->attr.f64);
         break;
     case OP_CONST_STRING:
-        printf("string@%s", op->attr.string);
+        fprintf(outputStream, " string@%s", op->attr.string);
         break;
     case OP_CONST_NIL:
-        printf("nil@nil");
+        fprintf(outputStream, " nil@nil");
         break;
     default:
-        loginfo("Invalid constant type %d\n", op->type);
+        loginfo(" Invalid constant type %d\n", op->type);
     }
 }
 
 void printLabel(Operand *op)
 {
-    printf("label@%s", op->attr.string);
+    fprintf(outputStream, " label@%s", op->attr.string);
 }
 
 void printType(Operand *op)
 {
-    printf("type@%s", op->attr.string);
+    fprintf(outputStream, " type@%s", op->attr.string);
 }
 
 void printOperand(Operand *op)
@@ -409,35 +519,4 @@ void printThirdOperand(Instruction *inst)
         printOperand(&op);
     else
         loginfo("Invalid instruction %s. Expected symbol as 3rd operand, got %d\n", getInstructionKeyword(inst), inst->opThird.type);
-}
-
-void printInstruction(Instruction *inst)
-{
-    if (inst == NULL)
-    {
-        printf("# printInstruction: Received a NULL pointer instead of an instruction\n");
-        return;
-    }
-
-    printInstructionKeyword(inst);
-
-    if (hasNoOperands(inst))
-    {
-    }
-    else if (hasOneOperand(inst))
-    {
-        printFirstOperand(inst);
-    }
-    else if (hasTwoOperands(inst))
-    {
-        printFirstOperand(inst);
-        printSecondOperand(inst);
-    }
-    else if (hasThreeOperands(inst))
-    {
-        printFirstOperand(inst);
-        printSecondOperand(inst);
-        printThirdOperand(inst);
-    }
-    printf("\n");
 }
