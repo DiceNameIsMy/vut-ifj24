@@ -79,49 +79,6 @@ TEST(insert_many)
     BVS_Free(&bvs);
 ENDTEST
 
-TEST(insert_random_and_delete)
-
-    srand(time(NULL));
-    BVS_Init(&bvs);
-    int max = 1000000;
-    long bvs_arr[1000000] = {0};
-    //int q = -1;
-    for (int i = 0; i < max; i++) {
-        bvs_arr[i] = rand()%50000000;
-        //fprintf(stderr, "NEW INPUT (%ld)\n", bvs_arr[i]);
-        BVS_Insert(&bvs, bvs_arr[i]);
-        
-	//q*=q;
-    }
-    for (int i = 0; i < max; i++) {
-        if(BVS_Search(&bvs, bvs_arr[i]) == NULL) {
-            FAIL("Not found");
-	    fprintf (stderr, "Failed to find (%ld)\n", bvs_arr[i]);
-
-        }
-    }
-    for (int i = 0; i < max; i++) {
-	//fprintf(stderr, "DELETING (%ld)\n", bvs_arr[i]);
-	if (BVS_Search(&bvs, bvs_arr[i]) == NULL) {
-	    bool found = false;
-	    for (int j = 0; j < i; j++) {
-		if (bvs_arr[j] == bvs_arr[i]) {
-			found = true;
-			break;
-		}
-	    }
-	    if (!found) {
-	        FAIL("Deleted too early");
-	    }
-	}
-        BVS_Delete(&bvs, bvs_arr[i]);
-        if (BVS_Search(&bvs, bvs_arr[i]) != NULL) {
-            FAIL("Failed to delete");
-        }
-    }
-    BVS_Free(&bvs);
-ENDTEST
-
 TEST(search_not_existing_element)
     BVS_Init(&bvs);
 

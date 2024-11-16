@@ -4,9 +4,10 @@ add_subdirectory(target_gen)
 
 # Configure the main executable
 add_executable(vut_ifj main.c)
-target_link_libraries(vut_ifj PRIVATE LexerLib StructsLib TargetGen)
+target_link_libraries(vut_ifj PRIVATE TargetGen ParserLib LexerLib StructsLib)
 
 # Configure an executable for debug compilation
 add_executable(vut_ifj_debug main.c)
-target_link_libraries(vut_ifj_debug PRIVATE LexerLibDbg StructsLibDbg)
+target_link_libraries(vut_ifj_debug PRIVATE TargetGen ParserLibDbg LexerLibDbg StructsLibDbg)
+
 target_compile_definitions(vut_ifj_debug PRIVATE DEBUG=1)

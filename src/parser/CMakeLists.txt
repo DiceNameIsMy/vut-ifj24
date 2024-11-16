@@ -1,15 +1,14 @@
-project(LexerLib)
+project(ParserLib)
 
 set(SOURCE_FILES
-        lexer.c
-        token.c
+        parser.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE StructsLib)
+target_link_libraries(${PROJECT_NAME} PRIVATE StructsLib LexerLib)
 
 add_library(${PROJECT_NAME}Dbg ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME}Dbg PRIVATE StructsLib)
+target_link_libraries(${PROJECT_NAME}Dbg PRIVATE StructsLib LexerLib)
 
 target_compile_definitions(${PROJECT_NAME}Dbg PRIVATE DEBUG)
 
