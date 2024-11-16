@@ -50,8 +50,7 @@ ASTNode* parseProlog() {
     match(TOKEN_KEYWORD_CONST);  // Match 'const'
     match(TOKEN_ID);             // Match 'ifj'
     match(TOKEN_ASSIGNMENT);     // Match '='
-    match(TOKEN_AT);             // Match '@'
-    match(TOKEN_ID);             // Match 'import'
+    match(TOKEN_KEYWORD_IMPORT);             // Match '@import'
     match(TOKEN_LEFT_ROUND_BRACKET);
     match(TOKEN_STRING_LITERAL);
     match(TOKEN_RIGHT_ROUND_BRACKET);
