@@ -10,6 +10,7 @@ while IFS= read -r file; do
         # Execute the file. If failed, Capture the exit status of the command
         if ! "$file"; then
             # Set exit_status to 1 if any command fails
+            echo "Execution failed for file: $file"
             exit_status=1
         fi
     else
