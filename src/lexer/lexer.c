@@ -284,7 +284,14 @@ void processToken(const char *buf_str, TokenArray *array) {
         loginfo("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
     } else if (isIdentifier(buf_str)) {
         //TODO: initialize a symbol
-        //BVS_Insert(symTable, newSymbol->str, (void *)newSymbol); //ID = "symbol". Symbols should be in the symbol table.
+        Symbol newSymbol;
+        newSymbol.name = strdup(buf_str); //need a SymTable_Free() function
+        newSymbol.type = NONETYPE; //type is an enum
+        newSymbol.decl = false;
+        newSymbol.init = false;
+        newSymbol.scope = UNDEFINED; //scope is an enum
+        BVS_Insert(symTable, newSymbol.name, (void *)&newSymbol, sizeof(newSymbol)); //ID = "symbol". Symbols should be in the symbol table.
+        
         tokenType = TOKEN_ID;
         loginfo("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
