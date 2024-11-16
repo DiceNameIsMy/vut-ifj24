@@ -1,4 +1,4 @@
-project(TargetGen)
+project(TargetGenLib)
 
 set(SOURCE_FILES
     target_gen.c
