@@ -33,7 +33,9 @@ ASTNode* parseAssignmentOrFunctionCall();
 ASTNode* parseIfStatement();
 ASTNode* parseWhileStatement();
 ASTNode* parseReturnStatement();
+ASTNode* parseBlockStatement();
+void if_malloc_error(const char* string);
 Token get_next_token();
-Token get_previous_token();
+
 
 #endif //VUT_IFJ_PARSER_H

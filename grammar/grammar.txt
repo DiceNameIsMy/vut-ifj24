@@ -25,7 +25,7 @@
 [Statement] ::= 'if' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}' [OptionalElse]
 [Statement] ::= 'while' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}'
 [Statement] ::= 'return' [ReturnValue] ';'
-[Statement] ::= [Expression] ';'
+[Statement] ::= '{' [StatementList] '}' ';'
 
 [VarType] ::= ':' [Type]
 [VarType] ::= ε
