@@ -66,6 +66,23 @@ bool has_error_in_tokens() {
     return false;
 }
 
+int read_source_code(const char *filename, char **source_code) {
+    if (source_code == NULL) {
+        return -1;
+    }
+
+    FILE *source_code_stream = fopen(filename, "r");
+    if (source_code_stream == NULL) {
+        FAIL("Failed to open the source code file");
+        return -1;
+    }
+    if (streamToString(source_code_stream, source_code) != 0) {
+        FAIL("Failed to read the source code from the file");
+        return -1;
+    }
+    return 0;
+}
+
 TEST(empty)
     // Reinit token array on each test run
     freeTokenArray(&tokenArray);
@@ -385,19 +402,13 @@ TEST(const_import)
     }
 ENDTEST
 
-TEST(parse_basic_program)
-    FILE *source_code_stream = fopen("/home/nur/Projects/vut-ifj24/tests/input/program.ifj24.zig", "r");
-    if (source_code_stream == NULL) {
-        FAIL("Failed to open the source code file");
-        return;
-    }
-    char *source_code;
-    if (streamToString(source_code_stream, &source_code) != 0) {
-        FAIL("Failed to read the source code from the file");
-        return;
-    }
 
-    printf("Source code: %s\n", source_code);
+
+TEST(parse_basic_program)
+    char *source_code;
+    if (read_source_code("tests/input/program.ifj24.zig", &source_code)) {
+        return;
+    }
 
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
