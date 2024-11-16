@@ -1,0 +1,1 @@
+find . -type f -wholename "./cmake-build-debug/tests/test_*" -executable | ./scripts/run_tests.sh

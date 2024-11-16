@@ -22,5 +22,8 @@ while IFS= read -r file; do
     fi
 done
 
+echo
+echo "All tests runners have succeeded"
+
 # Exit with the final status (0 if all succeeded, 1 if any failed)
 exit $exit_status
