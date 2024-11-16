@@ -521,6 +521,7 @@ TEST (ifj_part_of_id)
     if (strcmp(t.attribute.str, "now") != 0) {
         FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
     }    
+ENDTEST
 
 TEST(parse_basic_program)
     char *source_code;
