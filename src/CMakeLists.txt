@@ -1,9 +1,10 @@
 add_subdirectory(lexer)
 add_subdirectory(structs)
+add_subdirectory(target_gen)
 
 # Configure the main executable
 add_executable(vut_ifj main.c)
-target_link_libraries(vut_ifj PRIVATE LexerLib StructsLib)
+target_link_libraries(vut_ifj PRIVATE LexerLib StructsLib TargetGen)
 
 # Configure an executable for debug compilation
 add_executable(vut_ifj_debug main.c)
