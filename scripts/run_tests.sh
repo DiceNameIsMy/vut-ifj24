@@ -22,7 +22,11 @@ while IFS= read -r file; do
 done
 
 echo
-echo "All tests runners have succeeded" >&2
+if [[ $exit_status -eq 0 ]]; then
+    echo "All tests passed successfully." >&2
+else
+    echo "Some tests failed." >&2
+fi
 
 # Exit with the final status (0 if all succeeded, 1 if any failed)
 exit $exit_status

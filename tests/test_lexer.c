@@ -4,6 +4,7 @@
 
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <tgmath.h>
 
 #include "lexer/token.h"
@@ -385,11 +386,26 @@ TEST(const_import)
 ENDTEST
 
 TEST(parse_basic_program)
+    FILE *source_code_stream = fopen("/home/nur/Projects/vut-ifj24/tests/input/program.ifj24.zig", "r");
+    if (source_code_stream == NULL) {
+        FAIL("Failed to open the source code file");
+        return;
+    }
+    char *source_code;
+    if (streamToString(source_code_stream, &source_code) != 0) {
+        FAIL("Failed to read the source code from the file");
+        return;
+    }
+
+    printf("Source code: %s\n", source_code);
+
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
 
-    runLexer("const ifj = @import(\"ifj24.zig\"); pub fn main() void { return 1; }", &tokenArray);
+    runLexer(source_code, &tokenArray);
+
+    free(source_code);
 
     const Token expected[] = {
         {.type = TOKEN_KEYWORD_CONST},
