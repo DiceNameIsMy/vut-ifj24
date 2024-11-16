@@ -4,12 +4,13 @@
 
 #ifndef VUT_IFJ_PARSER_H
 #define VUT_IFJ_PARSER_H
-#include "lexer/token.h"
-#include "lexer/lexer.h"
 
+#include "structs/ast.h"
+#include "lexer/token.h"
+
+void match(TokenType expected);
 ASTNode* parseInit(TokenArray* array);
 ASTNode* parseProgram();
-void match(TokenType expected);
 ASTNode* parseProlog();
 ASTNode* parseFunctionDefList();
 ASTNode* parseFunctionDef();

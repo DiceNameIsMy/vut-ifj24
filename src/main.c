@@ -40,10 +40,12 @@ char* readStdinAsString() {
 
 int main(void) {
     initTokenArray(&tokenArray);
-    const char* source_code = readStdinAsString();
+    char* source_code = readStdinAsString();
     runLexer(source_code, &tokenArray);
+    free(source_code);
+
     printf("Hello, World!\n");
-    parseInit(&tokenArray, astNode);
+    parseInit(&tokenArray);
 }
 
 

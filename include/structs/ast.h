@@ -1,7 +1,8 @@
 //
 // Created by malbert on 10/23/24.
 //
-
+#ifndef AST_H
+#define AST_H
 
 typedef struct ASTNode {
     char* nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
@@ -14,3 +15,5 @@ typedef struct ASTNode {
 
 ASTNode* createASTNode(char* nodeType, char* value);
 ASTNode* createBinaryASTNode(char* nodeType, ASTNode* left, ASTNode* right);
+
+#endif // AST_H

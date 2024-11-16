@@ -1,25 +1,14 @@
+add_subdirectory(structs)
 add_subdirectory(lexer)
+add_subdirectory(parser)
 
 # Configure the main executable
-add_executable(vut_ifj main.c
-        ../include/structs/stack.h
-        structs/stack.c
-        ../include/parser/parser.h
-        parser/parser.c
-        ../include/structs/dynBuffer.h
-        structs/dynBuffer.c
-        ../include/structs/ast.h
-)
-target_link_libraries(vut_ifj PRIVATE LexerLib)
+add_executable(vut_ifj main.c)
+target_link_libraries(vut_ifj PRIVATE ParserLib LexerLib)
 
 # Configure an executable for debug compilation
 
-add_executable(vut_ifj_debug main.c
-        ../include/structs/stack.h
-        ../include/parser/parser.h
-        parser/parser.c
-        ../include/structs/ast.h
-)
-target_link_libraries(vut_ifj_debug PRIVATE LexerLibDbg StructsLibDbg)
+add_executable(vut_ifj_debug main.c)
+target_link_libraries(vut_ifj_debug PRIVATE ParserLibDbg LexerLibDbg StructsLibDbg)
 
 target_compile_definitions(vut_ifj_debug PRIVATE DEBUG=1)
