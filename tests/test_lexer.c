@@ -58,6 +58,8 @@ bool has_error_in_tokens() {
     Token t;
     while (try_get_token(&t)) {
         if (t.type == TOKEN_ERROR) {
+            const Token lastToken = tokenArray.tokens[idx-2];
+            FAIL("Encountered an error token at index %i. Token before is %s\n", idx, getTokenTypeName(lastToken.type));
             idx = idx_before;
             return true;
         }
@@ -403,19 +405,16 @@ TEST(const_import)
 ENDTEST
 
 
-
 TEST(parse_basic_program)
     char *source_code;
     if (read_source_code("tests/input/program.ifj24.zig", &source_code)) {
         return;
     }
-
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
 
     runLexer(source_code, &tokenArray);
-
     free(source_code);
 
     const Token expected[] = {
@@ -425,7 +424,58 @@ TEST(parse_basic_program)
     check_tokens(expected, 2);
 
     if (has_error_in_tokens()) {
-        FAIL("Lexer failed to parse valid source code");
+        return;
+    }
+ENDTEST
+
+TEST(parse_iterative_factorial_program)
+    char *source_code;
+    if (read_source_code("tests/input/factorial_iter.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer(source_code, &tokenArray);
+    free(source_code);
+
+    if (has_error_in_tokens()) {
+        return;
+    }
+ENDTEST
+
+TEST(parse_recursive_factorial_program)
+    char *source_code;
+    if (read_source_code("tests/input/factorial_rec.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer(source_code, &tokenArray);
+    free(source_code);
+
+    if (has_error_in_tokens()) {
+        return;
+    }
+ENDTEST
+
+TEST(parse_stdlib_funcs_program)
+    char *source_code;
+    if (read_source_code("tests/input/stdlib_funcs.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer(source_code, &tokenArray);
+    free(source_code);
+
+    if (has_error_in_tokens()) {
+        return;
     }
 ENDTEST
 
