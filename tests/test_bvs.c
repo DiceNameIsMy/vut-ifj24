@@ -15,9 +15,7 @@ long data_1 = 1, data_2 = 2, data_3 = 3;
 
 TEST(insert_1)
     BVS_Init(&bvs);
-    int *data_ptr = (int *)malloc(sizeof(int)); 
-    *data_ptr = data_1;
-    BVS_Insert(&bvs, "one", (void *)data_ptr);
+    BVS_Insert(&bvs, "one", (void *)&data_1, sizeof(long));
     if (BVS_Search(&bvs, "one") == NULL) {
         FAIL("Insertion and then search had failed");
     }
@@ -27,15 +25,9 @@ ENDTEST
 TEST(insert_3_and_delete)
     BVS_Init(&bvs);
 
-    int *data_1_ptr = (int *)malloc(sizeof(int)); 
-    int *data_2_ptr = (int *)malloc(sizeof(int));
-    int *data_3_ptr = (int *)malloc(sizeof(int));
-    *data_1_ptr = data_1;
-    *data_2_ptr = data_2;
-    *data_3_ptr = data_3;
-    BVS_Insert(&bvs, "one", (void *)data_1_ptr);
-    BVS_Insert(&bvs, "two", (void *)data_2_ptr);
-    BVS_Insert(&bvs, "three", (void *)data_3_ptr);
+    BVS_Insert(&bvs, "one", (void *)&data_1, sizeof(long));
+    BVS_Insert(&bvs, "two", (void *)&data_2, sizeof(long));
+    BVS_Insert(&bvs, "three", (void *)&data_3, sizeof(long));
     if (BVS_Search(&bvs, "one") == NULL) {
         FAIL("Insertion and then search had failed");
     }
@@ -97,13 +89,8 @@ TEST(search_not_existing_element)
         FAIL("Search on empty BVS found something");
     }
 
-    int *data_1_ptr = (int *)malloc(sizeof(int)); 
-    int *data_2_ptr = (int *)malloc(sizeof(int)); 
-    *data_1_ptr = data_1;
-    *data_2_ptr = data_2;
-
-    BVS_Insert(&bvs, "one", (void *)data_1_ptr);
-    BVS_Insert(&bvs, "two", (void *)data_2_ptr);
+    BVS_Insert(&bvs, "one", (void *)&data_1, sizeof(long));
+    BVS_Insert(&bvs, "two", (void *)&data_2, sizeof(long));
     if (BVS_Search(&bvs, "three") != NULL) {
         FAIL("Search on non-empty BVS found a non-existent item");
     }
