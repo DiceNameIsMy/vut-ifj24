@@ -1,0 +1,92 @@
+[Program] ::= [Prolog] [FunctionDefList]
+
+[Prolog] ::= 'const' 'ifj' '=' '@import' '(' '"ifj24.zig"' ')' ';'
+
+[FunctionDefList] ::= [FunctionDef] [FunctionDefList]
+[FunctionDefList] ::= ε
+
+[FunctionDef] ::= 'pub' 'fn' [Identifier] '(' [ParamList] ')' [ReturnType] '{' [StatementList] '}'
+
+[ParamList] ::= [Identifier] ':' [Type] [ParamListTail]
+[ParamList] ::= ε
+
+[ParamListTail] ::= ',' [Identifier] ':' [Type] [ParamListTail]
+[ParamListTail] ::= ε
+
+[ReturnType] ::= 'void'
+[ReturnType] ::= [Type]
+
+[StatementList] ::= [Statement] [StatementList]
+[StatementList] ::= ε
+
+[Statement] ::= 'const' [Identifier] [VarType] '=' [Expression] ';'
+[Statement] ::= 'var' [Identifier] [VarType] '=' [Expression] ';'
+[Statement] ::= [Identifier] '=' [Expression] ';'
+[Statement] ::= 'if' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}' [OptionalElse]
+[Statement] ::= 'while' '(' [Expression] ')' [NullableBinding] '{' [StatementList] '}'
+[Statement] ::= 'return' [ReturnValue] ';'
+[Statement] ::= [Expression] ';'
+
+[VarType] ::= ':' [Type]
+[VarType] ::= ε
+
+
+[ReturnValue] ::= [Expression]
+[ReturnValue] ::= ε
+
+[NullableBinding] ::= '|' [Identifier] '|'
+[NullableBinding] ::= ε
+
+[OptionalElse] ::= 'else' '{' [StatementList] '}'
+[OptionalElse] ::= ε
+
+[Expression] ::= [SimpleExpression] [RelationalTail]
+
+[RelationalTail] ::= [RelationalOperator] [SimpleExpression]
+[RelationalTail] ::= ε
+
+[SimpleExpression] ::= [Term] [SimpleExpressionTail]
+
+[SimpleExpressionTail] ::= '+' [Term] [SimpleExpressionTail]
+[SimpleExpressionTail] ::= '-' [Term] [SimpleExpressionTail]
+[SimpleExpressionTail] ::= ε
+
+[Term] ::= [Factor] [TermTail]
+
+[TermTail] ::= '*' [Factor] [TermTail]
+[TermTail] ::= '/' [Factor] [TermTail]
+[TermTail] ::= ε
+
+[Factor] ::= '(' [Expression] ')'
+[Factor] ::= [Identifier]
+[Factor] ::= [Literal]
+
+[Type] ::= '?' [BaseType]
+[Type] ::= [BaseType]
+
+[BaseType] ::= 'i32'
+[BaseType] ::= 'f64'
+[BaseType] ::= '[]u8'
+
+[Identifier] ::= id [CallParam]
+[Identifier] ::= '_'
+
+[CallParam] ::= '(' [Expression] [CallParamTail] ')'
+[CallParam] ::= ε
+
+[CallParamTail] ::= ',' [Expression] [CallParamTail]
+[CallParamTail] ::= ε
+
+
+[Literal] ::= integer
+[Literal] ::= floating-point
+[Literal] ::= string literal
+[Literal] ::= 'null'
+
+[RelationalOperator] ::= '=='
+[RelationalOperator] ::= '!='
+[RelationalOperator] ::= '<'
+[RelationalOperator] ::= '>'
+[RelationalOperator] ::= '<='
+[RelationalOperator] ::= '>='
+

@@ -70,7 +70,7 @@ TEST(copy_empty_buffer)
     copyFromDynBuffer(&buffer, &str);
 
     if (strlen(str) != 0) {
-        FAILCOMPI("Copied string with invalid length", 0, strlen(str));
+        FAILCOMPI("Copied string with invalid length", 0, (int)strlen(str));
     }
 ENDTEST
 

@@ -1,8 +1,10 @@
 project(StructsLib)
 
 set(SOURCE_FILES
+        ast.c
         bvs.c
         dynBuffer.c
+        stack.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
