@@ -12,7 +12,6 @@
 #include "lexer/token.h"
 #include "structs/dynBuffer.h"
 #include "token.c"
-#include "logging.h"
 
 typedef enum {
     STATE_COMMON,
@@ -55,7 +54,7 @@ void processTokenU8(TokenType *keywordType, TokenArray *array);
 // Token reader Buffer size
 #define BUFFER_SIZE 256
 
-#define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of key words
+#define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))   // Amount of keywords
 
 bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
     if (strcmp(str, "const") == 0) {
@@ -98,7 +97,7 @@ void processTokenI32(TokenType *keywordType, TokenArray *array) {
         array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK) {
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
-        fprintf(stderr, "remaking into ?i32");
+        loginfo("remaking into ?i32");
     }
     // i32 case
     else {
@@ -112,8 +111,8 @@ void processTokenF64(TokenType *keywordType, TokenArray *array) {
         if (array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK) {
             deleteLastToken(array);
             *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
+            loginfo("remaking into ?f64");
 
-            fprintf(stderr, "remaking into ?f64");
         }
         // f64 case
         else {
@@ -131,7 +130,7 @@ void processTokenU8(TokenType *keywordType, TokenArray *array) {
         deleteLastToken(array);
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
-        fprintf(stderr, "remaking into ?[]u8");
+        loginfo("remaking into ?[]u8");
     }
     // []u8 case
     else if (array->size >= 2 &&
@@ -140,7 +139,7 @@ void processTokenU8(TokenType *keywordType, TokenArray *array) {
         deleteLastToken(array);
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_U8_ARRAY;
-        fprintf(stderr, "remaking into []u8");
+        loginfo("remaking into []u8");
     }
     // u8 case
     else {
@@ -293,27 +292,27 @@ void processToken(const char *buf_str, TokenArray *array) {
     TokenAttribute attribute;
 
     if (tryGetKeyword(buf_str, &tokenType, array)) {
-        printf("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
+        loginfo("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
     } else if (isIdentifier(buf_str)) {
         tokenType = TOKEN_ID;
-        printf("Identifier: %s\n", buf_str); // Process id
+        loginfo("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
 
         if (attribute.str == NULL) {
-            fprintf(stderr, "Error memory allocation\n");
+            loginfo("Error memory allocation\n");
             exit(0); // TODO: clean
         }
     } else if (tryGetI32(buf_str, &attribute.integer)) {
         tokenType = TOKEN_I32_LITERAL;
-        printf("Integer number: %s\n", buf_str); // Process num
+        loginfo("Integer number: %s\n", buf_str); // Process num
     } else if (tryGetF64(buf_str, &attribute.real)) {
         tokenType = TOKEN_F64_LITERAL;
-        printf("Float number: %s\n", buf_str); // Process num
+        loginfo("Float number: %s\n", buf_str); // Process num
     } else if (tryGetSymbol(buf_str, &tokenType)) {
-        printf("Special symbol: %s\n", buf_str); // Process special symbol
+        loginfo("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
-        printf("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
-        printf("Possible ERROR!\n\n");
+        loginfo("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
+        loginfo("Possible ERROR!\n\n");
         tokenType = TOKEN_ERROR;
         attribute.str = "Unrecognized token";
     }
@@ -421,6 +420,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
             processToken(buff->data, tokenArray);
             emptyDynBuffer(buff);
         }
+
         if (sourceCode[*i + 1] == '\\') {
             (*i)++; // Increasing i by 1, so next reading won't start from the second '/'
             nextState = STATE_MULTILINE_STRING;
@@ -445,7 +445,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
         (*i)++;
     } else if (c == '"') {
         // end of the string
-        printf("String: \"%s\"\n", buff->data); // TODO: Gotta be another parser for str only
+        loginfo("String: \"%s\"\n", buff->data); // TODO: Gotta be another parser for str only
 
         Token stringToken = {.type = TOKEN_STRING_LITERAL};
         initStringAttribute(&stringToken.attribute, buff->data);
@@ -467,6 +467,32 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
     return nextState;
 }
 
+
+int streamToString(FILE *stream, char **str) {
+    if (str == NULL) {
+        return -1;
+    }
+
+    DynBuffer buff;
+    initDynBuffer(&buff, -1);
+
+    char buffer[512];
+    // TODO: Is fgets of 512 is correct when buffer size is 512?
+    while (fgets(buffer, 512, stream)) {
+        if (appendStringDynBuffer(&buff, buffer) == -1) {
+            freeDynBuffer(&buff);
+            return -1;
+        }
+    }
+
+    if (copyFromDynBuffer(&buff, str) == -1) {
+        freeDynBuffer(&buff);
+        return -1;
+    }
+
+    freeDynBuffer(&buff);
+    return 0;
+}
 
 // The main function of the lexer ##
 void runLexer(const char *sourceCode, TokenArray *tokenArray) {
@@ -569,6 +595,8 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
 
                     emptyDynBuffer(&buff);
 
+                    const Token semicolonToken = {.type = TOKEN_SEMICOLON};
+                    addToken(tokenArray, semicolonToken);
                     state = STATE_COMMON;
 
                     break;
@@ -614,6 +642,6 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
         }
         emptyDynBuffer(&buff);
     } else {
-        ; // TODO: ERROR OCCURED
+        ; // TODO: ERROR OCCURRED
     }
 }
