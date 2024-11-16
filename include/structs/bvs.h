@@ -2,6 +2,11 @@
 // Created by nur on 19.10.24.
 //
 
+/* Before you add anything to the BST make sure that:
+*  - data is a malloc-ed pointer (there is a free() call inside while disposing the BST)
+*  - key is a string literal (otherwise you should free it yourself)
+*/
+
 #ifndef BVS_H
 #define BVS_H
 
