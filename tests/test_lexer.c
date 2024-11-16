@@ -4,6 +4,7 @@
 
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <tgmath.h>
 
 #include "lexer/token.h"
@@ -57,12 +58,31 @@ bool has_error_in_tokens() {
     Token t;
     while (try_get_token(&t)) {
         if (t.type == TOKEN_ERROR) {
+            const Token lastToken = tokenArray.tokens[idx-2];
+            FAIL("Encountered an error token at index %i. Token before is %s\n", idx, getTokenTypeName(lastToken.type));
             idx = idx_before;
             return true;
         }
     }
     idx = idx_before;
     return false;
+}
+
+int read_source_code(const char *filename, char **source_code) {
+    if (source_code == NULL) {
+        return -1;
+    }
+
+    FILE *source_code_stream = fopen(filename, "r");
+    if (source_code_stream == NULL) {
+        FAIL("Failed to open the source code file");
+        return -1;
+    }
+    if (streamToString(source_code_stream, source_code) != 0) {
+        FAIL("Failed to read the source code from the file");
+        return -1;
+    }
+    return 0;
 }
 
 TEST(empty)
@@ -384,12 +404,18 @@ TEST(const_import)
     }
 ENDTEST
 
+
 TEST(parse_basic_program)
+    char *source_code;
+    if (read_source_code("tests/input/program.ifj24.zig", &source_code)) {
+        return;
+    }
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
 
-    runLexer("const ifj = @import(\"ifj24.zig\"); pub fn main() void { return 1; }", &tokenArray);
+    runLexer(source_code, &tokenArray);
+    free(source_code);
 
     const Token expected[] = {
         {.type = TOKEN_KEYWORD_CONST},
@@ -398,7 +424,58 @@ TEST(parse_basic_program)
     check_tokens(expected, 2);
 
     if (has_error_in_tokens()) {
-        FAIL("Lexer failed to parse valid source code");
+        return;
+    }
+ENDTEST
+
+TEST(parse_iterative_factorial_program)
+    char *source_code;
+    if (read_source_code("tests/input/factorial_iter.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer(source_code, &tokenArray);
+    free(source_code);
+
+    if (has_error_in_tokens()) {
+        return;
+    }
+ENDTEST
+
+TEST(parse_recursive_factorial_program)
+    char *source_code;
+    if (read_source_code("tests/input/factorial_rec.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer(source_code, &tokenArray);
+    free(source_code);
+
+    if (has_error_in_tokens()) {
+        return;
+    }
+ENDTEST
+
+TEST(parse_stdlib_funcs_program)
+    char *source_code;
+    if (read_source_code("tests/input/stdlib_funcs.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+
+    runLexer(source_code, &tokenArray);
+    free(source_code);
+
+    if (has_error_in_tokens()) {
+        return;
     }
 ENDTEST
 
