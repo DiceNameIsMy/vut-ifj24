@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <bvs.h>
+#include "structs/bvs.h"
 
 typedef enum {U8, I32, F64, NONETYPE} type_t;
 typedef enum {LOCAL, GLOBAL, UNDEFINED} scope_t;
@@ -28,5 +28,5 @@ scope_t SymTable_GetScope(SymTable *table, const char *name);
 
 void SymTable_Init(SymTable);
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol);
-SymTable *SymTable_NewScope(SymTable *table);
+//SymTable *SymTable_NewScope(SymTable *table); I needa think how this will even work. By now (17.10.2024) I'm a bit confused.
 void Symtable_Dispose(SymTable *table); //"delete root" algorithm
