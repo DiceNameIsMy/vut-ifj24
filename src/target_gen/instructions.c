@@ -40,6 +40,11 @@ void printOperand(Operand *op);
 
 int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name)
 {
+    if (attr == NULL || name == NULL)
+    {
+        return -1;
+    }
+
     attr->var.frame = frame;
     attr->var.name = strdup(name);
     if (attr->var.name == NULL)
@@ -53,6 +58,10 @@ int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name)
 
 int initStringAttribute(OperandAttribute *attr, char *string)
 {
+    if (attr == NULL || string == NULL)
+    {
+        return -1;
+    }
     attr->string = strdup(string);
     if (attr->string == NULL)
     {
