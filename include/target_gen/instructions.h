@@ -146,12 +146,14 @@ typedef struct
     Operand opThird;
 } Instruction;
 
+int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name);
+int initStringAttribute(OperandAttribute *attr, char *string);
+
 Operand initOperand(OperandType type, OperandAttribute attr);
 Operand initEmptyOperand();
 
-void destroyOperand(Operand op);
+void destroyOperand(Operand *op);
 
-int initInstr(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird);
 int initInstr0(Instruction *inst, InstType type);
 int initInstr1(Instruction *inst, InstType type, Operand opFirst);
 int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond);
