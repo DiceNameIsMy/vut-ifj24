@@ -7,7 +7,7 @@
 
 #include "test_utils.h"
 
-FILE *tempFile;
+FILE *tempFile = NULL;
 
 char* getTempFileContent() {
     // Flush any pending writes
@@ -55,6 +55,7 @@ TEST(print_0_operand_instruction)
 
     Instruction inst;
     if (initInstr0(&inst, INST_RETURN) == -1) {
+        fclose(tempFile);
         FAIL("Failed to initialize instruction");
         return;
     }
@@ -82,6 +83,7 @@ TEST(print_3_operand_instruction)
 
     OperandAttribute varAttr;
     if (initVarAttribute(&varAttr, GF, "var_name") == -1) {
+        fclose(tempFile);
         FAIL("Failed to initialize variable attribute");
         return;
     }
@@ -91,6 +93,7 @@ TEST(print_3_operand_instruction)
     Operand op3 = initOperand(OP_CONST_FLOAT64, (OperandAttribute) {.f64 = 10.5});
     Instruction inst;
     if (initInstr3(&inst, INST_ADD, op1, op2, op3) == -1) {
+        fclose(tempFile);
         FAIL("Failed to initialize instruction");
         return;
     }
