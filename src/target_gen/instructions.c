@@ -41,26 +41,24 @@ void printOperand(Operand *op);
 int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name)
 {
     attr->var.frame = frame;
-    attr->var.name = malloc(strlen(name) + 1);
+    attr->var.name = strdup(name);
     if (attr->var.name == NULL)
     {
         loginfo("Failed to allocate memory for variable name");
         return -1;
     }
 
-    strcpy(attr->var.name, name);
-
     return 0;
 }
 
 int initStringAttribute(OperandAttribute *attr, char *string)
 {
-    attr->string = malloc(strlen(string) + 1);
+    attr->string = strdup(string);
     if (attr->string == NULL)
     {
+        loginfo("Failed to allocate memory for string");
         return -1;
     }
-    strcpy(attr->string, string);
 
     return 0;
 }
@@ -487,7 +485,7 @@ bool isFirstOperandValid(InstType type, Operand op)
         if (isSymbolOperand(&op))
             return true;
         else
-            loginfo("Invalid instruction %s. Expected symbol as 1st operand, got %d\n", getInstructionKeyword(type), op.type);
+            loginfo("Invalid instruction %s. Expected symbol as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     case INST_CALL: // Only allows label
@@ -498,14 +496,14 @@ bool isFirstOperandValid(InstType type, Operand op)
         if (op.type == OP_LABEL)
             return true;
         else
-            loginfo("Invalid instruction %s. Expected label as 1st operand, got %d\n", getInstructionKeyword(type), op.type);
+            loginfo("Invalid instruction %s. Expected label as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     default: // Every other instruction only allows var
         if (op.type == OP_VAR)
             return true;
         else
-            loginfo("Invalid instruction %s. Expected var as 1st operand, got %d\n", getInstructionKeyword(type), op.type);
+            loginfo("Invalid instruction %s. Expected var as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
     }
     return false;
@@ -519,14 +517,14 @@ bool isSecondOperandValid(InstType type, Operand op)
         if (op.type == OP_TYPE)
             return true;
         else
-            loginfo("Invalid instruction %s. Expected type as 2nd operand, got %d\n", getInstructionKeyword(type), op.type);
+            loginfo("Invalid instruction %s. Expected type as 2nd operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     default: // Every other instruction allows only symbol
         if (isSymbolOperand(&op))
             return true;
         else
-            loginfo("Invalid instruction %s. Expected symbol as 2nd operand, got %d\n", getInstructionKeyword(type), op.type);
+            loginfo("Invalid instruction %s. Expected symbol as 2nd operand, got %d", getInstructionKeyword(type), op.type);
         break;
     }
     return false;
@@ -538,7 +536,7 @@ bool isThirdOperandValid(InstType type, Operand op)
     if (isSymbolOperand(&op))
         return true;
     else
-        loginfo("Invalid instruction %s. Expected symbol as 3rd operand, got %d\n", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected symbol as 3rd operand, got %d", getInstructionKeyword(type), op.type);
 
     return false;
 }
@@ -585,7 +583,7 @@ void printVar(Operand *op)
     else if (op->attr.var.frame == TF)
         frame = "TF";
     else
-        loginfo("Invalid frame type %d\n", op->attr.var.frame);
+        loginfo("Invalid frame type %d", op->attr.var.frame);
 
     fprintf(outputStream, " %s@%s", frame, op->attr.var.name);
 }
@@ -611,6 +609,7 @@ void printConst(Operand *op)
         fprintf(outputStream, " nil@nil");
         break;
     default:
-        loginfo(" [Invalid constant type %d]", op->type);
+        fprintf(outputStream, " [ERROR: Invalid constant type %d]", op->type);
+        loginfo("Invalid constant type %d", op->type);
     }
 }
