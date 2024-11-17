@@ -63,23 +63,6 @@ int initStringAttribute(OperandAttribute *attr, char *string)
     return 0;
 }
 
-void destroyAttribute(OperandAttribute *attr)
-{
-    if (attr == NULL)
-        return;
-
-    if (attr->string != NULL)
-    {
-        free(attr->string);
-        attr->string = NULL;
-    }
-    else if (attr->var.name != NULL)
-    {
-        free(attr->var.name);
-        attr->var.name = NULL;
-    }
-}
-
 Operand initOperand(OperandType type, OperandAttribute attr)
 {
     Operand op;
