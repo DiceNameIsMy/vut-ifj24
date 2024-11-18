@@ -18,17 +18,16 @@ ASTNode* parseInit(TokenArray* array) {
 }
 
 ASTNode* parseProgram() {
+    
+    // Create the root node for the program
+    ASTNode* root = createASTNode("Program", NULL);
     // Parse the prolog first
     ASTNode* prologNode = parseProlog();
+    root->left = prologNode;
 
     // Parse the list of function definitions
     ASTNode* functionListNode = parseFunctionDefList();
-
-    // Create the root node for the program
-    ASTNode* root = createASTNode("Program", NULL);
-
     // Attach the prolog and function list as children of the program root
-    root->left = prologNode;
     prologNode->next = functionListNode;
 
     return root;  // Return the root of the AST
@@ -88,7 +87,7 @@ ASTNode* parseFunctionDef() {
     char* functionName = strdup(token.attribute.str);
     if_malloc_error(functionName);
 
-    match(TOKEN_ID);
+    match(TOKEN_ID); //TODO: implement safe match_first_read_later
 
     // Create an AST node for the function definition
     ASTNode* funcNode = createASTNode("FunctionDef", functionName);
