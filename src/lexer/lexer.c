@@ -91,10 +91,6 @@ bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
     return true;
 }
 
-bool isStringLiteral(char c) {
-    return c == '\\' || c == 'n' || c == 'r' || c == 't' || c == '"';
-}
-
 void processTokenI32(TokenType *keywordType, TokenArray *array) {
     // ?i32 case
     if (array->size >= 1 &&
@@ -496,6 +492,68 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
     return nextState;
 }
 
+LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, TokenArray *tokenArray, DynBuffer *buff) {
+    LexerState nextState = STATE_MULTILINE_STRING;
+    const char c = sourceCode[*i];
+    if (c == '\n'){
+        nextState = STATE_MULTILINE_STRING_SKIP_WHITESPACE;
+    } else if (c == '\\') {
+        char nextChar = sourceCode[*i + 1];
+        switch (nextChar){
+        case 'n':
+            appendDynBuffer(buff, '\n');
+            break;
+        case 'r':
+            appendDynBuffer(buff, '\r');
+            break;
+        case 't':  
+            appendDynBuffer(buff, '\t');
+            break;
+        case '\\':
+            appendDynBuffer(buff, '\\');
+            break;
+        case '"':
+            appendDynBuffer(buff, '"');
+            break;
+        case 'x':{
+            // process hex number
+            char firstHex = sourceCode[*i + 2];
+            char secondHex = sourceCode[*i + 3];
+            if (!isxdigit(firstHex) || !isxdigit(secondHex)){
+                Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a double quote string");
+                addToken(tokenArray, errorToken);
+                emptyDynBuffer(buff);
+                nextState = STATE_COMMON;
+            } else {
+                // Convert hex to char
+                char hex[3] = {firstHex, secondHex, '\0'};
+                appendDynBuffer(buff, (char)strtol(hex, NULL, 16));
+                *i += 2;
+            }
+        }
+        default:
+            // Error if not a valid escape sequence
+            Token errorToken = {.type = TOKEN_ERROR};
+            initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a double quote string");
+            addToken(tokenArray, errorToken);
+            emptyDynBuffer(buff);
+            nextState = STATE_COMMON;
+        }
+        *i += 1;
+    } else if (c >= 32 && c <= 126){ 
+        // printable characters
+        appendDynBuffer(buff, c);
+    } else {
+        // Put an error since double quote strings can't contain non-printable characters
+        Token errorToken = {.type = TOKEN_ERROR};
+        initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a double quote string");
+        addToken(tokenArray, errorToken);
+        emptyDynBuffer(buff);
+        nextState = STATE_COMMON;
+    }
+    return nextState;
+}
 
 int streamToString(FILE *stream, char **str) {
     if (str == NULL) {
@@ -538,7 +596,6 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
             case STATE_COMMON:
                 state = fsmParseOnCommonState(sourceCode, &i, tokenArray, &buff);
                 break;
-
             // Will be used to handle the 'ifj' till the end without any outer influence
             case STATE_IFJ: {
                 // Skip spaces until the first dot
@@ -605,11 +662,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                 break;
 
             case STATE_MULTILINE_STRING:
-                if (c == '\n') {
-                    state = STATE_MULTILINE_STRING_SKIP_WHITESPACE;
-                } else {
-                    appendDynBuffer(&buff, c);
-                }
+                state = fsmStepOnMultiLineStringParsing(sourceCode, &i, tokenArray, &buff);
                 break;
 
             case STATE_MULTILINE_STRING_SKIP_WHITESPACE:
