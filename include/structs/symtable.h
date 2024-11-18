@@ -9,24 +9,24 @@ typedef struct {
 } SymTable;
 
 typedef struct {
-  const char *name;
+  char *name;
   type_t type;
   bool decl;
   bool init;
   scope_t scope;
 } Symbol;
 
-void SymTable_SetType(SymTable *table, const char *name, type_t type);
-void SymTable_SetDecl(SymTable *table, const char *name, bool isDeclared);
-void SymTable_SetInit(SymTable *table, const char *name, bool isInit);
-void Symtable_SetScope(SymTable *table, const char *name, scope_t scope);
+void SymTable_SetType(SymTable *table, char *name, type_t type);
+void SymTable_SetDecl(SymTable *table, char *name, bool isDeclared);
+void SymTable_SetInit(SymTable *table, char *name, bool isInit);
+void Symtable_SetScope(SymTable *table, char *name, scope_t scope);
 
-type_t Symtable_GetType(SymTable *table, const char *name);
-bool SymTable_GetDecl(SymTable *table, const char *name);
-bool SymTable_GetInit(SymTable *table, const char *name);
-scope_t SymTable_GetScope(SymTable *table, const char *name);
+type_t Symtable_GetType(SymTable *table, char *name);
+bool SymTable_GetDecl(SymTable *table, char *name);
+bool SymTable_GetInit(SymTable *table, char *name);
+scope_t SymTable_GetScope(SymTable *table, char *name);
 
-void SymTable_Init(SymTable);
+void SymTable_Init(SymTable *table);
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol);
 //SymTable *SymTable_NewScope(SymTable *table); I needa think how this will even work. By now (17.10.2024) I'm a bit confused.
 void Symtable_Dispose(SymTable *table); //"delete root" algorithm
