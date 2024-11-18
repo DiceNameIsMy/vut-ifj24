@@ -91,6 +91,10 @@ bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
     return true;
 }
 
+bool isStringLiteral(char c) {
+    return c == '\\' || c == 'n' || c == 'r' || c == 't' || c == '"';
+}
+
 void processTokenI32(TokenType *keywordType, TokenArray *array) {
     // ?i32 case
     if (array->size >= 1 &&
@@ -159,7 +163,7 @@ bool isIdentifier(const char *str) {
     int result = regexec(&regex, str, 0, NULL, 0);
     // Free the regex
     regfree(&regex);
-    
+
     // Return true if the regex matched the string, otherwise false
     return result == 0;
 }
@@ -425,13 +429,29 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
     LexerState nextState = STATE_ONE_LINE_STRING;
     const char c = sourceCode[*i];
 
-    if (c == '\\' && sourceCode[*i + 1] == '"') {
-        // if '"' is part of the string    TODO: Can it raise an ERROR at the end? MAYBE ERROR
-        appendDynBuffer(buff, '"');
-        (*i)++;
+    if (c == '\\'){
+        if (isStringLiteral(sourceCode[*i + 1])) {
+            // Escape sequence
+            appendDynBuffer(buff, c);
+            appendDynBuffer(buff, sourceCode[*i + 1]);  // If i understand correctly, we just keep the escape sequence as it is
+            (*i)++;
+        } else if (sourceCode[*i + 1] == 'x') {
+            // Hexadecimal escape sequence
+            appendDynBuffer(buff, sourceCode[*i + 1]);
+            appendDynBuffer(buff, sourceCode[*i + 2]);
+            appendDynBuffer(buff, sourceCode[*i + 3]);
+            (*i) += 3;
+        } else {
+            // Invalid escape sequence
+            Token errorToken = {.type = TOKEN_ERROR};
+            initStringAttribute(&errorToken.attribute, "Invalid escape sequence");
+            addToken(tokenArray, errorToken);
+            emptyDynBuffer(buff);
+            nextState = STATE_COMMON;
+        }
     } else if (c == '"') {
         // end of the string
-        loginfo("String: \"%s\"\n", buff->data); // TODO: Gotta be another parser for str only
+        loginfo("String: \"%s\"\n", buff->data);
 
         Token stringToken = {.type = TOKEN_STRING_LITERAL};
         initStringAttribute(&stringToken.attribute, buff->data);
@@ -442,7 +462,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
     } else if (c == '\n') {
         // Put an error since double quote strings can't be multiline
         Token errorToken = {.type = TOKEN_ERROR};
-        initStringAttribute(&errorToken.attribute, "Got \\n whilst parsing a double quote string");
+        initStringAttribute(&errorToken.attribute, "Got \\n while parsing a double quote string");
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
@@ -628,6 +648,6 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
         }
         emptyDynBuffer(&buff);
     } else {
-        ; // TODO: ERROR OCCURRED
+        ; // TODO: ERROR OCCURRED (or nothing?)
     }
 }
