@@ -159,21 +159,7 @@ bool isIdentifier(const char *str) {
     int result = regexec(&regex, str, 0, NULL, 0);
     // Free the regex
     regfree(&regex);
-
-    // Additional check: ensure the string is not made up entirely of '_'
-    if (result == 0) {
-        bool allUnderscores = true;
-        for (const char *p = str; *p != '\0'; ++p) {
-            if (*p != '_') {
-                allUnderscores = false;
-                break;
-            }
-        }
-        // If all characters are '_', return false
-        if (allUnderscores) {
-            return false;
-        }
-    }
+    
     // Return true if the regex matched the string, otherwise false
     return result == 0;
 }
@@ -347,7 +333,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
     const bool bufferIsEmpty = isDynBufferEmpty(buff);
 
     // Check for the prefix "ifj" and switch to STATE_IFJ if found
-    if (strncasecmp(&sourceCode[*i], "ifj", 3) == 0) {
+    if (sourceCode[*i] == 'i' && sourceCode[*i + 1] == 'f' && sourceCode[*i + 2] == 'j') {
         // Append each character of "ifj" to the buffer
         appendDynBuffer(buff, sourceCode[*i]);
         appendDynBuffer(buff, sourceCode[*i + 1]);
