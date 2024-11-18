@@ -467,6 +467,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
                 appendDynBuffer(buff, (char)strtol(hex, NULL, 16));
                 *i += 2;
             }
+            break;
         }
         default:
             // Error if not a valid escape sequence
@@ -521,7 +522,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
             char secondHex = sourceCode[*i + 3];
             if (!isxdigit(firstHex) || !isxdigit(secondHex)){
                 Token errorToken = {.type = TOKEN_ERROR};
-                initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a double quote string");
+                initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a multiline string");
                 addToken(tokenArray, errorToken);
                 emptyDynBuffer(buff);
                 nextState = STATE_COMMON;
@@ -531,11 +532,12 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
                 appendDynBuffer(buff, (char)strtol(hex, NULL, 16));
                 *i += 2;
             }
+            break;
         }
         default:
             // Error if not a valid escape sequence
             Token errorToken = {.type = TOKEN_ERROR};
-            initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a double quote string");
+            initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a multiline string");
             addToken(tokenArray, errorToken);
             emptyDynBuffer(buff);
             nextState = STATE_COMMON;
@@ -547,7 +549,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
     } else {
         // Put an error since double quote strings can't contain non-printable characters
         Token errorToken = {.type = TOKEN_ERROR};
-        initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a double quote string");
+        initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a multiline string");
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
