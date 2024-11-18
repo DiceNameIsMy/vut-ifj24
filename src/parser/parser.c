@@ -86,6 +86,8 @@ ASTNode* parseFunctionDef() {
 
     // Capture the function name
     char* functionName = strdup(token.attribute.str);
+    if_malloc_error(functionName);
+
     match(TOKEN_ID);
 
     // Create an AST node for the function definition
@@ -114,6 +116,7 @@ ASTNode* parseParamList() {
     if (token.type == TOKEN_ID) {
         // Parse the first parameter
         char* paramName = strdup(token.attribute.str);
+        if_malloc_error(paramName);
         match(TOKEN_ID);
         match(TOKEN_COLON);
         ASTNode* paramType = parseType();
@@ -134,6 +137,7 @@ ASTNode* parseParamListTail() {
 
         // Parse the next parameter
         char* paramName = strdup(token.attribute.str);
+        if_malloc_error(paramName);
         match(TOKEN_ID);
         match(TOKEN_COLON);
         ASTNode* paramType = parseType();
@@ -237,6 +241,9 @@ ASTNode* parseStatement() {
         case TOKEN_KEYWORD_RETURN:
             stmtNode = parseReturnStatement();  // Parse return statement
             break;
+        case TOKEN_LEFT_CURLY_BRACKET:  // New case for block statements
+            stmtNode = parseBlockStatement();
+            break;
         default:
             // Handle syntax error for unexpected token
             fprintf(stderr, "Syntax error: unexpected token in statement\n");
@@ -246,11 +253,29 @@ ASTNode* parseStatement() {
     return stmtNode;
 }
 
+ASTNode* parseBlockStatement() {
+    match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
+
+    // Parse the list of statements inside the block
+    ASTNode* stmtListNode = parseStatementList();
+
+    match(TOKEN_RIGHT_CURLY_BRACKET);  // Match '}'
+    match(TOKEN_SEMICOLON);            // Match ';'
+
+    // Create a BlockStatement node
+    ASTNode* blockNode = createASTNode("BlockStatement", NULL);
+    blockNode->left = stmtListNode;  // Attach the statement list as the left child
+
+    return blockNode;
+}
+
+
 ASTNode* parseConstDeclaration() {
     match(TOKEN_KEYWORD_CONST);  // Match 'const' keyword
 
     // Capture the constant name
     char* constName = strdup(token.attribute.str);
+    if_malloc_error(constName);
     match(TOKEN_ID);  // Match the identifier (constant name)
 
     // Use parseVarType to handle optional type annotation
@@ -299,6 +324,7 @@ ASTNode* parseRelationalTail(ASTNode* left) {
 
         // Capture the operator and move to the next token
         char* operator = strdup(token.attribute.str);
+        if_malloc_error(operator);
         match(token.type);
 
         // Parse the right operand
@@ -320,7 +346,8 @@ ASTNode* parseSimpleExpression() {
 
     // Handle addition and subtraction operators
     while (token.type == TOKEN_ADDITION || token.type == TOKEN_SUBTRACTION) {
-        char* operator = strdup(token.attribute.str);  // Capture the operator
+        char* operator = strdup(token.attribute.str);
+        if_malloc_error(operator);// Capture the operator
         match(token.type);  // Consume the operator
 
         // Parse the next term (right operand)
@@ -339,7 +366,8 @@ ASTNode* parseTerm() {
 
     // Handle multiplication and division
     while (token.type == TOKEN_MULTIPLICATION || token.type == TOKEN_DIVISION) {
-        char* operator = strdup(token.attribute.str);  // Capture the operator
+        char* operator = strdup(token.attribute.str);
+        if_malloc_error(operator); // Capture the operator
         match(token.type);  // Consume the operator
 
         // Parse the next factor (right operand)
@@ -362,6 +390,7 @@ ASTNode* parseFactor() {
         match(TOKEN_RIGHT_ROUND_BRACKET);
     } else if (token.type == TOKEN_ID) {  // For identifiers (variables or function calls)
         char* identifier = strdup(token.attribute.str);
+        if_malloc_error(identifier);
         match(TOKEN_ID);
 
         if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
@@ -374,6 +403,7 @@ ASTNode* parseFactor() {
                token.type == TOKEN_STRING_LITERAL || token.type == TOKEN_KEYWORD_NULL) {
         // For literals and `null`
         char* literalValue = strdup(token.attribute.str);
+        if_malloc_error(literalValue);
         factorNode = createASTNode("Literal", literalValue);  // Literal node
         match(token.type);  // Consume the literal or `null`
     } else {
@@ -420,6 +450,7 @@ ASTNode* parseVarDeclaration() {
 
     // Capture variable name
     char* varName = strdup(token.attribute.str);
+    if_malloc_error(varName);
     match(TOKEN_ID);  // Match the identifier (variable name)
 
     // Use parseVarType to handle optional type annotation
@@ -441,6 +472,7 @@ ASTNode* parseVarDeclaration() {
 ASTNode* parseAssignmentOrFunctionCall() {
     // Capture the identifier (variable or function name)
     char* identifier = strdup(token.attribute.str);
+    if_malloc_error(identifier);
     match(TOKEN_ID);  // Match the identifier
 
     if (token.type == TOKEN_ASSIGNMENT) {
@@ -481,6 +513,7 @@ ASTNode* parseIfStatement() {
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar = strdup(token.attribute.str);
+        if_malloc_error(bindingVar);
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode("NullableBinding", bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
@@ -523,6 +556,7 @@ ASTNode* parseWhileStatement() {
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar = strdup(token.attribute.str);
+        if_malloc_error(bindingVar);
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode("NullableBinding", bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
@@ -567,9 +601,10 @@ Token get_next_token(){
     exit(1);
 }
 
-Token get_previous_token(){
-    if (stat_index != 0){
-        return tokenArr->tokens[--stat_index];
+void if_malloc_error(const char* string){
+    if (string == NULL){
+        fprintf(stderr, "Memory allocation failed for string\n");
+        exit(99);
     }
-    exit(1);
+
 }

@@ -5,6 +5,8 @@
 #include "structs/bvs.h"
 
 #include <stdlib.h>
+#include <string.h>
+#include <stddef.h>
 //#include <stdio.h> for logs
 
 // Internal declarations
@@ -14,14 +16,14 @@ typedef enum {
     BLACK
 } BVS_Color;
 
-void BVSBranch_Init(BVSBranch **newbranch, long data);
+void BVSBranch_Init(BVSBranch **newbranch, char *key, void *data, size_t size); //size field is a crutch
 void BVSBranch_Free(BVSBranch *branch);
-BVSBranch *BVSBranch_Search(BVSBranch *branch, long key);
+void *BVSBranch_Search(BVSBranch *branch, char *key);
 
-BVSBranch *BVSBranch_Insert(BVSBranch *branch, long data);
+BVSBranch *BVSBranch_Insert(BVSBranch *branch, char *key, void *data, size_t size);
 void BVSBranch_InsertResolve(BVSBranch *branch); // Resolves the tree structure after an insert operation
 
-BVSBranch *BVSBranch_Delete(BVSBranch *branch, long key); //deletion and search is by the key, data just looks strange
+BVSBranch *BVSBranch_Delete(BVSBranch *branch, char *key); //deletion and search is by the key, data just looks strange
 void BVSBranch_DeleteResolve(BVSBranch *branch); //resolves the tree structure after a delete operation
 void Help_RmDoubleBlack(BVSBranch *branch); //removes doubleblack property from the node
 
@@ -35,13 +37,15 @@ bool BVSBranch_IsRoot(BVSBranch *branch); //predicate if the nose is root
 
 // Internal definitions
 
-void BVSBranch_Init(BVSBranch **newbranch, const long data) { 
+void BVSBranch_Init(BVSBranch **newbranch, char *key, void *data, size_t size) { 
     *newbranch = (BVSBranch *)malloc(sizeof(BVSBranch));
     if (*newbranch == NULL) {
         return;
     }
     (*newbranch)->color = RED;
-    (*newbranch)->data = data;
+    (*newbranch)->data = (void *)malloc(size);
+    memcpy((*newbranch)->data, data, size); //data should be malloc-ed, NEVER allocated on local scope!
+    (*newbranch)->key = strdup(key);
     (*newbranch)->left = NULL;
     (*newbranch)->right = NULL;
     (*newbranch)->parent = NULL;
@@ -54,6 +58,8 @@ void BVSBranch_Free(BVSBranch *branch) {
     }
     BVSBranch_Free(branch->left);
     BVSBranch_Free(branch->right);
+    free(branch->key);
+    free(branch->data);
     free(branch);
     return;
 }
@@ -105,26 +111,26 @@ void BVSBranch_InsertResolve(BVSBranch *branch) {
     return;
 }
 
-BVSBranch *BVSBranch_Insert(BVSBranch *branch, const long data) {
+BVSBranch *BVSBranch_Insert(BVSBranch *branch, char *key, void *data, size_t size) {
     BVSBranch *current = branch;
     BVSBranch *next = branch;
 
-    while (next != NULL && next->data != data) {
+    while (next != NULL && strcmp(next->key, key) != 0) {
         current = next;
-        if (data < current->data) {
+        if (strcmp(key, current->key) < 0) {
             next = current->left;
-        } else if (data > current->data) {
+        } else if (strcmp(key, current->key) > 0) {
             next = current->right;
         } else break;
     }
 
     if (next == NULL) {
-        if (data > current->data) {
-            BVSBranch_Init(&(current->right), data);
+        if (strcmp(key, current->key) > 0) {
+            BVSBranch_Init(&(current->right), key, data, size);
             current->right->parent = current;
             BVSBranch_InsertResolve(current->right);
-        } else if (data < current->data) {
-            BVSBranch_Init(&(current->left), data);
+        } else if (strcmp(key, current->key) < 0) {
+            BVSBranch_Init(&(current->left), key, data, size);
             current->left->parent = current;
             BVSBranch_InsertResolve(current->left);
         }
@@ -132,18 +138,20 @@ BVSBranch *BVSBranch_Insert(BVSBranch *branch, const long data) {
     return BVSBranch_Root(current);
 }
 
-BVSBranch *BVSBranch_Search(BVSBranch *branch, long key) {
+void *BVSBranch_Search(BVSBranch *branch, char *key) {
 
     BVSBranch *current = branch;
-    while (current != NULL && current->data != key) {
-        if (key > current->data) {
+    while (current != NULL && strcmp(current->key, key) != 0) {
+        if (strcmp(key, current->key) > 0) {
             current = current->right;
         } else {
             current = current->left;
         }
     }
 
-    return current;
+    if (current != NULL)
+        return current->data;
+    return NULL;
 }
 
 void Help_RmDoubleBlack(BVSBranch *branch) {
@@ -247,14 +255,14 @@ void BVSBranch_DeleteResolve(BVSBranch *branch) {
     return;
 }
 
-BVSBranch *BVSBranch_Delete(BVSBranch *branch, long key) {
+BVSBranch *BVSBranch_Delete(BVSBranch *branch, char *key) {
     
     BVSBranch *current = branch;
     BVSBranch *next = branch;
     
-    while (next != NULL && next->data != key) {
+    while (next != NULL && strcmp(next->key, key) != 0) {
         current = next;
-        if (key > current->data) {
+        if (strcmp(key, current->key) > 0) {
             next = current->right;
         } else {
             next = current->left;
@@ -279,6 +287,8 @@ BVSBranch *BVSBranch_Delete(BVSBranch *branch, long key) {
         }
         //fprintf(stderr, "Unlinked the leaf, preparing to resolve...\n");
         BVSBranch_DeleteResolve(current); //to resolve the deletion we should act as if the node is still there
+        free(current->key);
+        free(current->data);
         free(current);
         return BVSBranch_Root(branch); //return a new root (fartherst ancestor)
     }
@@ -298,6 +308,8 @@ BVSBranch *BVSBranch_Delete(BVSBranch *branch, long key) {
         }
         //fprintf(stderr, "Unlinked the node, preparing to resolve...\n");
         BVSBranch_DeleteResolve(current);
+        free(current->key);
+        free(current->data);
         free(current);
         return BVSBranch_Root(branch); //return a new root (fartherst ancestor)
     }
@@ -308,7 +320,10 @@ BVSBranch *BVSBranch_Delete(BVSBranch *branch, long key) {
         //fprintf(stderr, "Not leftmost yet, proceeding to left...\n");
         leftmost = leftmost->left;
     }
-    current->data = leftmost->data; //we replace node's data with the data of its in-order successor
+    free(current->key);
+    free(current->data); //free the data
+    current->key = leftmost->key; //we replace node's data with the data of its in-order successor
+    current->data = leftmost->data;
     if (current->right != leftmost) {
         leftmost->parent->left = leftmost->right; //we delete the leftmost node
     } else {
@@ -393,30 +408,30 @@ int BVS_Init(BVS *bvs) {
 }
 
 
-void BVS_Delete(BVS *bvs, const long key) {
+void BVS_Delete(BVS *bvs, char *key) {
     bvs->root = BVSBranch_Delete(bvs->root, key);    
     return;
 }
 
-void BVS_Free(const BVS *bvs) {
+void BVS_Free(BVS *bvs) {
     if (bvs->root == NULL) {
         return;
     }
     BVSBranch_Free(bvs->root);
 }
 
-void BVS_Insert(BVS *bvs, const long data) {
+void BVS_Insert(BVS *bvs, char *key, void *data, size_t size) {
     if (bvs->root == NULL) { 
-        BVSBranch_Init(&(bvs->root), data);
+        BVSBranch_Init(&(bvs->root), key, data, size);
         BVSBranch_InsertResolve(bvs->root);
     } else {
-        bvs->root = BVSBranch_Insert(bvs->root, data);
+        bvs->root = BVSBranch_Insert(bvs->root, key, data, size);
     }
     return;
 }
 
-BVSBranch *BVS_Search(BVS *bvs, const long data) { //we can make this return a pointer to a found item, if needed
+void *BVS_Search(BVS *bvs, char *key) { //returns found data, if found
     //fprintf(stderr, "Searching for (%ld)...\n", data);
-    return BVSBranch_Search(bvs->root, data);
+    return BVSBranch_Search(bvs->root, key);
 
 }

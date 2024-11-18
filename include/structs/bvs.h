@@ -2,13 +2,20 @@
 // Created by nur on 19.10.24.
 //
 
+/* Before you add anything to the BST make sure that:
+*  - you have free the "key" later if you malloc-ed it
+*  - same with "data"
+*/
+
 #ifndef BVS_H
 #define BVS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct BVSBranch {
-    long data;
+    char *key; //differentiate key and data
+    void *data;
     char color;
     struct BVSBranch *left;
     struct BVSBranch *right;
@@ -21,9 +28,9 @@ typedef struct {
 } BVS;
 
 int BVS_Init(BVS *bvs);
-void BVS_Free(const BVS *bvs);
-void BVS_Delete(BVS *BVS, const long key);
-void BVS_Insert(BVS *bvs, long data);
-BVSBranch *BVS_Search(BVS *bvs, long data);
+void BVS_Free(BVS *bvs);
+void BVS_Delete(BVS *BVS, char *key);
+void BVS_Insert(BVS *bvs, char *key, void *data, size_t size); //size field is a crutch so that we can work with a copy of the data
+void *BVS_Search(BVS *bvs, char *key); //returns found data
 
 #endif //BVS_H
