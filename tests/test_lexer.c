@@ -523,6 +523,7 @@ TEST (ifj_part_of_id)
     }    
 ENDTEST
 
+
 TEST(parse_basic_program)
     char *source_code;
     if (read_source_code("tests/input/program.ifj24.zig", &source_code)) {
@@ -597,6 +598,24 @@ TEST(parse_stdlib_funcs_program)
     }
 
 ENDTEST
+
+TEST(example_from_task)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    // "Ahoj\n\"Sve'te \"
+    runLexer("\"Ahoj\\n\\\"Sve'te \\\x22\"", &tokenArray);
+    Token t;
+    // Ahoj\n
+    // "Sve'te \"
+    if (!check_token(&t, TOKEN_STRING_LITERAL)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "Ahoj\n\"Sve'te \"") != 0) {
+        FAILCOMPS("Wrong attribute value", "Ahoj\nSve'te \"", t.attribute.str);
+    }
+ENDTEST
+
 
 int main() {
     initTokenArray(&tokenArray);

@@ -428,46 +428,69 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
 LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenArray *tokenArray, DynBuffer *buff) {
     LexerState nextState = STATE_ONE_LINE_STRING;
     const char c = sourceCode[*i];
-
-    if (c == '\\'){
-        if (isStringLiteral(sourceCode[*i + 1])) {
-            // Escape sequence
-            appendDynBuffer(buff, c);
-            appendDynBuffer(buff, sourceCode[*i + 1]);  // If i understand correctly, we just keep the escape sequence as it is
-            (*i)++;
-        } else if (sourceCode[*i + 1] == 'x') {
-            // Hexadecimal escape sequence
-            appendDynBuffer(buff, sourceCode[*i + 1]);
-            appendDynBuffer(buff, sourceCode[*i + 2]);
-            appendDynBuffer(buff, sourceCode[*i + 3]);
-            (*i) += 3;
-        } else {
-            // Invalid escape sequence
-            Token errorToken = {.type = TOKEN_ERROR};
-            initStringAttribute(&errorToken.attribute, "Invalid escape sequence");
-            addToken(tokenArray, errorToken);
-            emptyDynBuffer(buff);
-            nextState = STATE_COMMON;
-        }
-    } else if (c == '"') {
+    if (c == '"'){
         // end of the string
         loginfo("String: \"%s\"\n", buff->data);
-
         Token stringToken = {.type = TOKEN_STRING_LITERAL};
         initStringAttribute(&stringToken.attribute, buff->data);
         addToken(tokenArray, stringToken);
 
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
-    } else if (c == '\n') {
-        // Put an error since double quote strings can't be multiline
+    } else if (c == '\\') {
+        char nextChar = sourceCode[*i + 1];
+        switch (nextChar){
+        case 'n':
+            appendDynBuffer(buff, '\n');
+            break;
+        case 'r':
+            appendDynBuffer(buff, '\r');
+            break;
+        case 't':  
+            appendDynBuffer(buff, '\t');
+            break;
+        case '\\':
+            appendDynBuffer(buff, '\\');
+            break;
+        case '"':
+            appendDynBuffer(buff, '"');
+            break;
+        case 'x':{
+            // process hex number
+            char firstHex = sourceCode[*i + 2];
+            char secondHex = sourceCode[*i + 3];
+            if (!isxdigit(firstHex) || !isxdigit(secondHex)){
+                Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a double quote string");
+                addToken(tokenArray, errorToken);
+                emptyDynBuffer(buff);
+                nextState = STATE_COMMON;
+            } else {
+                // Convert hex to char
+                char hex[3] = {firstHex, secondHex, '\0'};
+                appendDynBuffer(buff, (char)strtol(hex, NULL, 16));
+                *i += 2;
+            }
+        }
+        default:
+            // Error if not a valid escape sequence
+            Token errorToken = {.type = TOKEN_ERROR};
+            initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a double quote string");
+            addToken(tokenArray, errorToken);
+            emptyDynBuffer(buff);
+            nextState = STATE_COMMON;
+        }
+        *i += 1;
+    } else if (c >= 32 && c <= 126){ 
+        // printable characters
+        appendDynBuffer(buff, c);
+    } else {
+        // Put an error since double quote strings can't contain non-printable characters
         Token errorToken = {.type = TOKEN_ERROR};
-        initStringAttribute(&errorToken.attribute, "Got \\n while parsing a double quote string");
+        initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a double quote string");
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
-    } else {
-        appendDynBuffer(buff, c);
     }
 
     return nextState;
