@@ -8,6 +8,8 @@ typedef struct {
   BVS *tree;
 } SymTable;
 
+// TODO: Add counter of amount of usages (or a boolean whether a symbol was used)
+
 typedef struct {
   char *name;
   type_t type;
