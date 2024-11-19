@@ -8,7 +8,11 @@
 #include "structs/ast.h"
 #include "lexer/token.h"
 
+#include <stdio.h>
+#include <stdbool.h>
+
 void match(TokenType expected);
+bool isMatch(TokenType expected);
 ASTNode* parseInit(TokenArray* array);
 ASTNode* parseProgram();
 ASTNode* parseProlog();
