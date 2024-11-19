@@ -48,7 +48,6 @@ char* readStdinAsString() {
 }
 int main(int count, char **argv){
     char* source_code = readStdinAsString();
-    printf("Hello, World! %s\n", source_code);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     astNode = parseInit(&tokenArray);

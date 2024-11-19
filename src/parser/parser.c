@@ -32,7 +32,10 @@ ASTNode* parseProgram() {
     // Attach the prolog and function list as children of the program root
     root->left = prologNode;
     root->right = functionListNode;
-
+    if(stat_index - 1 != tokenArr->size){
+        fprintf(stderr, "You forget to process %ld tokens", tokenArr->size - stat_index + 1);
+        exit(2);
+    }
     return root;  // Return the root of the AST
 }
 
@@ -73,7 +76,7 @@ ASTNode* parseProlog() {
 ASTNode* parseFunctionDefList() {
     ASTNode* head = NULL;  // Head of the function definition list
     ASTNode* current = NULL;  // Current node in the list
-
+    isMatch(TOKEN_KEYWORD_PUB);
     while (token.type == TOKEN_KEYWORD_PUB) {  // While there are functions to parse
         ASTNode* funcDefNode = parseFunctionDef();  // Parse each function definition
 
@@ -100,6 +103,10 @@ ASTNode* parseFunctionDef() {
     if(isMatch(TOKEN_ID)) {
         functionName = strdup(token.attribute.str);
         if_malloc_error(functionName);
+    } else{
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        exit(2); // or handle error gracefully
     }
     match(TOKEN_ID);
 
@@ -149,8 +156,16 @@ ASTNode* parseParamListTail() {
         match(TOKEN_COMMA);
 
         // Parse the next parameter
-        char* paramName = strdup(token.attribute.str);
-        if_malloc_error(paramName);
+        char* paramName;
+        if(isMatch(TOKEN_ID)) {
+            paramName = strdup(token.attribute.str);
+            if_malloc_error(paramName);
+        }
+        else{
+            // Handle syntax error
+            fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+            exit(2); // or handle error gracefully
+        }
         match(TOKEN_ID);
         match(TOKEN_COLON);
         ASTNode* paramType = parseType();
@@ -203,9 +218,8 @@ ASTNode* parseType() {
         typeNode = createASTNode(DataType, "?[]u8");
         match(TOKEN_KEYWORD_U8_ARRAY_NULLABLE);
     } else {
-        // Handle error for invalid type
-        fprintf(stderr, "Syntax error: invalid type\n");
-        exit(2);
+        typeNode = createASTNode(DataType, "Invalid");
+        match(TOKEN_ID);
     }
 
     return typeNode;  // Return the type node for the AST
@@ -291,7 +305,6 @@ ASTNode* parseBlockStatement() {
     ASTNode* stmtListNode = parseStatementList();
 
     match(TOKEN_RIGHT_CURLY_BRACKET);  // Match '}'
-    match(TOKEN_SEMICOLON);            // Match ';'
 
     // Create a BlockStatement node
     ASTNode* blockNode = createASTNode(BlockStatement, NULL);
@@ -308,6 +321,11 @@ ASTNode* parseConstDeclaration() {
     if (isMatch(TOKEN_ID)){
         constName = strdup(token.attribute.str);
         if_malloc_error(constName);
+    }
+    else{
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        exit(2); // or handle error gracefully
     }
     match(TOKEN_ID);  // Match the identifier (constant name)
 
@@ -449,9 +467,16 @@ ASTNode* parseFactor() {
             // If the next token is a dot, parse it as a qualified function call
             match(TOKEN_DOT);
 
-            // Parse the function name after the dot
-            char* functionName = strdup(token.attribute.str);
-            match(TOKEN_ID);
+            char* functionName;
+            if(isMatch(TOKEN_ID)) {
+                functionName = strdup(token.attribute.str);
+                if_malloc_error(functionName);
+            }
+            else{
+                // Handle syntax error
+                fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+                exit(2); // or handle error gracefully
+            }
 
             // Parse function call parameters
             ASTNode* params = NULL;
@@ -548,6 +573,10 @@ ASTNode* parseVarDeclaration() {
     if (isMatch(TOKEN_ID)){
         varName = strdup(token.attribute.str);
         if_malloc_error(varName);
+    } else{
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        exit(2); // or handle error gracefully
     }
     match(TOKEN_ID);  // Match the identifier (variable name)
 
@@ -569,8 +598,11 @@ ASTNode* parseVarDeclaration() {
 
 ASTNode* parseAssignmentOrFunctionCall() {
     // Capture the identifier (variable or function name)
-    char* identifier = strdup(token.attribute.str);
-    if_malloc_error(identifier);
+    char* identifier;
+    if(isMatch(TOKEN_ID)) {
+        identifier = strdup(token.attribute.str);
+        if_malloc_error(identifier);
+    }
     match(TOKEN_ID);  // Match the identifier
     if (token.type == TOKEN_DOT) {
         // If the next token is a dot, parse it as a qualified function call
@@ -680,8 +712,16 @@ ASTNode* parseWhileStatement() {
     ASTNode* bindingNode = NULL;
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
-        char* bindingVar = strdup(token.attribute.str);
-        if_malloc_error(bindingVar);
+        char* bindingVar;
+        if(isMatch(TOKEN_ID)) {
+            bindingVar = strdup(token.attribute.str);
+            if_malloc_error(bindingVar);
+        }
+        else{
+            // Handle syntax error
+            fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+            exit(2); // or handle error gracefully
+        }
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'

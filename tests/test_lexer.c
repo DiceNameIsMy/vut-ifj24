@@ -526,7 +526,7 @@ ENDTEST
 
 TEST(parse_basic_program)
     char *source_code;
-    if (read_source_code("tests/input/program.ifj24.zig", &source_code)) {
+    if (read_source_code("tests/input/program.ifj24.zig.zig", &source_code)) {
         return;
     }
     freeTokenArray(&tokenArray);
