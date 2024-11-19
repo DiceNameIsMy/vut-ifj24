@@ -32,5 +32,5 @@ scope_t SymTable_GetScope(SymTable *table, char *name);
 
 void SymTable_Init(SymTable *table);
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol);
-SymTable *SymTable_NewScope(SymTable *table); //I needa think how this will even work. By now (17.10.2024) I'm a bit confused.
+SymTable *SymTable_ChildScope(SymTable *table); //I needa think how this will even work. By now (17.10.2024) I'm a bit confused.
 void Symtable_Dispose(SymTable *table); //"delete root" algorithm
