@@ -58,7 +58,9 @@ void SymTable_Dispose(SymTable *table) {
   return;
 }
 
-// SymTable *SymTable_NewScope(SymTable *table) {
-// HONESTLY IDK 
-// HELPME PLZ (Sure, it's a joke. Almost a joke.)
-//}
+SymTable *SymTable_ChildScope(SymTable *table) {
+  SymTable *newScope = (SymTable *)malloc(sizeof(SymTable));
+  SymTable_Init(newScope);
+  newScope->parent = table;
+  return newScope;   
+}
