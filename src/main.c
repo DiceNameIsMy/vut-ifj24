@@ -47,7 +47,7 @@ int main(void) {
     SymTable_Init(symTable);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
-    free(source_code);
+    free(source_code); // Free the source code buffer
 
     printf("Hello, World!\n");
     parseInit(&tokenArray, symTable);

@@ -99,7 +99,7 @@ void processTokenI32(TokenType *keywordType, TokenArray *array) {
         array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK) {
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_I32_NULLABLE;
-        loginfo("remaking into ?i32");
+        // loginfo("remaking into ?i32");
     }
     // i32 case
     else {
@@ -113,7 +113,7 @@ void processTokenF64(TokenType *keywordType, TokenArray *array) {
         if (array->tokens[array->size - 1].type == TOKEN_QUESTION_MARK) {
             deleteLastToken(array);
             *keywordType = TOKEN_KEYWORD_F64_NULLABLE;
-            loginfo("remaking into ?f64");
+            // loginfo("remaking into ?f64");
 
         }
         // f64 case
@@ -132,7 +132,7 @@ void processTokenU8(TokenType *keywordType, TokenArray *array) {
         deleteLastToken(array);
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_U8_ARRAY_NULLABLE;
-        loginfo("remaking into ?[]u8");
+        // loginfo("remaking into ?[]u8");
     }
     // []u8 case
     else if (array->size >= 2 &&
@@ -141,7 +141,7 @@ void processTokenU8(TokenType *keywordType, TokenArray *array) {
         deleteLastToken(array);
         deleteLastToken(array);
         *keywordType = TOKEN_KEYWORD_U8_ARRAY;
-        loginfo("remaking into []u8");
+        // loginfo("remaking into []u8");
     }
     // u8 case
     else {
@@ -156,6 +156,7 @@ bool isIdentifier(const char *str) {
     // but disallows a single underscore '_'
     if (regcomp(&regex, "^[a-zA-Z_][a-zA-Z0-9_]*$", REG_EXTENDED)) {
         return false; // Return false if regex compilation fails
+        // Is it a reason for exit(99)?
     }
     // Execute the regex check
     int result = regexec(&regex, str, 0, NULL, 0);
@@ -184,10 +185,6 @@ bool tryGetI32(const char *str, int *i32) {
         *i32 = (int) strtol(str, NULL, 10);
         return true;
     }
-    return false;
-}
-
-bool isF64(const char *str) {
     return false;
 }
 
@@ -280,7 +277,8 @@ void processToken(const char *buf_str, TokenArray *array) {
     TokenAttribute attribute;
 
     if (tryGetKeyword(buf_str, &tokenType, array)) {
-        loginfo("Keyword: %s\n", buf_str); // Process keyword and types i32, f64 etc.
+        // Process keyword and types i32, f64 etc.
+            // loginfo("Keyword: %s\n", buf_str); 
     } else if (isIdentifier(buf_str)) {
         /*Symbol newSymbol;
         newSymbol.name = strdup(buf_str); //need a SymTable_Free() function
@@ -291,26 +289,27 @@ void processToken(const char *buf_str, TokenArray *array) {
         BVS_Insert(symTable, newSymbol.name, (void *)&newSymbol, sizeof(newSymbol)); *///ID = "symbol". Symbols should be in the symbol table.
         
         tokenType = TOKEN_ID;
-        loginfo("Identifier: %s\n", buf_str); // Process id
+        // loginfo("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
 
         if (attribute.str == NULL) {
-            loginfo("Error memory allocation\n");
-            exit(0); // TODO: clean
+            // loginfo("Error memory allocation\n");
+            exit(99); // TODO: clean up used memory
         }
     } else if (tryGetI32(buf_str, &attribute.integer)) {
         tokenType = TOKEN_I32_LITERAL;
-        loginfo("Integer number: %s\n", buf_str); // Process num
+        // loginfo("Integer number: %s\n", buf_str); // Process num
     } else if (tryGetF64(buf_str, &attribute.real)) {
         tokenType = TOKEN_F64_LITERAL;
-        loginfo("Float number: %s\n", buf_str); // Process num
+        // loginfo("Float number: %s\n", buf_str); // Process num
     } else if (tryGetSymbol(buf_str, &tokenType)) {
-        loginfo("Special symbol: %s\n", buf_str); // Process special symbol
+        // loginfo("Special symbol: %s\n", buf_str); // Process special symbol
     } else {
-        loginfo("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
-        loginfo("Possible ERROR!\n\n");
+        // loginfo("Unknown token: %s\n", buf_str); // Unexpected input, Error TODO?
+        // loginfo("Possible ERROR!\n\n");
         tokenType = TOKEN_ERROR;
         attribute.str = "Unrecognized token";
+        exit(1); // ERROR - unrecognized token found TODO: clean up used memory
     }
     const Token token = createToken(tokenType, attribute);
     addToken(array, token);
@@ -436,7 +435,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
     const char c = sourceCode[*i];
     if (c == '"'){
         // end of the string
-        loginfo("String: \"%s\"\n", buff->data);
+        // loginfo("String: \"%s\"\n", buff->data);
         Token stringToken = {.type = TOKEN_STRING_LITERAL};
         initStringAttribute(&stringToken.attribute, buff->data);
         addToken(tokenArray, stringToken);
@@ -471,6 +470,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
                 addToken(tokenArray, errorToken);
                 emptyDynBuffer(buff);
                 nextState = STATE_COMMON;
+                exit(1); // ERROR - unrecognized literal TODO: clean up used memory
             } else {
                 // Convert hex to char
                 char hex[3] = {firstHex, secondHex, '\0'};
@@ -486,6 +486,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
             addToken(tokenArray, errorToken);
             emptyDynBuffer(buff);
             nextState = STATE_COMMON;
+            exit(1); // ERROR - unrecognized literal TODO: clean up used memory
         }
         *i += 1;
     } else if (c >= 32 && c <= 126){ 
@@ -498,6 +499,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
+        exit(1); // ERROR - non-printable character TODO: clean up used memory
     }
 
     return nextState;
@@ -536,6 +538,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
                 addToken(tokenArray, errorToken);
                 emptyDynBuffer(buff);
                 nextState = STATE_COMMON;
+                exit(1); // ERROR - unrecognized literal TODO: clean up used memory
             } else {
                 // Convert hex to char
                 char hex[3] = {firstHex, secondHex, '\0'};
@@ -551,6 +554,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
             addToken(tokenArray, errorToken);
             emptyDynBuffer(buff);
             nextState = STATE_COMMON;
+            exit(1); // ERROR - unrecognized literal TODO: clean up used memory
         }
         *i += 1;
     } else if (c >= 32 && c <= 126){ 
@@ -563,6 +567,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
+        exit(1); // ERROR - non-printable character found TODO: clean up used memory
     }
     return nextState;
 }
@@ -636,6 +641,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                         // If the buffer is empty, handle as an error or unexpected token
                         processToken("Error: Expected '.' after 'ifj'", tokenArray);
                         state = STATE_COMMON;
+                        exit(1); // ERROR - unrecognized token found TODO: clean up used memory
                         break;
                     }
 
@@ -705,6 +711,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                         initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
                         addToken(tokenArray, errorToken);
                         state = STATE_COMMON;
+                        exit(1); // ERROR - unrecognized token found TODO: clean up used memory
                     }
                     i++;
                 } else {
@@ -712,6 +719,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                     initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
                     addToken(tokenArray, errorToken);
                     state = STATE_COMMON;
+                    exit(1); // ERROR - unrecognized token found TODO: clean up used memory
                 }
                 break;
 
