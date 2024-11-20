@@ -6,7 +6,6 @@
 #include "structs/symtable.h"
 #include "bvs.c"
 #include "structs/stack.h"
-//TODO: implement functions from the header
 
 #define MAX_SCOPES 65536 
 //2^16

@@ -2,6 +2,9 @@
 #include "structs/bvs.h"
 #include "structs/stack.h"
 
+#ifndef SYMTABLE_H
+#define SYMTABLE_H
+
 typedef enum {U8, I32, F64, NONETYPE} type_t;
 
 typedef struct SymTable_t {
@@ -36,3 +39,5 @@ void SymTable_Init(SymTable *table);
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol);
 void SymTable_NewScope(SymTable *table); //Use this function to jump into a new sub-scope
 void Symtable_Dispose(SymTable *table); //"delete root" algorithm
+
+#endif
