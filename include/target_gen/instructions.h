@@ -112,9 +112,9 @@ typedef enum
 } OperandType;
 
 typedef enum {
-    GF,
-    LF,
-    TF,
+    FRAME_GF,
+    FRAME_LF,
+    FRAME_TF,
 } VarFrameType;
 
 typedef struct

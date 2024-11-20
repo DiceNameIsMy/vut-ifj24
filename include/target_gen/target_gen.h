@@ -5,6 +5,9 @@
 #ifndef TARGET_GEN_H
 #define TARGET_GEN_H
 
-int generate_target_code(void* ast);
+#include <stdio.h>
+#include "structs/ast.h"
+
+int generateTargetCode(ASTNode* root, FILE *output);
 
 #endif //TARGET_GEN_H

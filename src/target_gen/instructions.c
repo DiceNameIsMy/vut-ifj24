@@ -568,11 +568,11 @@ void printOperand(Operand *op)
 void printVar(Operand *op)
 {
     char *frame = NULL;
-    if (op->attr.var.frame == GF)
+    if (op->attr.var.frame == FRAME_GF)
         frame = "GF";
-    else if (op->attr.var.frame == LF)
+    else if (op->attr.var.frame == FRAME_LF)
         frame = "LF";
-    else if (op->attr.var.frame == TF)
+    else if (op->attr.var.frame == FRAME_TF)
         frame = "TF";
     else
         loginfo("Invalid frame type %d", op->attr.var.frame);

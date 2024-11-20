@@ -82,7 +82,7 @@ TEST(print_3_operand_instruction)
     }
 
     OperandAttribute varAttr;
-    if (initVarAttribute(&varAttr, GF, "var_name") == -1) {
+    if (initVarAttribute(&varAttr, FRAME_GF, "var_name") == -1) {
         fclose(tempFile);
         FAIL("Failed to initialize variable attribute");
         return;
