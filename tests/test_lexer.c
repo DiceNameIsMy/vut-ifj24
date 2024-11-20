@@ -38,6 +38,17 @@ bool check_token(Token *t, const TokenType type) {
     return true;
 }
 
+bool check_str_token(Token *t, const TokenType type, char *str) {
+    if (!check_token(t, type)) {
+        return false;
+    }
+    if (strcmp(t->attribute.str, str) != 0) {
+        FAILCOMPS("Invalid token attribute", str, t->attribute.str);
+        return false;
+    }
+    return true;
+}
+
 bool check_tokens(const Token *expected, const int size) {
     int i = 0;
     while (i < size) {
@@ -78,7 +89,10 @@ int read_source_code(const char *filename, char **source_code) {
         FAIL("Failed to open the source code file");
         return -1;
     }
-    if (streamToString(source_code_stream, source_code) != 0) {
+    int r = streamToString(source_code_stream, source_code);
+    fclose(source_code_stream);
+
+    if (r != 0) {
         FAIL("Failed to read the source code from the file");
         return -1;
     }
@@ -93,8 +107,11 @@ TEST(empty)
     runLexer("", &tokenArray);
 
     Token t;
+    if (!check_token(&t, TOKEN_EOF)) {
+        FAIL("With empty source code first token was not EOF");
+    }
     if (try_get_token(&t)) {
-        FAIL("There are tokens with empty source code provided");
+        FAIL("Got more tokens than expected", (int)tokenArray.size, idx);
     }
 ENDTEST
 
@@ -223,10 +240,10 @@ TEST(float_literals)
         FAILCOMPF("Invalid float literal (.2e-3)", .2e-3, t.attribute.real);
     }
 
-    if (try_get_token(&t)) {
-        FAIL("Got more tokens than expected. There are: %i, expected: %i", (int)tokenArray.size, idx);
+    if (!check_token(&t, TOKEN_EOF)) {
+        FAIL("Expected EOF token at the end of source code, but got %s", getTokenTypeName(t.type));
+        return;
     }
-
 ENDTEST
 
 TEST(assignment)
