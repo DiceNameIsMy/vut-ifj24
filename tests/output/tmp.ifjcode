@@ -1,0 +1,47 @@
+.IFJcode24
+
+# It's easiest to jump to main at the beginning, 
+# because we can't define functions after main.
+JUMP main
+
+# Expects:
+# - TF@number
+# - TF@string
+LABEL func
+
+    LABEL loop
+    JUMPIFEQ end TF@number int@0
+
+    WRITE TF@string
+    SUB TF@number TF@number int@1
+
+    JUMP loop
+
+    LABEL end
+
+    RETURN
+
+LABEL main
+    # Create frame for local variables
+    CREATEFRAME
+    PUSHFRAME
+
+    DEFVAR LF@magic_number
+    MOVE LF@magic_number int@2
+
+    # Create frame for function parameters
+    CREATEFRAME
+
+    # Set function parameters
+    DEFVAR TF@number
+    MOVE TF@number LF@magic_number
+    DEFVAR TF@string
+    MOVE TF@string string@Hello\032World!\010
+
+    # Call function
+    CALL func
+
+    # Remove a frame for local variables
+    POPFRAME
+
+    # Main function is special: it does not have a return at the end.
