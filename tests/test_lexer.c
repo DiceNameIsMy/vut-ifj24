@@ -16,7 +16,7 @@ static int idx = 0;
 
 
 // Error handler
-void exit_wrapper(int code) {
+void endWithCode(int code) {
     ;
 }
 

@@ -54,8 +54,10 @@ void processTokenF64(TokenType *keywordType, TokenArray *array);
 void processTokenU8(TokenType *keywordType, TokenArray *array);
 
 // Error handler
-__attribute__((weak)) void exit_wrapper(int code) {
-    exit(code);
+__attribute__((weak)) void endWithCode(int code) {
+    ;
+    // TODO: uncomment when time comes
+    // exit(code);
 }
 
 bool tryGetKeyword(const char *str, TokenType *keywordType, TokenArray *array) {
@@ -294,7 +296,7 @@ void processToken(const char *buf_str, TokenArray *array) {
 
         if (attribute.str == NULL) {
             // loginfo("Error memory allocation\n");
-            exit_wrapper(99); // TODO: clean up used memory
+            endWithCode(99); // TODO: clean up used memory
         }
     } else if (tryGetI32(buf_str, &attribute.integer)) {
         tokenType = TOKEN_I32_LITERAL;
@@ -309,7 +311,7 @@ void processToken(const char *buf_str, TokenArray *array) {
         // loginfo("Possible ERROR!\n\n");
         tokenType = TOKEN_ERROR;
         attribute.str = "Unrecognized token";
-        exit_wrapper(1); // ERROR - unrecognized token found TODO: clean up used memory
+        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
     }
     const Token token = createToken(tokenType, attribute);
     addToken(array, token);
@@ -470,7 +472,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
                 addToken(tokenArray, errorToken);
                 emptyDynBuffer(buff);
                 nextState = STATE_COMMON;
-                exit_wrapper(1); // ERROR - unrecognized literal TODO: clean up used memory
+                endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
             } else {
                 // Convert hex to char
                 char hex[3] = {firstHex, secondHex, '\0'};
@@ -486,7 +488,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
             addToken(tokenArray, errorToken);
             emptyDynBuffer(buff);
             nextState = STATE_COMMON;
-            exit_wrapper(1); // ERROR - unrecognized literal TODO: clean up used memory
+            endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
         }
         *i += 1;
     } else if (c >= 32 && c <= 126){ 
@@ -499,7 +501,7 @@ LexerState fsmStepOnOneLineStringParsing(const char *sourceCode, int *i, TokenAr
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
-        exit_wrapper(1); // ERROR - non-printable character TODO: clean up used memory
+        endWithCode(1); // ERROR - non-printable character TODO: clean up used memory
     }
 
     return nextState;
@@ -538,7 +540,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
                 addToken(tokenArray, errorToken);
                 emptyDynBuffer(buff);
                 nextState = STATE_COMMON;
-                exit_wrapper(1); // ERROR - unrecognized literal TODO: clean up used memory
+                endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
             } else {
                 // Convert hex to char
                 char hex[3] = {firstHex, secondHex, '\0'};
@@ -554,7 +556,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
             addToken(tokenArray, errorToken);
             emptyDynBuffer(buff);
             nextState = STATE_COMMON;
-            exit_wrapper(1); // ERROR - unrecognized literal TODO: clean up used memory
+            endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
         }
         *i += 1;
     } else if (c >= 32 && c <= 126){ 
@@ -567,7 +569,7 @@ LexerState fsmStepOnMultiLineStringParsing(const char *sourceCode, int *i, Token
         addToken(tokenArray, errorToken);
         emptyDynBuffer(buff);
         nextState = STATE_COMMON;
-        exit_wrapper(1); // ERROR - non-printable character found TODO: clean up used memory
+        endWithCode(1); // ERROR - non-printable character found TODO: clean up used memory
     }
     return nextState;
 }
@@ -641,7 +643,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                         // If the buffer is empty, handle as an error or unexpected token
                         processToken("Error: Expected '.' after 'ifj'", tokenArray);
                         state = STATE_COMMON;
-                        exit_wrapper(1); // ERROR - unrecognized token found TODO: clean up used memory
+                        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
                         break;
                     }
 
@@ -711,7 +713,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                         initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
                         addToken(tokenArray, errorToken);
                         state = STATE_COMMON;
-                        exit_wrapper(1); // ERROR - unrecognized token found TODO: clean up used memory
+                        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
                     }
                     i++;
                 } else {
@@ -719,7 +721,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                     initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended properly");
                     addToken(tokenArray, errorToken);
                     state = STATE_COMMON;
-                    exit_wrapper(1); // ERROR - unrecognized token found TODO: clean up used memory
+                    endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
                 }
                 break;
 

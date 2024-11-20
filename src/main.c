@@ -13,6 +13,10 @@ TokenArray tokenArray;
 ASTNode** astNode;
 SymTable *symTable;
 
+int endWithCode(int code) {
+    exit(code);
+}
+
 char* readStdinAsString() {
     char* buffer = NULL;
     size_t bufferSize = 0;
