@@ -50,7 +50,7 @@ int main(void) {
     free(source_code);
 
     printf("Hello, World!\n");
-    parseInit(&tokenArray);
+    parseInit(&tokenArray, symTable);
 }
 
 

@@ -9,10 +9,29 @@
 
 Token token;
 TokenArray *tokenArr;
+SymTable *sym_Table;
 unsigned int stat_index = 0;
 
-ASTNode* parseInit(TokenArray* array) {
+void functionsScroll(TokenArray *array, SymTable *table) {
+    for(int token_no = 0; token_no < array->size; token_no++) {
+        if(array->tokens[token_no].type == TOKEN_KEYWORD_FN && token_no != array->size - 1 && array->tokens[token_no+1].type == TOKEN_ID) {
+            Symbol funName;
+            funName.name = array->tokens[token_no + 1].attribute.str;
+            funName.init = false;
+            funName.decl = false;
+            funName.type = NONETYPE;
+            SymTable_AddSymbol(table, &funName);
+        }
+    }
+    return;
+}
+
+ASTNode* parseInit(TokenArray* array, SymTable *table) {
     tokenArr = array;
+    sym_Table = table;
+    SymTable_NewScope(table);
+    //Scroll over function names
+    functionsScroll(array, sym_Table);
     token = get_next_token();  // Initialize the first token
     return parseProgram();  // Parse the program and store the AST root
 }
