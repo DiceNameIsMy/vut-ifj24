@@ -5,7 +5,7 @@
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
-typedef enum {U8, I32, F64, NONETYPE} type_t;
+typedef enum {U8_ARRAY, I32, F64, U8_ARRAY_NULLABLE, I32_NULLABLE, F64_NULLABLE, NONETYPE} type_t;
 
 typedef struct SymTable_t {
   struct Scope_t *current;
