@@ -7,9 +7,10 @@
 
 #include "structs/ast.h"
 #include "lexer/token.h"
+#include "structs/symtable.h"
 
 void match(TokenType expected);
-ASTNode* parseInit(TokenArray* array);
+ASTNode* parseInit(TokenArray* array, SymTable *table);
 ASTNode* parseProgram();
 ASTNode* parseProlog();
 ASTNode* parseFunctionDefList();

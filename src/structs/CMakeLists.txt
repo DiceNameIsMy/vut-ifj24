@@ -5,6 +5,7 @@ set(SOURCE_FILES
         bvs.c
         dynBuffer.c
         stack.c
+        symtable.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})

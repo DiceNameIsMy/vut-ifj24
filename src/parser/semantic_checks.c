@@ -9,7 +9,6 @@ int semantic_error_code = 0;
 int AddFunctionsToSymtable(ASTNode* node);
 int SemCheck_FunctionList(ASTNode* node);
 
-
 int SemCheck_Run(ASTNode* program) {
     if (!AddFunctionsToSymtable(program->right)) {
         // Unexpected problem. Like failure to add functions to symtable
