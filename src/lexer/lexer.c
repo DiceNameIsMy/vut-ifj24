@@ -368,7 +368,7 @@ LexerState fsmParseOnCommonState(const char *sourceCode, int *i, TokenArray *tok
                 emptyDynBuffer(buff);
             }
         }
-        const bool soloSymbol = strchr("+-*=()[]{}&|,;:?", c) != NULL;
+        const bool soloSymbol = strchr("+-*=()[]{}&|,;:?><", c) != NULL;
         // Check for == >= <= != || &&
         if (isPairedSymbol(c, sourceCode[(*i) + 1])) {
             appendDynBuffer(buff, c);

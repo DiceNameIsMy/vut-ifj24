@@ -478,7 +478,7 @@ TEST (ifj_tab_next_line)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
-    runLexer("ifj\n.\twrite now", &tokenArray);
+    runLexer("ifj\n.\t write now", &tokenArray);
 
     Token t;
     // ifj.write
@@ -616,6 +616,47 @@ TEST(example_from_task)
     }
 ENDTEST
 
+TEST(bigger_and_bigger_equal)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a > b >= c;", &tokenArray);
+
+    Token t;
+    // a
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    // >
+    if (!check_token(&t, TOKEN_GREATER_THAN)) {
+        return;
+    }
+    // b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "b") != 0) {
+        FAILCOMPS("Wrong attribute value", "b", t.attribute.str);
+    }
+    // >=
+    if (!check_token(&t, TOKEN_GREATER_THAN_OR_EQUAL_TO)) {
+        return;
+    }
+    // c
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "c") != 0) {
+        FAILCOMPS("Wrong attribute value", "c", t.attribute.str);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+ENDTEST
 
 int main() {
     initTokenArray(&tokenArray);
