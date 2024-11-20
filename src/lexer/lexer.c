@@ -13,7 +13,7 @@
 #include "structs/dynBuffer.h"
 #include "structs/bvs.h"
 #include "structs/symtable.h"
-#include "token.c"
+#include "logging.h"
 
 typedef enum {
     STATE_COMMON,
@@ -725,17 +725,32 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
         i++;
     }
 
-    // Processing the last token in the buffer ##
+    // Processing the last token in the buffer
     if (!isDynBufferEmpty(&buff)) {
-        if (state == STATE_COMMON) {
-            processToken(buff.data, tokenArray);
-        } else if (state == STATE_ONE_LINE_STRING) {
-            Token errorToken = {.type = TOKEN_ERROR};
-            initStringAttribute(&errorToken.attribute, "One line string literal was not ended");
-            addToken(tokenArray, errorToken);
+        Token errorToken = {.type = TOKEN_ERROR};
+    
+        switch (state) {
+            case STATE_COMMON:
+                processToken(buff.data, tokenArray);
+                break;
+            case STATE_ONE_LINE_STRING:
+                initStringAttribute(&errorToken.attribute, "One line string literal was not ended");
+                addToken(tokenArray, errorToken);
+                break;
+            case STATE_MULTILINE_STRING:
+            case STATE_MULTILINE_STRING_SKIP_WHITESPACE:
+                initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended");
+                addToken(tokenArray, errorToken);
+                break;
+            case STATE_IFJ:
+                // TODO: What must happend in this case?
+            default:
+                processToken(buff.data, tokenArray);
+                break;
         }
         emptyDynBuffer(&buff);
-    } else {
-        ; // TODO: ERROR OCCURRED (or nothing?)
     }
+
+    // Adding EOF token to the end of the token array
+    addToken(tokenArray, createToken(TOKEN_EOF, (TokenAttribute) {}));
 }
