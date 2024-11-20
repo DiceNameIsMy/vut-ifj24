@@ -4,8 +4,10 @@
 
 #include "parser/semantic_checks.h"
 
-int semantic_error_code = -1;
+int semantic_error_code = 0;
 
+int AddFunctionsToSymtable(ASTNode* node);
+int SemCheck_FunctionList(ASTNode* node);
 
 int SemCheck_Run(ASTNode* program) {
     if (!AddFunctionsToSymtable(program->right)) {

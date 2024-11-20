@@ -42,7 +42,7 @@ int addToken(TokenArray *array, const Token token) {
     return 0;
 }
 
-void deleteLastToken(TokenArray *array){
+void deleteLastToken(TokenArray *array) {
     if (array->size == 0){
         loginfo("Deleting non existing element\n");
         return;

@@ -38,6 +38,17 @@ bool check_token(Token *t, const TokenType type) {
     return true;
 }
 
+bool check_str_token(Token *t, const TokenType type, char *str) {
+    if (!check_token(t, type)) {
+        return false;
+    }
+    if (strcmp(t->attribute.str, str) != 0) {
+        FAILCOMPS("Invalid token attribute", str, t->attribute.str);
+        return false;
+    }
+    return true;
+}
+
 bool check_tokens(const Token *expected, const int size) {
     int i = 0;
     while (i < size) {
@@ -78,7 +89,10 @@ int read_source_code(const char *filename, char **source_code) {
         FAIL("Failed to open the source code file");
         return -1;
     }
-    if (streamToString(source_code_stream, source_code) != 0) {
+    int r = streamToString(source_code_stream, source_code);
+    fclose(source_code_stream);
+
+    if (r != 0) {
         FAIL("Failed to read the source code from the file");
         return -1;
     }
@@ -93,8 +107,11 @@ TEST(empty)
     runLexer("", &tokenArray);
 
     Token t;
+    if (!check_token(&t, TOKEN_EOF)) {
+        FAIL("With empty source code first token was not EOF");
+    }
     if (try_get_token(&t)) {
-        FAIL("There are tokens with empty source code provided");
+        FAIL("Got more tokens than expected", (int)tokenArray.size, idx);
     }
 ENDTEST
 
@@ -223,10 +240,10 @@ TEST(float_literals)
         FAILCOMPF("Invalid float literal (.2e-3)", .2e-3, t.attribute.real);
     }
 
-    if (try_get_token(&t)) {
-        FAIL("Got more tokens than expected. There are: %i, expected: %i", (int)tokenArray.size, idx);
+    if (!check_token(&t, TOKEN_EOF)) {
+        FAIL("Expected EOF token at the end of source code, but got %s", getTokenTypeName(t.type));
+        return;
     }
-
 ENDTEST
 
 TEST(assignment)
@@ -308,7 +325,6 @@ TEST(multiline_string)
     if (strcmp(t.attribute.str, "multiline 1\nmultiline2\nmultiline3") != 0) {
         FAILCOMPS("Wrong attribute value", "multiline 1\nmultiline2\nmultiline3", t.attribute.str);
     }
-
     if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
     }
@@ -404,6 +420,126 @@ TEST(const_import)
     }
 ENDTEST
 
+TEST (dot_id_error)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a.b;", &tokenArray);
+
+    Token t;
+    // a.b
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    } 
+ENDTEST
+
+TEST (dot_id_space_separator)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a . b;", &tokenArray);
+
+    Token t;
+    // a .b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    // .
+    if (!check_token(&t, TOKEN_DOT)) {
+        return;
+    }
+    // b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "b") != 0) {
+        FAILCOMPS("Wrong attribute value", "b", t.attribute.str);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    } 
+ENDTEST
+
+TEST (ifj_dot)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("ifj.write now", &tokenArray);
+
+    Token t;
+    // ifj.write
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifj.write") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifj.write", t.attribute.str);
+    }
+    // now
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "now") != 0) {
+        FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
+    }
+ENDTEST
+
+TEST (ifj_tab_next_line)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("ifj\n.\t write now", &tokenArray);
+
+    Token t;
+    // ifj.write
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifj.write") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifj.write", t.attribute.str);
+    }
+    // now
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "now") != 0) {
+        FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
+    }
+ENDTEST
+
+TEST (ifj_part_of_id)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("ifjword u8 now", &tokenArray);
+    Token t;
+    // ifjword
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "ifjword") != 0) {
+        FAILCOMPS("Wrong attribute value", "ifjword", t.attribute.str);
+    }
+    // u8
+    if (!check_token(&t, TOKEN_KEYWORD_U8)) {
+        return;
+    }
+    // now
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "now") != 0) {
+        FAILCOMPS("Wrong attribute value", "now", t.attribute.str);
+    }    
+ENDTEST
+
 
 TEST(parse_basic_program)
     char *source_code;
@@ -475,6 +611,66 @@ TEST(parse_stdlib_funcs_program)
     free(source_code);
 
     if (has_error_in_tokens()) {
+        return;
+    }
+
+ENDTEST
+
+TEST(example_from_task)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    // "Ahoj\n\"Sve'te \"
+    runLexer("\"Ahoj\\n\\\"Sve'te \\\x22\"", &tokenArray);
+    Token t;
+    // Ahoj\n
+    // "Sve'te \"
+    if (!check_token(&t, TOKEN_STRING_LITERAL)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "Ahoj\n\"Sve'te \"") != 0) {
+        FAILCOMPS("Wrong attribute value", "Ahoj\nSve'te \"", t.attribute.str);
+    }
+ENDTEST
+
+TEST(bigger_and_bigger_equal)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a > b >= c;", &tokenArray);
+
+    Token t;
+    // a
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    // >
+    if (!check_token(&t, TOKEN_GREATER_THAN)) {
+        return;
+    }
+    // b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "b") != 0) {
+        FAILCOMPS("Wrong attribute value", "b", t.attribute.str);
+    }
+    // >=
+    if (!check_token(&t, TOKEN_GREATER_THAN_OR_EQUAL_TO)) {
+        return;
+    }
+    // c
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "c") != 0) {
+        FAILCOMPS("Wrong attribute value", "c", t.attribute.str);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
     }
 ENDTEST
