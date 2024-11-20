@@ -1,11 +1,8 @@
-project(StructsLib)
+project(TargetGenLib)
 
 set(SOURCE_FILES
-        ast.c
-        bvs.c
-        dynBuffer.c
-        stack.c
-        symtable.c
+    target_gen.c
+    instructions.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})

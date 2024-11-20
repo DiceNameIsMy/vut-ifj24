@@ -7,9 +7,10 @@
 
 #include "structs/ast.h"
 #include "lexer/token.h"
+#include "structs/symtable.h"
 
 void match(TokenType expected);
-ASTNode* parseInit(TokenArray* array);
+ASTNode* parseInit(TokenArray* array, SymTable *table);
 ASTNode* parseProgram();
 ASTNode* parseProlog();
 ASTNode* parseFunctionDefList();
@@ -33,7 +34,9 @@ ASTNode* parseAssignmentOrFunctionCall();
 ASTNode* parseIfStatement();
 ASTNode* parseWhileStatement();
 ASTNode* parseReturnStatement();
+ASTNode* parseBlockStatement();
+void if_malloc_error(const char* string);
 Token get_next_token();
-Token get_previous_token();
+
 
 #endif //VUT_IFJ_PARSER_H

@@ -11,7 +11,9 @@
 #include "lexer/lexer.h"
 #include "lexer/token.h"
 #include "structs/dynBuffer.h"
-#include "token.c"
+#include "structs/bvs.h"
+#include "structs/symtable.h"
+#include "logging.h"
 
 typedef enum {
     STATE_COMMON,
@@ -278,6 +280,14 @@ void processToken(const char *buf_str, TokenArray *array) {
         // Process keyword and types i32, f64 etc.
             // loginfo("Keyword: %s\n", buf_str); 
     } else if (isIdentifier(buf_str)) {
+        /*Symbol newSymbol;
+        newSymbol.name = strdup(buf_str); //need a SymTable_Free() function
+        newSymbol.type = NONETYPE; //type is an enum
+        newSymbol.decl = false;
+        newSymbol.init = false;
+        newSymbol.scope = UNDEFINED; //scope is an enum
+        BVS_Insert(symTable, newSymbol.name, (void *)&newSymbol, sizeof(newSymbol)); *///ID = "symbol". Symbols should be in the symbol table.
+        
         tokenType = TOKEN_ID;
         // loginfo("Identifier: %s\n", buf_str); // Process id
         attribute.str = strdup(buf_str); // copy
@@ -723,16 +733,27 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
         i++;
     }
 
-    // Processing the last token in the buffer ##
+    // Processing the last token in the buffer
     if (!isDynBufferEmpty(&buff)) {
-        if (state == STATE_COMMON) {
-            processToken(buff.data, tokenArray);
-        } else if (state == STATE_ONE_LINE_STRING) { // Other states?
-            Token errorToken = {.type = TOKEN_ERROR};
-            initStringAttribute(&errorToken.attribute, "One line string literal was not ended");
-            addToken(tokenArray, errorToken);
-            exit(1); // ERROR - unrecognized token found TODO: clean up used memory
+        Token errorToken = {.type = TOKEN_ERROR};
+    
+        switch (state) {
+            case STATE_COMMON:
+                processToken(buff.data, tokenArray);
+                break;
+            case STATE_ONE_LINE_STRING:
+            case STATE_MULTILINE_STRING:
+            case STATE_MULTILINE_STRING_SKIP_WHITESPACE:
+            case STATE_IFJ:
+                exit(1);
+                // TODO: clean memory
+            default:
+                processToken(buff.data, tokenArray);
+                break;
         }
         emptyDynBuffer(&buff);
     }
+
+    // Adding EOF token to the end of the token array
+    addToken(tokenArray, createToken(TOKEN_EOF, (TokenAttribute) {}));
 }

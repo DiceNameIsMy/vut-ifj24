@@ -4,12 +4,15 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "structs/ast.h"
+#include "structs/symtable.h"
 #include "logging.h"
 
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
+
 ASTNode* astNode;
+SymTable *symTable;
 
 char* readStdinAsString() {
     char* buffer = NULL;
@@ -44,14 +47,18 @@ int main(void) {
     if (source_code == NULL) {
         return 1;
     }
+    SymTable_Init(symTable);
     // Run the lexer
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code); // Free the source code buffer
 
-    astNode = parseInit(&tokenArray); // Parse the source code
+    astNode = parseInit(&tokenArray, symTable); // Parse the source code
 
     freeTokenArray(&tokenArray); // Free the token array
+
+    printf("Hello, World!\n");
+    
     return 0;
 }
 

@@ -56,7 +56,9 @@ typedef enum {
     TOKEN_COMMA, // ,
     TOKEN_DOT, // .
     TOKEN_COLON, // :
-    TOKEN_ERROR // Something went wrong. Message could be included in the attributes.
+
+    TOKEN_ERROR, // Something went wrong. Message could be included in the attributes.
+    TOKEN_EOF // End of source file
     // TODO: any other cases?
 } TokenType;
 
@@ -82,6 +84,7 @@ int initTokenArray(TokenArray *array);
 void freeTokenArray(TokenArray *array);
 
 int addToken(TokenArray *array, Token token);
+void deleteLastToken(TokenArray *array);
 
 Token createToken(const TokenType type, const TokenAttribute attribute);
 
