@@ -108,7 +108,7 @@ int initInstr0(Instruction *inst, InstType type)
 {
     if (!hasNoOperands(type))
     {
-        loginfo("Instruction %s does not support 0 operands", getInstructionKeyword(type), type);
+        loginfo("Instruction %s does not support 0 operands", getInstructionKeyword(type));
         return -1;
     }
     return initInstruction(inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand());
@@ -118,7 +118,7 @@ int initInstr1(Instruction *inst, InstType type, Operand opFirst)
 {
     if (!hasOneOperand(type))
     {
-        loginfo("Instruction %s does not support 1 operand", getInstructionKeyword(type), type);
+        loginfo("Instruction %s does not support 1 operand", getInstructionKeyword(type));
         return -1;
     }
     if (!isFirstOperandValid(type, opFirst))
@@ -133,7 +133,7 @@ int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSeco
 {
     if (!hasTwoOperands(type))
     {
-        loginfo("Instruction %s does not support 2 operands", getInstructionKeyword(type), type);
+        loginfo("Instruction %s does not support 2 operands", getInstructionKeyword(type));
         return -1;
     }
     if (!isFirstOperandValid(type, opFirst))
@@ -153,7 +153,7 @@ int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSeco
 {
     if (!hasThreeOperands(type))
     {
-        loginfo("Instruction %s does not support 3 operands", getInstructionKeyword(type), type);
+        loginfo("Instruction %s does not support 3 operands", getInstructionKeyword(type));
         return -1;
     }
     if (!isFirstOperandValid(type, opFirst))
