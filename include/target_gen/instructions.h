@@ -146,8 +146,8 @@ typedef struct
     Operand opThird;
 } Instruction;
 
-int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name);
-int initStringAttribute(OperandAttribute *attr, char *string);
+OperandAttribute initVarAttr(VarFrameType frame, char *name);
+OperandAttribute initStringAttr(char *string);
 
 Operand initOperand(OperandType type, OperandAttribute attr);
 Operand initEmptyOperand();

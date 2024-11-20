@@ -2,22 +2,33 @@
 
 # It's easiest to jump to main at the beginning, 
 # because we can't define functions after main.
-JUMP main
+
+CALL main
+JUMP endProgram
 
 # Expects:
-# - TF@number
-# - TF@string
+# - LF@number
+# - LF@string
 LABEL func
+    # Create frame for local variables
+    PUSHFRAME
 
+    # Useful code
     LABEL loop
-    JUMPIFEQ end TF@number int@0
+    JUMPIFEQ end LF@number int@0
+    JUMPIFEQ not_early_return LF@number int@3
 
-    WRITE TF@string
-    SUB TF@number TF@number int@1
+    RETURN
+
+    LABEL not_early_return
+
+    WRITE LF@string
+    SUB LF@number LF@number int@1
 
     JUMP loop
 
     LABEL end
+    # End useful code
 
     RETURN
 
@@ -26,10 +37,11 @@ LABEL main
     CREATEFRAME
     PUSHFRAME
 
+    # Define a variable
     DEFVAR LF@magic_number
     MOVE LF@magic_number int@2
 
-    # Create frame for function parameters
+    # Create TF frame for function parameters
     CREATEFRAME
 
     # Set function parameters
@@ -39,9 +51,14 @@ LABEL main
     MOVE TF@string string@Hello\032World!\010
 
     # Call function
+    PUSHFRAME # Move TF to LF as that's what a function expects
     CALL func
+    POPFRAME # Get rid of the function's local frame
 
     # Remove a frame for local variables
     POPFRAME
 
     # Main function is special: it does not have a return at the end.
+    RETURN
+
+LABEL endProgram

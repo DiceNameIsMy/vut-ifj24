@@ -38,38 +38,41 @@ void printOperand(Operand *op);
 /* Public Functions Definitions */
 /**********************************************************/
 
-int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name)
+OperandAttribute initVarAttr(VarFrameType frame, char *name)
 {
-    if (attr == NULL || name == NULL)
+    if (name == NULL)
     {
-        return -1;
+        exit(99);
     }
 
-    attr->var.frame = frame;
-    attr->var.name = strdup(name);
-    if (attr->var.name == NULL)
+    OperandAttribute attr;
+    attr.var.frame = frame;
+    attr.var.name = strdup(name);
+    if (attr.var.name == NULL)
     {
         loginfo("Failed to allocate memory for variable name");
-        return -1;
+        exit(99);
     }
 
-    return 0;
+    return attr;
 }
 
-int initStringAttribute(OperandAttribute *attr, char *string)
+OperandAttribute initStringAttr(char *string)
 {
-    if (attr == NULL || string == NULL)
+    if (string == NULL)
     {
-        return -1;
-    }
-    attr->string = strdup(string);
-    if (attr->string == NULL)
-    {
-        loginfo("Failed to allocate memory for string");
-        return -1;
+        exit(99);
     }
 
-    return 0;
+    OperandAttribute attr;
+    attr.string = strdup(string);
+    if (attr.string == NULL)
+    {
+        loginfo("Failed to allocate memory for string");
+        exit(99);
+    }
+
+    return attr;
 }
 
 Operand initOperand(OperandType type, OperandAttribute attr)
