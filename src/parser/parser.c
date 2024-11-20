@@ -12,13 +12,13 @@ TokenArray *tokenArr;
 SymTable *sym_Table;
 unsigned int stat_index = 0;
 
-void functionsScroll(TokenArray *array, SymTable *table) {
+void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     for(int token_no = 0; token_no < array->size; token_no++) {
         if(array->tokens[token_no].type == TOKEN_KEYWORD_FN && token_no != array->size - 1 && array->tokens[token_no+1].type == TOKEN_ID) {
             Symbol funName;
             funName.name = array->tokens[token_no + 1].attribute.str;
-            funName.init = false;
-            funName.decl = false;
+            funName.init = true;
+            funName.decl = true;
             funName.type = NONETYPE;
             SymTable_AddSymbol(table, &funName);
         }
@@ -26,12 +26,31 @@ void functionsScroll(TokenArray *array, SymTable *table) {
     return;
 }
 
+type_t idType(Token token) {
+        switch (token.type) {
+            case TOKEN_KEYWORD_F64_NULLABLE:
+                return F64_NULLABLE;
+            case TOKEN_KEYWORD_I32_NULLABLE:
+                return I32_NULLABLE;
+            case TOKEN_KEYWORD_U8_ARRAY_NULLABLE:
+                return U8_ARRAY_NULLABLE;
+            case TOKEN_KEYWORD_F64:
+                return F64;
+            case TOKEN_KEYWORD_I32:
+                return I32;
+            case TOKEN_KEYWORD_U8_ARRAY:
+                return U8_ARRAY;
+            default:
+                return NONETYPE;
+        }
+}
+
 ASTNode* parseInit(TokenArray* array, SymTable *table) {
     tokenArr = array;
     sym_Table = table;
     SymTable_NewScope(table);
     //Scroll over function names
-    functionsScroll(array, sym_Table);
+    addFunctionsToSymTable(array, sym_Table);
     token = get_next_token();  // Initialize the first token
     return parseProgram();  // Parse the program and store the AST root
 }
@@ -102,6 +121,7 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_KEYWORD_PUB);      // Matches 'pub'
     match(TOKEN_KEYWORD_FN);       // Matches 'fn'
 
+    //SymTable_NewScope(sym_Table); //each function is a scope
     // Capture the function name
     char* functionName = strdup(token.attribute.str);
     if_malloc_error(functionName);
@@ -124,6 +144,8 @@ ASTNode* parseFunctionDef() {
     funcNode->next = parseStatementList();  // Attach the function body statements
     match(TOKEN_RIGHT_CURLY_BRACKET);
 
+    //SymTable_UpperScope(sym_Table); //quit the scope
+
     return funcNode;  // Return the completed function definition node
 }
 
@@ -135,8 +157,18 @@ ASTNode* parseParamList() {
         // Parse the first parameter
         char* paramName = strdup(token.attribute.str);
         if_malloc_error(paramName);
+        //Symbol symbol;
+        
+        //symbol.name = token.attribute.str; //symbol info
+        
         match(TOKEN_ID);
         match(TOKEN_COLON);
+        
+        //symbol.type = idType(token); //more symbol info
+        //symbol.decl = true;
+        //symbol.init = true;
+        //SymTable_AddSymbol(sym_Table, &symbol);
+        
         ASTNode* paramType = parseType();
 
         head = createASTNode("Parameter", paramName);
