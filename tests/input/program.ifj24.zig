@@ -1,11 +1,7 @@
-// Hello World example in IFJ24
-// run it on Merlin.fit.vutbr.cz by: zig run hello.zig
-
+// Program 2: Vypocet faktorialu (rekurzivne)
 const ifj = @import("ifj24.zig");
-
+// Hlavni funkce
 pub fn main() void {
-    const fds : i32 = 24;
-    ifj.write("Hello from IFJ"); // one-parameter function only
-    ifj.write(y);
-    ifj.write("\n");
+    return;
 }
+// Pomocna funkce pro dekrementaci celeho cisla o zadane cislo

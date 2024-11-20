@@ -32,10 +32,6 @@ ASTNode* parseProgram() {
     // Attach the prolog and function list as children of the program root
     root->left = prologNode;
     root->right = functionListNode;
-    if(stat_index - 1 != tokenArr->size){
-        fprintf(stderr, "You forget to process %ld tokens", tokenArr->size - stat_index + 1);
-        exit(2);
-    }
     return root;  // Return the root of the AST
 }
 
@@ -88,7 +84,7 @@ ASTNode* parseFunctionDefList() {
 
         current = funcDefNode;  // Move the current pointer to the newly added function
     }
-
+    match(TOKEN_EOF);
     return head;  // Return the head of the function definition list
 }
 
