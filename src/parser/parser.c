@@ -58,18 +58,12 @@ ASTNode* parseInit(TokenArray* array, SymTable *table) {
 }
 
 ASTNode* parseProgram() {
-    
-    // Create the root node for the program
-    ASTNode* root = createASTNode("Program", NULL);
-    // Parse the prolog first
-    ASTNode* prologNode = parseProlog();
-    root->left = prologNode;
-
-    // Parse the list of function definitions
-    ASTNode* functionListNode = parseFunctionDefList();
-
     // Create the root node for the program
     ASTNode* root = createASTNode(Program, NULL);
+    // Parse the prolog first
+    ASTNode* prologNode = parseProlog();
+    // Parse the list of function definitions
+    ASTNode* functionListNode = parseFunctionDefList();
 
     // Attach the prolog and function list as children of the program root
     root->left = prologNode;
