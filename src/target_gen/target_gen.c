@@ -8,6 +8,7 @@
 #include "target_gen/target_gen.h"
 
 FILE *outputStream;
+SymTable *symbolTable;
 
 /**********************************************************/
 /* Private Function Declarations */
@@ -15,7 +16,6 @@ FILE *outputStream;
 
 int generateFunctions(ASTNode *node);
 int generateStatements(ASTNode *node);
-int generateDeclaration(ASTNode *node);
 int generateAssignment(ASTNode *node);
 int generateExpression(ASTNode *node);
 int generateConditionalBlock(ASTNode *node);
@@ -27,18 +27,29 @@ int generateFunctionCallParameters(ASTNode *node);
 /**********************************************************/
 
 // TODO: Proper error handling
-// TODO: When labels, are defined, check they are unique. If not, 
+// TODO: When labels, are defined, check they are unique. If not,
 //   add a number to the end, and ensure that they would be used correctly
 // TODO: When generating code, we might want to insert instructions between other instructions.
 //   if that will be the case, instead of just outputting on the fly, we might need to store the
 //   instructions in a list first, and output at the end.
-int generateTargetCode(ASTNode *root, FILE *output)
+
+/// @brief
+/// @param root It's assumed that AST has a correct structure.
+///             If an unexpected AST is passed, the function might exit the program.
+/// @return -1 if parameters are invalid, 0 otherwise.
+///         exit() function is called if target generation fails for other reasons.
+int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
 {
   if (output == NULL)
   {
     return -1;
   }
+  if (symTable == NULL)
+  {
+    return -1;
+  }
   outputStream = output;
+  symbolTable = symTable;
 
   // Every .ifjcode program should start with this
   fprintf(outputStream, ".IFJcode24\n");
@@ -70,7 +81,7 @@ int generateTargetCode(ASTNode *root, FILE *output)
 }
 
 /**********************************************************/
-/* Function Definitions */
+/* Private Functions Definitions */
 /**********************************************************/
 
 int generateFunctions(ASTNode *node)
@@ -81,6 +92,11 @@ int generateFunctions(ASTNode *node)
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:FunctionName");
   Instruction inst = initInstr1(INST_LABEL, var);
   printInstruction(&inst, outputStream);
+  
+  // Define all local variables
+  // TODO: 
+  // - Enter a scope related to this block
+  // - Get all variables in this scope using a symtable
 
   // Add function body
   result = generateStatements(node->right);
@@ -101,7 +117,7 @@ int generateFunctions(ASTNode *node)
 
 int generateStatements(ASTNode *node)
 {
-  // If declaration, run generateDeclaration
+  // If declaration, skip, as every declaration in this scope has already been done
   // If assignment, run generateAssignment
   // If an if statement, run generateConditionalBlock
   // If a new block, run generateStatements
@@ -111,16 +127,6 @@ int generateStatements(ASTNode *node)
   {
     return generateStatements(node->next);
   }
-  return 0;
-}
-
-int generateDeclaration(ASTNode *node)
-{
-  Operand var = initVarOperand(OP_VAR, FRAME_LF, "TODO");
-  Instruction inst = initInstr1(INST_DEFVAR, var);
-  printInstruction(&inst, outputStream);
-
-  // TODO: If has value on node->right, run generateAssignment on the same node?
   return 0;
 }
 
@@ -144,8 +150,14 @@ int generateExpression(ASTNode *node)
 
 int generateConditionalBlock(ASTNode *node)
 {
-  // express condition
-  // negative conditional jump to label
+  // express condition & put it into a local variable
+  // jump to label on false
+
+  // Define all local variables
+  // TODO: 
+  // - Enter a scope related to this block
+  // - Get all variables in this scope using a symtable
+
   // run generateStatements
 
   // label
@@ -160,7 +172,8 @@ int generateFunctionCall(ASTNode *node)
 
   // Add parameters
   int result = generateFunctionCallParameters(node);
-  if (result != 0) {
+  if (result != 0)
+  {
     return result;
   }
 
@@ -179,7 +192,26 @@ int generateFunctionCall(ASTNode *node)
   return 0;
 }
 
-int generateFunctionCallParameters(ASTNode *node) {
+int generateFunctionCallParameters(ASTNode *node)
+{
   // TODO: Some loop to go through all parameters, define and assign them
+
+  Operand param = initVarOperand(OP_VAR, FRAME_TF, "called_func_param_name");
+
+  Operand var;
+  bool param_is_variable = true;
+  if (param_is_variable)
+  {
+    var = initVarOperand(OP_VAR, FRAME_LF, "called_func_param_name");
+  }
+  else
+  {
+    // TODO: Get a value depending on the type of the parameter
+    var = initOperand(OP_CONST_NIL, (OperandAttribute){});
+  }
+
+  Instruction instr = initInstr2(INST_MOVE, param, var);
+  printInstruction(&instr, outputStream);
+
   return 0;
 }

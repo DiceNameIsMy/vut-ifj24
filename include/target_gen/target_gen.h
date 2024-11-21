@@ -7,7 +7,8 @@
 
 #include <stdio.h>
 #include "structs/ast.h"
+#include "structs/symtable.h"
 
-int generateTargetCode(ASTNode* root, FILE *output);
+int generateTargetCode(ASTNode* root, SymTable *symTable, FILE *output);
 
 #endif //TARGET_GEN_H
