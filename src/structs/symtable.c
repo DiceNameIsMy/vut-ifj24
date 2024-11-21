@@ -4,7 +4,7 @@
 
 
 #include "structs/symtable.h"
-#include "bvs.c"
+#include "structs/bvs.h"
 #include "structs/stack.h"
 
 #define MAX_SCOPES 65536 

@@ -7,7 +7,7 @@
 #include "target_gen/instructions.h"
 #include "target_gen/target_gen.h"
 
-FILE *outputStream;
+FILE *target_outputStream;
 SymTable *symbolTable;
 
 /**********************************************************/
@@ -48,21 +48,21 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   {
     return -1;
   }
-  outputStream = output;
+  target_outputStream = output;
   symbolTable = symTable;
 
   // Every .ifjcode program should start with this
-  fprintf(outputStream, ".IFJcode24\n");
+  fprintf(target_outputStream, ".IFJcode24\n");
 
   // Call main function
   Operand mainFunc = initStringOperand(OP_CONST_STRING, "TODO:main");
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
-  printInstruction(&callMainInst, outputStream);
+  printInstruction(&callMainInst, target_outputStream);
 
   // Jump to the end of the generated file
   Operand endProgramLabel = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
-  printInstruction(&jumpToEndInst, outputStream);
+  printInstruction(&jumpToEndInst, target_outputStream);
 
   // Generate functions
   int result = generateFunctions(root->right);
@@ -75,7 +75,7 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   // the program will jump to this label to end the program.
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction inst = initInstr1(INST_LABEL, var);
-  printInstruction(&inst, outputStream);
+  printInstruction(&inst, target_outputStream);
 
   return 0;
 }
@@ -91,7 +91,7 @@ int generateFunctions(ASTNode *node)
   // Add label for function name
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:FunctionName");
   Instruction inst = initInstr1(INST_LABEL, var);
-  printInstruction(&inst, outputStream);
+  printInstruction(&inst, target_outputStream);
   
   // Define all local variables
   // TODO: 
@@ -135,7 +135,7 @@ int generateAssignment(ASTNode *node)
   Operand dest = initVarOperand(OP_VAR, FRAME_LF, "TODO");
   Operand src = initVarOperand(OP_VAR, FRAME_LF, "TODO");
   Instruction inst = initInstr2(INST_MOVE, dest, src);
-  printInstruction(&inst, outputStream);
+  printInstruction(&inst, target_outputStream);
 
   return 0;
 }
@@ -168,7 +168,7 @@ int generateFunctionCall(ASTNode *node)
 {
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  printInstruction(&createFrameInst, outputStream);
+  printInstruction(&createFrameInst, target_outputStream);
 
   // Add parameters
   int result = generateFunctionCallParameters(node);
@@ -179,15 +179,15 @@ int generateFunctionCall(ASTNode *node)
 
   // Push frame
   Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  printInstruction(&pushFrameInst, outputStream);
+  printInstruction(&pushFrameInst, target_outputStream);
 
   // Call function
   Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
-  printInstruction(&callInst, outputStream);
+  printInstruction(&callInst, target_outputStream);
 
   // Pop frame
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
-  printInstruction(&popFrameInst, outputStream);
+  printInstruction(&popFrameInst, target_outputStream);
 
   return 0;
 }
@@ -211,7 +211,7 @@ int generateFunctionCallParameters(ASTNode *node)
   }
 
   Instruction instr = initInstr2(INST_MOVE, param, var);
-  printInstruction(&instr, outputStream);
+  printInstruction(&instr, target_outputStream);
 
   return 0;
 }

@@ -58,6 +58,8 @@ int main(void) {
 
     astNode = parseInit(&tokenArray, symTable); // Parse the source code
 
+    generateTargetCode(astNode, symTable, stdout); // Generate the target code
+
     freeTokenArray(&tokenArray); // Free the token array
 
     printf("Hello, World!\n");
