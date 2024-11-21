@@ -49,7 +49,7 @@ int main(void) {
     // Read the source code from stdin
     char* source_code = readStdinAsString();
     if (source_code == NULL) {
-        return 1;
+        return 99; // Exit with an allocation error
     }
     SymTable_Init(symTable);
     // Run the lexer
