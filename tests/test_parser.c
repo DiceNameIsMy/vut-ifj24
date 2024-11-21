@@ -7,11 +7,11 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "structs/ast.h"
-#include "../src/structs/bvs.c"
 #include "logging.h"
 
 #include "test_utils.h"
 #include "structs/bvs.h"
+#include "structs/symtable.h"
 
 #define CHUNK_SIZE 8000
 
@@ -20,41 +20,43 @@ TokenArray tokenArray;
 ASTNode* astNode;
 BVS *symTable;
 
-char* readStdinAsString() {
-    char* buffer = NULL;
-    size_t bufferSize = 0;
-    size_t totalSize = 0;
-
-    char temp[CHUNK_SIZE];  // Temporary buffer to read in chunks
-    while (fgets(temp, CHUNK_SIZE, stdin) != NULL) {
-        size_t tempLen = strlen(temp);
-
-        // Allocate (or reallocate) memory for the main buffer
-        char* newBuffer = realloc(buffer, totalSize + tempLen + 1);
-        if (newBuffer == NULL) {
-            perror("Failed to allocate memory");
-            free(buffer);
-            return NULL;
-        }
-
-        buffer = newBuffer;
-
-        // Copy the temporary buffer content into the main buffer
-        strcpy(buffer + totalSize, temp);
-        totalSize += tempLen;
+int read_source_code(const char *filename, char **source_code) {
+    if (source_code == NULL) {
+        return -1;
     }
 
-    return buffer;
+    FILE *source_code_stream = fopen(filename, "r");
+    if (source_code_stream == NULL) {
+        FAIL("Failed to open the source code file");
+        return -1;
+    }
+    int r = streamToString(source_code_stream, source_code);
+    fclose(source_code_stream);
+
+    if (r != 0) {
+        FAIL("Failed to read the source code from the file");
+        return -1;
+    }
+    return 0;
 }
-int main(int count, char **argv){
-    char* source_code = readStdinAsString();
+
+TEST(parse_stdlib_funcs_program)
+    char *source_code;
+    if (read_source_code("tests/input/stdlib_funcs.ifj24.zig", &source_code)) {
+        return;
+    }
+    freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
-    astNode = parseInit(&tokenArray);
-
+    SymTable_Init((SymTable *)symTable);
+    astNode = parseInit(&tokenArray, (SymTable *)symTable);
+    clearAstNode(astNode);
     free(source_code);
-//    RUN_TESTS();
-//
-//    SUMMARIZE()
-    return 0;
+ENDTEST
+
+int main(int count, char **argv){
+
+    RUN_TESTS();
+
+    SUMMARIZE()
 }

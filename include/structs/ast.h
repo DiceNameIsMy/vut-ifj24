@@ -52,5 +52,6 @@ typedef struct ASTNode {
 
 ASTNode* createASTNode(NodeType nodeType, char* value);
 ASTNode* createBinaryASTNode(char* operator, ASTNode* left, ASTNode* right);
+void clearAstNode(ASTNode *node);
 
 #endif // AST_H

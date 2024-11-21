@@ -64,3 +64,18 @@ ASTNode* createBinaryASTNode(char* operator, ASTNode* left, ASTNode* right) {
     return newNode;
 }
 
+void clearAstNode(ASTNode *node){
+    if (node == NULL){
+        return;
+    }
+    if (node->value != NULL){
+        free(node->value);
+        node->value = NULL;
+    }
+    clearAstNode(node->left);
+    clearAstNode(node->right);
+    clearAstNode(node->next);
+    clearAstNode(node->binding);
+    free(node);
+}
+
