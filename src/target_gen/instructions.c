@@ -56,7 +56,7 @@ int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name)
     return 0;
 }
 
-int initStringAttribute(OperandAttribute *attr, char *string)
+int Instr_initStringAttribute(OperandAttribute *attr, char *string)
 {
     if (attr == NULL || string == NULL)
     {

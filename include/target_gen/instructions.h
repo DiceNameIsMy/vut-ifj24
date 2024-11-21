@@ -147,7 +147,7 @@ typedef struct
 } Instruction;
 
 int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name);
-int initStringAttribute(OperandAttribute *attr, char *string);
+int Instr_initStringAttribute(OperandAttribute *attr, char *string);
 
 Operand initOperand(OperandType type, OperandAttribute attr);
 Operand initEmptyOperand();
