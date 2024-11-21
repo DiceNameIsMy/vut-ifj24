@@ -744,16 +744,14 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                 processToken(buff.data, tokenArray);
                 break;
             case STATE_ONE_LINE_STRING:
-                initStringAttribute(&errorToken.attribute, "One line string literal was not ended");
-                addToken(tokenArray, errorToken);
-                break;
             case STATE_MULTILINE_STRING:
             case STATE_MULTILINE_STRING_SKIP_WHITESPACE:
-                initStringAttribute(&errorToken.attribute, "Multiline string literal was not ended");
-                addToken(tokenArray, errorToken);
-                break;
             case STATE_IFJ:
-                // TODO: What must happend in this case?
+                initStringAttribute(&errorToken.attribute, "String literal was not ended properly");
+                addToken(tokenArray, errorToken);
+                endWithCode(1);
+                break;
+                // TODO: clean memory
             default:
                 processToken(buff.data, tokenArray);
                 break;

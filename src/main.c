@@ -10,7 +10,7 @@
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
-ASTNode** astNode;
+ASTNode* astNode;
 SymTable *symTable;
 
 int endWithCode(int code) {
@@ -45,16 +45,24 @@ char* readStdinAsString() {
 }
 
 int main(void) {
-    char* source_code;
-    streamToString(stdin, &source_code);
-    
+    // Read the source code from stdin
+    char* source_code = readStdinAsString();
+    if (source_code == NULL) {
+        return 1;
+    }
     SymTable_Init(symTable);
+    // Run the lexer
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code); // Free the source code buffer
 
+    astNode = parseInit(&tokenArray, symTable); // Parse the source code
+
+    freeTokenArray(&tokenArray); // Free the token array
+
     printf("Hello, World!\n");
-    parseInit(&tokenArray, symTable);
+    
+    return 0;
 }
 
 
