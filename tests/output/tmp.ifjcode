@@ -10,13 +10,15 @@ JUMP endProgram
 # - LF@number
 # - LF@string
 LABEL func
-    # Create frame for local variables
-    PUSHFRAME
+    # Define local variables
+    DEFVAR LF@v1
 
     # Useful code
     LABEL loop
     JUMPIFEQ end LF@number int@0
-    JUMPIFEQ not_early_return LF@number int@3
+
+    EQ LF@v1 LF@number int@3
+    JUMPIFEQ not_early_return LF@v1 bool@false
 
     RETURN
 
@@ -39,7 +41,7 @@ LABEL main
 
     # Define a variable
     DEFVAR LF@magic_number
-    MOVE LF@magic_number int@2
+    MOVE LF@magic_number int@5
 
     # Create TF frame for function parameters
     CREATEFRAME
