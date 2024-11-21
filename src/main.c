@@ -1,17 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lexer/lexer.h"
-#include "parser/parser.h"
 #include "structs/ast.h"
 #include "structs/symtable.h"
+
+#include "lexer/lexer.h"
+#include "parser/parser.h"
+#include "target_gen/target_gen.h"
+
 #include "logging.h"
 
 #define CHUNK_SIZE 1024
 
-TokenArray tokenArray;
-ASTNode* astNode;
-SymTable *symTable;
 
 int endWithCode(int code) {
     exit(code);
@@ -50,18 +50,27 @@ int main(void) {
     if (source_code == NULL) {
         return 99; // Exit with an allocation error
     }
+
+    SymTable *symTable;
     SymTable_Init(symTable);
-    // Run the lexer
+
+    // Run lexer
+    TokenArray tokenArray;
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code); // Free the source code buffer
 
+    // Run parser
+    ASTNode* astNode;
     astNode = parseInit(&tokenArray, symTable); // Parse the source code
+
+    if (generateTargetCode(astNode, NULL, stdout) != 0) {
+        loginfo("Invlaid target code generation arguments");
+        return 99;
+    }
 
     freeTokenArray(&tokenArray); // Free the token array
 
-    printf("Hello, World!\n");
-    
     return 0;
 }
 
