@@ -6,11 +6,13 @@
 #include "parser/parser.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 Token token;
 TokenArray *tokenArr;
 SymTable *sym_Table;
 unsigned int stat_index = 0;
+bool falseStatement = false;
 
 void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     for(int token_no = 0; token_no < array->size; token_no++) {
@@ -46,27 +48,27 @@ type_t idType(Token token) {
 }
 
 ASTNode* parseInit(TokenArray* array, SymTable *table) {
+    stat_index = 0;
     tokenArr = array;
     sym_Table = table;
-    SymTable_NewScope(table);
-    //Scroll over function names
-    addFunctionsToSymTable(array, sym_Table);
+//    SymTable_NewScope(table);
+//    //Scroll over function names
+//    addFunctionsToSymTable(array, sym_Table);
     token = get_next_token();  // Initialize the first token
     return parseProgram();  // Parse the program and store the AST root
 }
 
 ASTNode* parseProgram() {
-    
     // Create the root node for the program
-    ASTNode* root = createASTNode("Program", NULL);
+    ASTNode* root = createASTNode(Program, NULL);
     // Parse the prolog first
     ASTNode* prologNode = parseProlog();
-    root->left = prologNode;
-
     // Parse the list of function definitions
     ASTNode* functionListNode = parseFunctionDefList();
+
     // Attach the prolog and function list as children of the program root
-    prologNode->next = functionListNode;
+    root->left = prologNode;
+    root->right = functionListNode;
 
     return root;  // Return the root of the AST
 }
@@ -81,9 +83,18 @@ void match(TokenType expected) {
     }
 }
 
-ASTNode* parseProlog() {
-    ASTNode* prologNode = createASTNode("Prolog", NULL);
+bool isMatch(TokenType expected) {
+    if ((TokenType)token.type == expected) {
+        return true;// Move to the next token
+    } else {
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
+        exit(2); // or handle error gracefully
+    }
+}
 
+ASTNode* parseProlog() {
+    ASTNode* prologNode = createASTNode(Prolog, NULL);
     match(TOKEN_KEYWORD_CONST);  // Match 'const'
     match(TOKEN_ID);             // Match 'ifj'
     match(TOKEN_ASSIGNMENT);     // Match '='
@@ -92,7 +103,6 @@ ASTNode* parseProlog() {
     match(TOKEN_STRING_LITERAL);
     match(TOKEN_RIGHT_ROUND_BRACKET);
     match(TOKEN_SEMICOLON);
-
     return prologNode;  // Return the prolog node
 }
 
@@ -100,19 +110,19 @@ ASTNode* parseProlog() {
 ASTNode* parseFunctionDefList() {
     ASTNode* head = NULL;  // Head of the function definition list
     ASTNode* current = NULL;  // Current node in the list
-
+    isMatch(TOKEN_KEYWORD_PUB);
     while (token.type == TOKEN_KEYWORD_PUB) {  // While there are functions to parse
         ASTNode* funcDefNode = parseFunctionDef();  // Parse each function definition
 
         if (head == NULL) {
             head = funcDefNode;  // First function becomes the head
         } else if (current != NULL){
-            current->next = funcDefNode;  // Link the new function to the previous one
+            current->binding = funcDefNode;  // Link the new function to the previous one
         }
 
         current = funcDefNode;  // Move the current pointer to the newly added function
     }
-
+    match(TOKEN_EOF);
     return head;  // Return the head of the function definition list
 }
 
@@ -121,15 +131,22 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_KEYWORD_PUB);      // Matches 'pub'
     match(TOKEN_KEYWORD_FN);       // Matches 'fn'
 
-    //SymTable_NewScope(sym_Table); //each function is a scope
-    // Capture the function name
-    char* functionName = strdup(token.attribute.str);
-    if_malloc_error(functionName);
 
-    match(TOKEN_ID); //TODO: implement safe match_first_read_later
+
+    // Capture the function name
+    char* functionName;
+    if(isMatch(TOKEN_ID)) {
+        functionName = strdup(token.attribute.str);
+        if_malloc_error(functionName);
+    } else{
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        exit(2); // or handle error gracefully
+    }
+    match(TOKEN_ID);
 
     // Create an AST node for the function definition
-    ASTNode* funcNode = createASTNode("FunctionDef", functionName);
+    ASTNode* funcNode = createASTNode(FunctionDef, functionName);
 
     // Parse parameters and attach to the function node
     match(TOKEN_LEFT_ROUND_BRACKET);
@@ -171,7 +188,7 @@ ASTNode* parseParamList() {
         
         ASTNode* paramType = parseType();
 
-        head = createASTNode("Parameter", paramName);
+        head = createASTNode(Parameter, paramName);
         head->left = paramType;
 
         // Parse additional parameters
@@ -186,13 +203,21 @@ ASTNode* parseParamListTail() {
         match(TOKEN_COMMA);
 
         // Parse the next parameter
-        char* paramName = strdup(token.attribute.str);
-        if_malloc_error(paramName);
+        char* paramName;
+        if(isMatch(TOKEN_ID)) {
+            paramName = strdup(token.attribute.str);
+            if_malloc_error(paramName);
+        }
+        else{
+            // Handle syntax error
+            fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+            exit(2); // or handle error gracefully
+        }
         match(TOKEN_ID);
         match(TOKEN_COLON);
         ASTNode* paramType = parseType();
 
-        ASTNode* paramNode = createASTNode("Parameter", paramName);
+        ASTNode* paramNode = createASTNode(Parameter, paramName);
         paramNode->left = paramType;
 
         // Continue parsing additional parameters
@@ -208,7 +233,7 @@ ASTNode* parseReturnType() {
     ASTNode* returnTypeNode = NULL;
 
     if (token.type == TOKEN_KEYWORD_VOID) {
-        returnTypeNode = createASTNode("ReturnType", "void");
+        returnTypeNode = createASTNode(ReturnType, "void");
         match(TOKEN_KEYWORD_VOID);
     } else {
         returnTypeNode = parseType();  // Use parseType() for non-void types
@@ -222,27 +247,26 @@ ASTNode* parseType() {
     ASTNode* typeNode = NULL;
 
     if (token.type == TOKEN_KEYWORD_I32) {
-        typeNode = createASTNode("Type", "i32");
+        typeNode = createASTNode(DataType, "i32");
         match(TOKEN_KEYWORD_I32);
     } else if (token.type == TOKEN_KEYWORD_F64) {
-        typeNode = createASTNode("Type", "f64");
+        typeNode = createASTNode(DataType, "f64");
         match(TOKEN_KEYWORD_F64);
     } else if (token.type == TOKEN_KEYWORD_U8_ARRAY) {
-        typeNode = createASTNode("Type", "[]u8");
+        typeNode = createASTNode(DataType, "[]u8");
         match(TOKEN_KEYWORD_U8_ARRAY);
     } else if (token.type == TOKEN_KEYWORD_I32_NULLABLE) {
-        typeNode = createASTNode("Type", "?i32");
+        typeNode = createASTNode(DataType, "?i32");
         match(TOKEN_KEYWORD_I32_NULLABLE);
     } else if (token.type == TOKEN_KEYWORD_F64_NULLABLE) {
-        typeNode = createASTNode("Type", "?f64");
+        typeNode = createASTNode(DataType, "?f64");
         match(TOKEN_KEYWORD_F64_NULLABLE);
     } else if (token.type == TOKEN_KEYWORD_U8_ARRAY_NULLABLE) {
-        typeNode = createASTNode("Type", "?[]u8");
+        typeNode = createASTNode(DataType, "?[]u8");
         match(TOKEN_KEYWORD_U8_ARRAY_NULLABLE);
     } else {
-        // Handle error for invalid type
-        fprintf(stderr, "Syntax error: invalid type\n");
-        exit(2);
+        typeNode = createASTNode(DataType, "Invalid");
+        match(TOKEN_ID);
     }
 
     return typeNode;  // Return the type node for the AST
@@ -251,14 +275,32 @@ ASTNode* parseType() {
 ASTNode* parseStatementList() {
     ASTNode* head = NULL;      // Head of the statement list
     ASTNode* current = NULL;   // Current node in the list
-
+    ASTNode* afterElse = NULL;
     while (token.type != TOKEN_RIGHT_CURLY_BRACKET) {  // Stop when '}' is encountered
         ASTNode* stmtNode = parseStatement();  // Parse each statement and get its AST node
 
         if (head == NULL) {
             head = stmtNode;  // The first statement becomes the head
-        } else if (current != NULL){
+            if (falseStatement){
+                afterElse = stmtNode;
+                while (afterElse->next != NULL){
+                    afterElse = afterElse->next;
+                }
+            }
+        }
+        else if (falseStatement && afterElse){
+            afterElse->next = stmtNode;
+            falseStatement = false;
+        }
+        else if (current != NULL){
             current->next = stmtNode;  // Link the new statement to the previous one
+            if (falseStatement){
+                afterElse = stmtNode;
+                while (afterElse->next != NULL){
+                    afterElse = afterElse->next;
+                }
+            }
+
         }
 
         current = stmtNode;  // Move the current pointer to the newly added statement
@@ -310,10 +352,9 @@ ASTNode* parseBlockStatement() {
     ASTNode* stmtListNode = parseStatementList();
 
     match(TOKEN_RIGHT_CURLY_BRACKET);  // Match '}'
-    match(TOKEN_SEMICOLON);            // Match ';'
 
     // Create a BlockStatement node
-    ASTNode* blockNode = createASTNode("BlockStatement", NULL);
+    ASTNode* blockNode = createASTNode(BlockStatement, NULL);
     blockNode->left = stmtListNode;  // Attach the statement list as the left child
 
     return blockNode;
@@ -322,10 +363,17 @@ ASTNode* parseBlockStatement() {
 
 ASTNode* parseConstDeclaration() {
     match(TOKEN_KEYWORD_CONST);  // Match 'const' keyword
-
+    char *constName;
     // Capture the constant name
-    char* constName = strdup(token.attribute.str);
-    if_malloc_error(constName);
+    if (isMatch(TOKEN_ID)){
+        constName = strdup(token.attribute.str);
+        if_malloc_error(constName);
+    }
+    else{
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        exit(2); // or handle error gracefully
+    }
     match(TOKEN_ID);  // Match the identifier (constant name)
 
     // Use parseVarType to handle optional type annotation
@@ -335,7 +383,7 @@ ASTNode* parseConstDeclaration() {
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
 
     // Create the AST node for the const declaration
-    ASTNode* constNode = createASTNode("ConstDeclaration", constName);
+    ASTNode* constNode = createASTNode(ConstDeclaration, constName);
     constNode->left = typeNode;    // Attach type as left child (if available)
     constNode->right = exprNode;   // Attach the expression as right child
 
@@ -371,9 +419,29 @@ ASTNode* parseRelationalTail(ASTNode* left) {
     if (token.type == TOKEN_LESS_THAN || token.type == TOKEN_LESS_THAN_OR_EQUAL_TO ||
         token.type == TOKEN_GREATER_THAN || token.type == TOKEN_GREATER_THAN_OR_EQUAL_TO ||
         token.type == TOKEN_EQUAL_TO || token.type == TOKEN_NOT_EQUAL_TO) {
-
+        char *operator;
+        switch (token.type) {
+            case TOKEN_LESS_THAN:
+                operator = strdup("<");
+                break;
+            case TOKEN_LESS_THAN_OR_EQUAL_TO:
+                operator = strdup("<=");
+                break;
+            case TOKEN_GREATER_THAN:
+                operator = strdup(">");
+                break;
+            case TOKEN_GREATER_THAN_OR_EQUAL_TO:
+                operator = strdup(">=");
+                break;
+            case TOKEN_EQUAL_TO:
+                operator = strdup("==");
+                break;
+            default:
+                operator = strdup("!=");
+                break;
+        }
+        
         // Capture the operator and move to the next token
-        char* operator = strdup(token.attribute.str);
         if_malloc_error(operator);
         match(token.type);
 
@@ -396,7 +464,7 @@ ASTNode* parseSimpleExpression() {
 
     // Handle addition and subtraction operators
     while (token.type == TOKEN_ADDITION || token.type == TOKEN_SUBTRACTION) {
-        char* operator = strdup(token.attribute.str);
+        char* operator = strdup(token.type == TOKEN_ADDITION ? "+" : "-");
         if_malloc_error(operator);// Capture the operator
         match(token.type);  // Consume the operator
 
@@ -416,7 +484,7 @@ ASTNode* parseTerm() {
 
     // Handle multiplication and division
     while (token.type == TOKEN_MULTIPLICATION || token.type == TOKEN_DIVISION) {
-        char* operator = strdup(token.attribute.str);
+        char* operator = strdup(token.type == TOKEN_MULTIPLICATION ? "*" : "/");
         if_malloc_error(operator); // Capture the operator
         match(token.type);  // Consume the operator
 
@@ -442,19 +510,69 @@ ASTNode* parseFactor() {
         char* identifier = strdup(token.attribute.str);
         if_malloc_error(identifier);
         match(TOKEN_ID);
+        if (token.type == TOKEN_DOT) {
+            // If the next token is a dot, parse it as a qualified function call
+            match(TOKEN_DOT);
 
-        if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
-            factorNode = createASTNode("FunctionCall", identifier);
+            char* functionName;
+            if(isMatch(TOKEN_ID)) {
+                functionName = strdup(token.attribute.str);
+                if_malloc_error(functionName);
+            }
+            else{
+                // Handle syntax error
+                fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+                exit(2); // or handle error gracefully
+            }
+
+            // Parse function call parameters
+            ASTNode* params = NULL;
+            if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
+                params = parseFunctionCall();
+            }
+
+            // Create a node for the qualified function call
+            ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
+            funcCallNode->left = params;  // Attach parameters as left child
+            // Attach the main identifier (e.g., 'ifj') as an additional node
+            ASTNode* mainNode = createASTNode(Identifier, identifier);
+            mainNode->left = funcCallNode;
+
+            return mainNode;
+        }
+        else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
+            factorNode = createASTNode(FuncCall, identifier);
             factorNode->left = parseFunctionCall();  // Attach arguments
         } else {
-            factorNode = createASTNode("Identifier", identifier);  // Variable reference
+            factorNode = createASTNode(Identifier, identifier);  // Variable reference
         }
     } else if (token.type == TOKEN_I32_LITERAL || token.type == TOKEN_F64_LITERAL ||
                token.type == TOKEN_STRING_LITERAL || token.type == TOKEN_KEYWORD_NULL) {
-        // For literals and `null`
-        char* literalValue = strdup(token.attribute.str);
+        char *literalValue = (char *)malloc(100);
+        char *toFree = literalValue;
         if_malloc_error(literalValue);
-        factorNode = createASTNode("Literal", literalValue);  // Literal node
+        switch (token.type) {
+            case TOKEN_I32_LITERAL:
+                sprintf(literalValue, "%d", token.attribute.integer);
+                factorNode = createASTNode(IntLiteral, literalValue);  // Literal node
+                literalValue = strdup(literalValue);
+                break;
+            case TOKEN_F64_LITERAL:
+                sprintf(literalValue, "%lf", token.attribute.real);
+                factorNode = createASTNode(FloatLiteral, literalValue);  // Literal node
+                literalValue = strdup(literalValue);
+                break;
+            case TOKEN_STRING_LITERAL:
+                literalValue = strdup(token.attribute.str);
+                factorNode = createASTNode(StringLiteral, literalValue);  // Literal node
+                break;
+            default:
+                factorNode = createASTNode(NullLiteral, literalValue);  // Literal node
+                literalValue = "null";
+        }
+        free(toFree);
+        if_malloc_error(literalValue);
+        // For literals and `null`
         match(token.type);  // Consume the literal or `null`
     } else {
         // Handle syntax error if no valid factor is found
@@ -497,10 +615,16 @@ ASTNode* parseFunctionCall() {
 
 ASTNode* parseVarDeclaration() {
     match(TOKEN_KEYWORD_VAR);  // Match 'var' keyword
-
+    char* varName;
     // Capture variable name
-    char* varName = strdup(token.attribute.str);
-    if_malloc_error(varName);
+    if (isMatch(TOKEN_ID)){
+        varName = strdup(token.attribute.str);
+        if_malloc_error(varName);
+    } else{
+        // Handle syntax error
+        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        exit(2); // or handle error gracefully
+    }
     match(TOKEN_ID);  // Match the identifier (variable name)
 
     // Use parseVarType to handle optional type annotation
@@ -510,7 +634,7 @@ ASTNode* parseVarDeclaration() {
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
 
     // Create AST node for variable declaration
-    ASTNode* varNode = createASTNode("VarDeclaration", varName);
+    ASTNode* varNode = createASTNode(VarDeclaration, varName);
     varNode->left = typeNode;   // Attach type as left child (if available)
     varNode->right = exprNode;  // Attach expression as right child
 
@@ -521,23 +645,48 @@ ASTNode* parseVarDeclaration() {
 
 ASTNode* parseAssignmentOrFunctionCall() {
     // Capture the identifier (variable or function name)
-    char* identifier = strdup(token.attribute.str);
-    if_malloc_error(identifier);
+    char* identifier;
+    if(isMatch(TOKEN_ID)) {
+        identifier = strdup(token.attribute.str);
+        if_malloc_error(identifier);
+    }
     match(TOKEN_ID);  // Match the identifier
+    if (token.type == TOKEN_DOT) {
+        // If the next token is a dot, parse it as a qualified function call
+        match(TOKEN_DOT);
 
+        // Parse the function name after the dot
+        char* functionName = strdup(token.attribute.str);
+        match(TOKEN_ID);
+
+        // Parse function call parameters
+        ASTNode* params = NULL;
+        if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
+            params = parseFunctionCall();
+        }
+
+        // Create a node for the qualified function call
+        ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
+        funcCallNode->left = params;  // Attach parameters as left child
+        // Attach the main identifier (e.g., 'ifj') as an additional node
+        ASTNode* mainNode = createASTNode(Identifier, identifier);
+        mainNode->left = funcCallNode;
+        match(TOKEN_SEMICOLON);  // Match ';'
+        return mainNode;
+    }
     if (token.type == TOKEN_ASSIGNMENT) {
         // Handle assignment
         match(TOKEN_ASSIGNMENT);  // Match '='
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
-        ASTNode* assignNode = createASTNode("Assignment", identifier);  // Create an assignment node
+        ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
         assignNode->left = exprNode;  // Attach the expression as the left child
 
         match(TOKEN_SEMICOLON);  // Match ';'
         return assignNode;
     } else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
         // Handle function call
-        ASTNode* funcCallNode = createASTNode("FunctionCall", identifier);  // Create function call node
+        ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
         funcCallNode->left = parseFunctionCall();  // Attach the argument list as the left child
 
         match(TOKEN_SEMICOLON);  // Match ';'
@@ -565,7 +714,7 @@ ASTNode* parseIfStatement() {
         char* bindingVar = strdup(token.attribute.str);
         if_malloc_error(bindingVar);
         match(TOKEN_ID);                // Match identifier for nullable binding
-        bindingNode = createASTNode("NullableBinding", bindingVar);
+        bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
     }
 
@@ -576,14 +725,19 @@ ASTNode* parseIfStatement() {
     // Optional 'else' block
     ASTNode* falseBranch = NULL;
     if (token.type == TOKEN_KEYWORD_ELSE) {
-        match(TOKEN_KEYWORD_ELSE);      // Match 'else'
-        match(TOKEN_LEFT_CURLY_BRACKET); // Match '{'
-        falseBranch = parseStatementList();  // Parse statements in the false branch
-        match(TOKEN_RIGHT_CURLY_BRACKET);    // Match '}'
+        falseStatement = true;
+        match(TOKEN_KEYWORD_ELSE);// Match 'else'
+        if (token.type == TOKEN_KEYWORD_IF){
+            falseBranch = parseIfStatement();
+        } else{
+            match(TOKEN_LEFT_CURLY_BRACKET); // Match '{'
+            falseBranch = parseStatementList();  // Parse statements in the false branch
+            match(TOKEN_RIGHT_CURLY_BRACKET);    // Match '}'
+        }
     }
 
     // Create the AST node for the if statement
-    ASTNode* ifNode = createASTNode("IfStatement", NULL);
+    ASTNode* ifNode = createASTNode(IfStatement, NULL);
     ifNode->left = conditionNode;   // Attach condition as the left child
     ifNode->right = trueBranch;     // Attach true branch as the right child
     ifNode->next = falseBranch;     // Attach false branch as the next node
@@ -605,10 +759,18 @@ ASTNode* parseWhileStatement() {
     ASTNode* bindingNode = NULL;
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
-        char* bindingVar = strdup(token.attribute.str);
-        if_malloc_error(bindingVar);
+        char* bindingVar;
+        if(isMatch(TOKEN_ID)) {
+            bindingVar = strdup(token.attribute.str);
+            if_malloc_error(bindingVar);
+        }
+        else{
+            // Handle syntax error
+            fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+            exit(2); // or handle error gracefully
+        }
         match(TOKEN_ID);                // Match identifier for nullable binding
-        bindingNode = createASTNode("NullableBinding", bindingVar);
+        bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
     }
 
@@ -617,7 +779,7 @@ ASTNode* parseWhileStatement() {
     match(TOKEN_RIGHT_CURLY_BRACKET);   // Match '}'
 
     // Create the AST node for the while statement
-    ASTNode* whileNode = createASTNode("WhileStatement", NULL);
+    ASTNode* whileNode = createASTNode(WhileStatement, NULL);
     whileNode->left = conditionNode;    // Attach condition as the left child
     whileNode->right = bodyNode;        // Attach the body as the right child
     whileNode->binding = bindingNode;   // Attach the nullable binding, if any
@@ -636,7 +798,7 @@ ASTNode* parseReturnStatement() {
     }
 
     // Create the AST node for the return statement
-    ASTNode* returnNode = createASTNode("ReturnStatement", NULL);
+    ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
     returnNode->left = exprNode;  // Attach the expression as the left child (if present)
 
     match(TOKEN_SEMICOLON);  // Match ';'
@@ -645,7 +807,7 @@ ASTNode* parseReturnStatement() {
 
 
 Token get_next_token(){
-    if (stat_index < tokenArr->size - 1){
+    if (stat_index <= tokenArr->size){
         return tokenArr->tokens[stat_index++];
     }
     exit(1);
