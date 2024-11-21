@@ -14,7 +14,16 @@ typedef enum {
     DataType,
     BlockStatement,
     ConstDeclaration,
-    BinaryOperation,
+    AddOperation,
+    SubOperation,
+    MulOperation,
+    DivOperation,
+    LessEqOperation,
+    LessOperation,
+    EqualOperation,
+    NotEqualOperation,
+    GreaterEqOperation,
+    GreaterOperation,
     FuncCall,
     Identifier,
     IntLiteral,
@@ -40,10 +49,15 @@ typedef enum {
 //        default: return "Unknown";
 //    }
 //}
+typedef union ASTValue{
+    char *string;
+    int integer;
+    double real;
+} ASTValue;
 
 typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
-    char* value;    // Literal value or identifier
+    ASTValue value;    // Literal value or identifier
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node
     struct ASTNode* next;      // Pointer to the next statement (for sequences of statements)
@@ -51,7 +65,9 @@ typedef struct ASTNode {
 } ASTNode;
 
 ASTNode* createASTNode(NodeType nodeType, char* value);
-ASTNode* createBinaryASTNode(char* operator, ASTNode* left, ASTNode* right);
+ASTNode* createASTNodeInteger(NodeType nodeType, int value);
+ASTNode* createASTNodeReal(NodeType nodeType, double value);
+ASTNode* createBinaryASTNode(NodeType operator, ASTNode* left, ASTNode* right);
 void clearAstNode(ASTNode *node);
 
 #endif // AST_H
