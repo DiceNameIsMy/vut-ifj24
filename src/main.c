@@ -10,7 +10,7 @@
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
-SymTable symTable;
+SymTable Table;
 ASTNode* astNode;
 
 int endWithCode(int code) {
@@ -50,13 +50,13 @@ int main(void) {
     if (source_code == NULL) {
         return 1;
     }
-    SymTable_Init(&symTable);
+    SymTable_Init(&Table);
     // Run the lexer
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code); // Free the source code buffer
 
-    astNode = parseInit(&tokenArray, &symTable); // Parse the source code
+    astNode = parseInit(&tokenArray, &Table); // Parse the source code
 
     freeTokenArray(&tokenArray); // Free the token array
 

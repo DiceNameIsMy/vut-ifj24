@@ -1,6 +1,8 @@
 //
 // Created by malbert on 10/23/24.
 //
+#include "symtable.h"
+
 #ifndef AST_H
 #define AST_H
 
@@ -51,12 +53,14 @@ typedef enum {
 //}
 typedef union ASTValue{
     char *string;
+    Symbol *symbol;
     int integer;
     double real;
 } ASTValue;
 
 typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
+    type_t valType;
     ASTValue value;    // Literal value or identifier
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node

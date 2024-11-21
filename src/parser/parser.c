@@ -15,14 +15,94 @@ unsigned int stat_index = 0;
 bool falseStatement = false;
 
 void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
-    for(int token_no = 0; token_no < array->size; token_no++) {
+    int token_no = 0;
+    for(token_no = 0; token_no < array->size; token_no++) {
         if(array->tokens[token_no].type == TOKEN_KEYWORD_FN && token_no != array->size - 1 && array->tokens[token_no+1].type == TOKEN_ID) {
             Symbol funName;
             funName.name = array->tokens[token_no + 1].attribute.str;
             funName.init = true;
-            funName.decl = true;
-            funName.type = NONETYPE;
+            funName.mut = true;
+            funName.type = FUNCTION;
+            funName.paramList = NULL;
             SymTable_AddSymbol(table, &funName);
+            token_no+=2;
+            if(token_no >= array->size) {
+                exit(2);
+            }
+            if(array->tokens[token_no].type != TOKEN_LEFT_ROUND_BRACKET) {
+                exit(2);
+            }
+            token_no++;        
+            while(array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET) {
+                if(token_no >= array->size || array->tokens[token_no].type != TOKEN_ID) {
+                    exit(2);
+                }
+                token_no++;
+                if(token_no >= array->size || array->tokens[token_no].type != TOKEN_COLON) {
+                    exit(2);
+                }
+                token_no++;
+                if(token_no >= array->size) {
+                    exit(2);
+                }
+                switch (array->tokens[token_no].type) {
+                    case TOKEN_KEYWORD_F64_NULLABLE:
+                        SymTable_PushFuncParam(table, funName.name, F64_NULLABLE);
+                        break;
+                    case TOKEN_KEYWORD_F64:
+                        SymTable_PushFuncParam(table, funName.name, F64);
+                        break;
+                    case TOKEN_KEYWORD_I32_NULLABLE:
+                        SymTable_PushFuncParam(table, funName.name, I32_NULLABLE);
+                        break;
+                    case TOKEN_KEYWORD_I32:
+                        SymTable_PushFuncParam(table, funName.name, I32);
+                        break;
+                    case TOKEN_KEYWORD_U8_ARRAY_NULLABLE:
+                        SymTable_PushFuncParam(table, funName.name, U8_ARRAY_NULLABLE);
+                        break;
+                    case TOKEN_KEYWORD_U8_ARRAY:
+                        SymTable_PushFuncParam(table, funName.name, U8_ARRAY);
+                        break;
+                    default:
+                        exit(2);
+                }
+                token_no++;
+                if(token_no >= array->size || 
+                   (array->tokens[token_no].type != TOKEN_COMMA && array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET)) {
+                    exit(2);
+                }
+                if(array->tokens[token_no].type == TOKEN_RIGHT_ROUND_BRACKET) {
+                    token_no++;
+                    break;
+                }
+                token_no++;
+            }
+            if(token_no >= array->size) {
+                exit(2);
+            }
+            switch(array->tokens[token_no].type) {
+                case TOKEN_KEYWORD_F64_NULLABLE:
+                    SymTable_SetRetType(table, funName.name, F64_NULLABLE);
+                    break;
+                case TOKEN_KEYWORD_F64:
+                    SymTable_SetRetType(table, funName.name, F64);
+                    break;
+                case TOKEN_KEYWORD_I32_NULLABLE:
+                    SymTable_SetRetType(table, funName.name, I32_NULLABLE);
+                    break;
+                case TOKEN_KEYWORD_I32:
+                    SymTable_SetRetType(table, funName.name, I32);
+                    break;
+                case TOKEN_KEYWORD_U8_ARRAY_NULLABLE:
+                    SymTable_SetRetType(table, funName.name, U8_ARRAY_NULLABLE);
+                    break;
+                case TOKEN_KEYWORD_U8_ARRAY:
+                    SymTable_SetRetType(table, funName.name, U8_ARRAY);
+                    break;
+                default:
+                    exit(2);
+            }
         }
     }
     return;
@@ -47,13 +127,20 @@ type_t idType(Token token) {
         }
 }
 
+bool isConv(type_t type1, type_t type2) {
+    if(type1 != type2 && ((type1 != F64_NULLABLE && type1 != F64) || (type2 != I32_NULLABLE && type2 != I32))) {
+      return false;  
+    }
+    return true;
+}
+
 ASTNode* parseInit(TokenArray* array, SymTable *table) {
     stat_index = 0;
     tokenArr = array;
     sym_Table = table;
-//    SymTable_NewScope(table);
+    SymTable_NewScope(table);
 //    //Scroll over function names
-//    addFunctionsToSymTable(array, sym_Table);
+    addFunctionsToSymTable(array, sym_Table);
     token = get_next_token();  // Initialize the first token
     return parseProgram();  // Parse the program and store the AST root
 }
@@ -182,8 +269,10 @@ ASTNode* parseParamList() {
         match(TOKEN_COLON);
         
         symbol.type = idType(token); //more symbol info
-        symbol.decl = true;
+        symbol.mut = true;
         symbol.init = true;
+        symbol.retType = NONETYPE;
+        symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
         
         ASTNode* paramType = parseType();
@@ -248,24 +337,31 @@ ASTNode* parseType() {
 
     if (token.type == TOKEN_KEYWORD_I32) {
         typeNode = createASTNode(DataType, "i32");
+        typeNode->valType = idType(token);  //OPTIMIZE!!!!
         match(TOKEN_KEYWORD_I32);
     } else if (token.type == TOKEN_KEYWORD_F64) {
         typeNode = createASTNode(DataType, "f64");
+        typeNode->valType = idType(token);
         match(TOKEN_KEYWORD_F64);
     } else if (token.type == TOKEN_KEYWORD_U8_ARRAY) {
         typeNode = createASTNode(DataType, "[]u8");
+        typeNode->valType = idType(token);
         match(TOKEN_KEYWORD_U8_ARRAY);
     } else if (token.type == TOKEN_KEYWORD_I32_NULLABLE) {
         typeNode = createASTNode(DataType, "?i32");
+        typeNode->valType = idType(token);
         match(TOKEN_KEYWORD_I32_NULLABLE);
     } else if (token.type == TOKEN_KEYWORD_F64_NULLABLE) {
         typeNode = createASTNode(DataType, "?f64");
+        typeNode->valType = idType(token);
         match(TOKEN_KEYWORD_F64_NULLABLE);
     } else if (token.type == TOKEN_KEYWORD_U8_ARRAY_NULLABLE) {
         typeNode = createASTNode(DataType, "?[]u8");
+        typeNode->valType = idType(token);
         match(TOKEN_KEYWORD_U8_ARRAY_NULLABLE);
     } else {
         typeNode = createASTNode(DataType, "Invalid");
+        typeNode->valType = idType(token);
         match(TOKEN_ID);
     }
 
@@ -374,8 +470,11 @@ ASTNode* parseConstDeclaration() {
         constName = strdup(token.attribute.str);
         if_malloc_error(constName);
         symbol.name = token.attribute.str; //TODO: INVENT A WAY TO MARK AS A CONSTANT
-        symbol.decl = true;
+        symbol.mut = false;
         symbol.init = true;
+        symbol.type = NONETYPE;
+        symbol.retType = NONETYPE;
+        symbol.paramList = NULL;
     }
     else{
         // Handle syntax error
@@ -387,18 +486,23 @@ ASTNode* parseConstDeclaration() {
 
     // Use parseVarType to handle optional type annotation
     ASTNode* typeNode = parseVarType();  // Returns the type node or NULL if no type
+    if (typeNode != NULL) {
+        symbol.type = typeNode->valType; //the type we expect from the exptession on the right
+    }
 
-    //symbol.type = ?
-    //IDEA: MATCH TOKEN_COLON AND THEN PARSE TYPE (so that we can access type token)
+    SymTable_AddSymbol(sym_Table, &symbol);
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
+    if(!isConv(symbol.type, exprNode->valType)) {
+        exit(-1);//I'll lookup the right code later or even write a special routine for this
+    }
 
     // Create the AST node for the const declaration
     ASTNode* constNode = createASTNode(ConstDeclaration, constName);
     constNode->left = typeNode;    // Attach type as left child (if available)
     constNode->right = exprNode;   // Attach the expression as right child
-
+    //constNode->value = SymTable_Search(sym_Table, symbol.name); 
     match(TOKEN_SEMICOLON);  // Match ';'
 
     return constNode;
@@ -459,9 +563,12 @@ ASTNode* parseRelationalTail(ASTNode* left) {
         // Parse the right operand
         ASTNode* right = parseSimpleExpression();
 
+        if(!isConv(left->valType, right->valType)) {
+            exit(-1);
+        }
         // Create an AST node for the relational operation
-
         ASTNode* opNode = createBinaryASTNode(operator, left, right);
+        opNode->valType = BOOL;
         // Recursively call parseRelationalTail with the new opNode as the left operand
         return parseRelationalTail(opNode);
     }
@@ -481,8 +588,12 @@ ASTNode* parseSimpleExpression() {
         // Parse the next term (right operand)
         ASTNode* right = parseTerm();
 
+        if(!isConv(left->valType, right->valType)) {
+            exit(-1);
+        }
         // Create a binary operation node
         left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
+        left->valType = left->left->valType;
     }
 
     return left;  // Return the completed simple expression node
@@ -499,9 +610,12 @@ ASTNode* parseTerm() {
 
         // Parse the next factor (right operand)
         ASTNode* right = parseFactor();
-
+        if(!isConv(right->valType, left->valType)) {
+            exit(-1);
+        }
         // Create a binary operation node
         left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
+        left->valType = left->left->valType;
     }
 
     return left;  // Return the completed term node
@@ -525,7 +639,10 @@ ASTNode* parseFactor() {
 
             char* functionName;
             if(isMatch(TOKEN_ID)) {
-                functionName = strdup(token.attribute.str);
+                functionName = (char *)calloc(100, sizeof(char)); //MAX_FUNCTIONNAME_LENGTH=100
+                strcat(functionName, identifier);
+                strcat(functionName, ".");
+                strcat(functionName, token.attribute.str); //build a function name
                 if_malloc_error(functionName);
             }
             else{
@@ -537,11 +654,12 @@ ASTNode* parseFactor() {
             // Parse function call parameters
             ASTNode* params = NULL;
             if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
-                params = parseFunctionCall();
+                params = parseFunctionCall(functionName);
             }
 
             // Create a node for the qualified function call
             ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
+            funcCallNode->valType = SymTable_GetRetType(sym_Table, functionName);
             funcCallNode->left = params;  // Attach parameters as left child
 //            // Attach the main identifier (e.g., 'ifj') as an additional node
 //            ASTNode* mainNode = createASTNode(Identifier, identifier);
@@ -551,9 +669,11 @@ ASTNode* parseFactor() {
         }
         else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             factorNode = createASTNode(FuncCall, identifier);
-            factorNode->left = parseFunctionCall();  // Attach arguments
+            factorNode->valType = SymTable_GetRetType(sym_Table, identifier);
+            factorNode->left = parseFunctionCall(identifier);  // Attach arguments
         } else {
             factorNode = createASTNode(Identifier, identifier);  // Variable reference
+            factorNode->valType = SymTable_GetType(sym_Table, identifier);
         }
     } else if (token.type == TOKEN_I32_LITERAL || token.type == TOKEN_F64_LITERAL ||
                token.type == TOKEN_STRING_LITERAL || token.type == TOKEN_KEYWORD_NULL) {
@@ -561,16 +681,20 @@ ASTNode* parseFactor() {
         switch (token.type) {
             case TOKEN_I32_LITERAL:
                 factorNode = createASTNodeInteger(IntLiteral, token.attribute.integer);  // Literal node
+                factorNode->valType = I32;
                 break;
             case TOKEN_F64_LITERAL:
                 factorNode = createASTNodeReal(FloatLiteral, token.attribute.real);  // Literal node
+                factorNode->valType = F64;
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, token.attribute.str);  // Literal node
+                factorNode->valType = U8_ARRAY;
                 break;
             default:
                 literalValue = strdup("NULL");
                 factorNode = createASTNode(NullLiteral, literalValue);  // Literal node
+                factorNode->valType = NONETYPE;
                 if_malloc_error(literalValue);
         }
 
@@ -586,17 +710,22 @@ ASTNode* parseFactor() {
 }
 
 
-ASTNode* parseFunctionCall() {
+ASTNode* parseFunctionCall(char *funcName) {
     match(TOKEN_LEFT_ROUND_BRACKET);  // Match '('
 
     // Create the root node for the function call arguments
     ASTNode* argsHead = NULL;
     ASTNode* currentArg = NULL;
+    Param *param = SymTable_GetParamList(sym_Table, funcName);
 
     // Parse arguments if any
     if (token.type != TOKEN_RIGHT_ROUND_BRACKET) {
         argsHead = parseExpression();  // Parse the first argument expression
         currentArg = argsHead;
+        
+        if(param == NULL || currentArg->valType != param->paramType) { //incorrect count or type
+            exit(-1);
+        }
 
         // Parse additional arguments, if any, separated by commas
         while (token.type == TOKEN_COMMA) {
@@ -606,9 +735,19 @@ ASTNode* parseFunctionCall() {
             ASTNode* nextArg = parseExpression();
             currentArg->next = nextArg;  // Link arguments
             currentArg = nextArg;
+
+            param = param->next;
+            if(param == NULL || currentArg->valType != param->paramType) {
+                exit(-1);
+            }
         }
     }
-
+    
+    param = param->next;
+    if(param != NULL) { //too few arguments
+        exit(-1); 
+    }
+    
     match(TOKEN_RIGHT_ROUND_BRACKET);  // Match ')'
 
     return argsHead;  // Return the head of the argument list
@@ -664,7 +803,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         // Parse function call parameters
         ASTNode* params = NULL;
         if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
-            params = parseFunctionCall();
+            params = parseFunctionCall(functionName);
         }
 
         // Create a node for the qualified function call
@@ -687,7 +826,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
     } else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
         // Handle function call
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
-        funcCallNode->left = parseFunctionCall();  // Attach the argument list as the left child
+        funcCallNode->left = parseFunctionCall(identifier);  // Attach the argument list as the left child
 
         match(TOKEN_SEMICOLON);  // Match ';'
         return funcCallNode;
