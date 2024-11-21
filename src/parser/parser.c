@@ -419,38 +419,37 @@ ASTNode* parseRelationalTail(ASTNode* left) {
     if (token.type == TOKEN_LESS_THAN || token.type == TOKEN_LESS_THAN_OR_EQUAL_TO ||
         token.type == TOKEN_GREATER_THAN || token.type == TOKEN_GREATER_THAN_OR_EQUAL_TO ||
         token.type == TOKEN_EQUAL_TO || token.type == TOKEN_NOT_EQUAL_TO) {
-        char *operator;
+        NodeType operator;
         switch (token.type) {
             case TOKEN_LESS_THAN:
-                operator = strdup("<");
+                operator = LessOperation;
                 break;
             case TOKEN_LESS_THAN_OR_EQUAL_TO:
-                operator = strdup("<=");
+                operator = LessEqOperation;
                 break;
             case TOKEN_GREATER_THAN:
-                operator = strdup(">");
+                operator = GreaterOperation;
                 break;
             case TOKEN_GREATER_THAN_OR_EQUAL_TO:
-                operator = strdup(">=");
+                operator = GreaterEqOperation;
                 break;
             case TOKEN_EQUAL_TO:
-                operator = strdup("==");
+                operator = EqualOperation;
                 break;
             default:
-                operator = strdup("!=");
+                operator = NotEqualOperation;
                 break;
         }
         
-        // Capture the operator and move to the next token
-        if_malloc_error(operator);
+        // Capture the operator and move to the
         match(token.type);
 
         // Parse the right operand
         ASTNode* right = parseSimpleExpression();
 
         // Create an AST node for the relational operation
-        ASTNode* opNode = createBinaryASTNode(operator, left, right);
 
+        ASTNode* opNode = createBinaryASTNode(operator, left, right);
         // Recursively call parseRelationalTail with the new opNode as the left operand
         return parseRelationalTail(opNode);
     }
@@ -464,8 +463,7 @@ ASTNode* parseSimpleExpression() {
 
     // Handle addition and subtraction operators
     while (token.type == TOKEN_ADDITION || token.type == TOKEN_SUBTRACTION) {
-        char* operator = strdup(token.type == TOKEN_ADDITION ? "+" : "-");
-        if_malloc_error(operator);// Capture the operator
+        NodeType operator = token.type == TOKEN_ADDITION ? AddOperation : SubOperation;// Capture the operator
         match(token.type);  // Consume the operator
 
         // Parse the next term (right operand)
@@ -484,8 +482,7 @@ ASTNode* parseTerm() {
 
     // Handle multiplication and division
     while (token.type == TOKEN_MULTIPLICATION || token.type == TOKEN_DIVISION) {
-        char* operator = strdup(token.type == TOKEN_MULTIPLICATION ? "*" : "/");
-        if_malloc_error(operator); // Capture the operator
+        NodeType operator = token.type == TOKEN_MULTIPLICATION ? MulOperation : DivOperation;// Capture the operator
         match(token.type);  // Consume the operator
 
         // Parse the next factor (right operand)
@@ -534,11 +531,11 @@ ASTNode* parseFactor() {
             // Create a node for the qualified function call
             ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
             funcCallNode->left = params;  // Attach parameters as left child
-            // Attach the main identifier (e.g., 'ifj') as an additional node
-            ASTNode* mainNode = createASTNode(Identifier, identifier);
-            mainNode->left = funcCallNode;
+//            // Attach the main identifier (e.g., 'ifj') as an additional node
+//            ASTNode* mainNode = createASTNode(Identifier, identifier);
+//            mainNode->left = funcCallNode;
 
-            return mainNode;
+            return funcCallNode;
         }
         else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             factorNode = createASTNode(FuncCall, identifier);
@@ -548,30 +545,23 @@ ASTNode* parseFactor() {
         }
     } else if (token.type == TOKEN_I32_LITERAL || token.type == TOKEN_F64_LITERAL ||
                token.type == TOKEN_STRING_LITERAL || token.type == TOKEN_KEYWORD_NULL) {
-        char *literalValue = (char *)malloc(100);
-        char *toFree = literalValue;
-        if_malloc_error(literalValue);
+        char* literalValue;
         switch (token.type) {
             case TOKEN_I32_LITERAL:
-                sprintf(literalValue, "%d", token.attribute.integer);
-                factorNode = createASTNode(IntLiteral, literalValue);  // Literal node
-                literalValue = strdup(literalValue);
+                factorNode = createASTNodeInteger(IntLiteral, token.attribute.integer);  // Literal node
                 break;
             case TOKEN_F64_LITERAL:
-                sprintf(literalValue, "%lf", token.attribute.real);
-                factorNode = createASTNode(FloatLiteral, literalValue);  // Literal node
-                literalValue = strdup(literalValue);
+                factorNode = createASTNodeReal(FloatLiteral, token.attribute.real);  // Literal node
                 break;
             case TOKEN_STRING_LITERAL:
-                literalValue = strdup(token.attribute.str);
-                factorNode = createASTNode(StringLiteral, literalValue);  // Literal node
+                factorNode = createASTNode(StringLiteral, token.attribute.str);  // Literal node
                 break;
             default:
+                literalValue = strdup("NULL");
                 factorNode = createASTNode(NullLiteral, literalValue);  // Literal node
-                literalValue = "null";
+                if_malloc_error(literalValue);
         }
-        free(toFree);
-        if_malloc_error(literalValue);
+
         // For literals and `null`
         match(token.type);  // Consume the literal or `null`
     } else {
@@ -669,10 +659,8 @@ ASTNode* parseAssignmentOrFunctionCall() {
         ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
         funcCallNode->left = params;  // Attach parameters as left child
         // Attach the main identifier (e.g., 'ifj') as an additional node
-        ASTNode* mainNode = createASTNode(Identifier, identifier);
-        mainNode->left = funcCallNode;
         match(TOKEN_SEMICOLON);  // Match ';'
-        return mainNode;
+        return funcCallNode;
     }
     if (token.type == TOKEN_ASSIGNMENT) {
         // Handle assignment
