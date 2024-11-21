@@ -38,6 +38,7 @@ bool SymTable_GetInit(SymTable *table, char *name);
 void SymTable_Init(SymTable *table);
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol);
 void SymTable_NewScope(SymTable *table); //Use this function to jump into a new sub-scope
+void SymTable_UpperScope(SymTable *table);
 void Symtable_Dispose(SymTable *table); //"delete root" algorithm
 
 #endif

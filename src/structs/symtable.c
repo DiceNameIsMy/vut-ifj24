@@ -26,6 +26,11 @@ void SymTable_NewScope(SymTable *table) {
   return;
 }
 
+void SymTable_UpperScope(SymTable *table) {
+  table->current = table->current->parent;
+  return;
+}
+
 void SymTable_SetType(SymTable *table, char *name, type_t type) {
   ((Symbol *)(BVS_Search(table->current->tree, name)))->type = type;//TODO: implement "current" mechanism
   return;

@@ -11,7 +11,7 @@
 
 TokenArray tokenArray;
 ASTNode** astNode;
-SymTable *symTable;
+SymTable symTable;
 
 char* readStdinAsString() {
     char* buffer = NULL;
@@ -44,13 +44,13 @@ int main(void) {
     char* source_code;
     streamToString(stdin, &source_code);
     
-    SymTable_Init(symTable);
+    SymTable_Init(&symTable);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code);
 
     printf("Hello, World!\n");
-    parseInit(&tokenArray, symTable);
+    parseInit(&tokenArray, &symTable);
 }
 
 

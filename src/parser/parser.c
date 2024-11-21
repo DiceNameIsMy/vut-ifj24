@@ -121,7 +121,7 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_KEYWORD_PUB);      // Matches 'pub'
     match(TOKEN_KEYWORD_FN);       // Matches 'fn'
 
-    //SymTable_NewScope(sym_Table); //each function is a scope
+    SymTable_NewScope(sym_Table); //each function is a scope
     // Capture the function name
     char* functionName = strdup(token.attribute.str);
     if_malloc_error(functionName);
@@ -144,7 +144,7 @@ ASTNode* parseFunctionDef() {
     funcNode->next = parseStatementList();  // Attach the function body statements
     match(TOKEN_RIGHT_CURLY_BRACKET);
 
-    //SymTable_UpperScope(sym_Table); //quit the scope
+    SymTable_UpperScope(sym_Table); //quit the scope
 
     return funcNode;  // Return the completed function definition node
 }
@@ -157,17 +157,17 @@ ASTNode* parseParamList() {
         // Parse the first parameter
         char* paramName = strdup(token.attribute.str);
         if_malloc_error(paramName);
-        //Symbol symbol;
+        Symbol symbol;
         
-        //symbol.name = token.attribute.str; //symbol info
+        symbol.name = token.attribute.str; //symbol info
         
         match(TOKEN_ID);
         match(TOKEN_COLON);
         
-        //symbol.type = idType(token); //more symbol info
-        //symbol.decl = true;
-        //symbol.init = true;
-        //SymTable_AddSymbol(sym_Table, &symbol);
+        symbol.type = idType(token); //more symbol info
+        symbol.decl = true;
+        symbol.init = true;
+        SymTable_AddSymbol(sym_Table, &symbol);
         
         ASTNode* paramType = parseType();
 
@@ -305,11 +305,13 @@ ASTNode* parseStatement() {
 
 ASTNode* parseBlockStatement() {
     match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
+    SymTable_NewScope(sym_Table); //dive
 
     // Parse the list of statements inside the block
     ASTNode* stmtListNode = parseStatementList();
 
     match(TOKEN_RIGHT_CURLY_BRACKET);  // Match '}'
+    SymTable_UpperScope(sym_Table);  //un-dive
     match(TOKEN_SEMICOLON);            // Match ';'
 
     // Create a BlockStatement node
@@ -322,14 +324,22 @@ ASTNode* parseBlockStatement() {
 
 ASTNode* parseConstDeclaration() {
     match(TOKEN_KEYWORD_CONST);  // Match 'const' keyword
-
+    Symbol symbol;
     // Capture the constant name
     char* constName = strdup(token.attribute.str);
     if_malloc_error(constName);
+    
+    symbol.name = token.attribute.str; //INVENT A WAY TO MARK AS A CONSTANT
+    symbol.decl = true;
+    symbol.init = true;
+    
     match(TOKEN_ID);  // Match the identifier (constant name)
 
     // Use parseVarType to handle optional type annotation
     ASTNode* typeNode = parseVarType();  // Returns the type node or NULL if no type
+
+    //symbol.type = ?
+    //IDEA: MATCH TOKEN_COLON AND THEN PARSE TYPE (so that we can access type token)
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
