@@ -7,13 +7,14 @@
 
 #include "structs/ast.h"
 #include "lexer/token.h"
+#include "structs/symtable.h"
 
 #include <stdio.h>
 #include <stdbool.h>
 
 void match(TokenType expected);
 bool isMatch(TokenType expected);
-ASTNode* parseInit(TokenArray* array);
+ASTNode* parseInit(TokenArray* array, SymTable *table);
 ASTNode* parseProgram();
 ASTNode* parseProlog();
 ASTNode* parseFunctionDefList();

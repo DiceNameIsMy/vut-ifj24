@@ -14,6 +14,12 @@
 TokenArray tokenArray;
 static int idx = 0;
 
+
+// Error handler
+void endWithCode(int code) {
+    ;
+}
+
 // returns true if token exists
 bool try_get_token(Token *t) {
     const bool has_token = tokenArray.size > idx;
@@ -111,7 +117,7 @@ TEST(empty)
         FAIL("With empty source code first token was not EOF");
     }
     if (try_get_token(&t)) {
-        FAIL("Got more tokens than expected", (int)tokenArray.size, idx);
+        FAIL("Got more tokens than expected");
     }
 ENDTEST
 
