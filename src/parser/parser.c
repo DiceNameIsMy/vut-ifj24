@@ -659,10 +659,8 @@ ASTNode* parseAssignmentOrFunctionCall() {
         ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
         funcCallNode->left = params;  // Attach parameters as left child
         // Attach the main identifier (e.g., 'ifj') as an additional node
-        ASTNode* mainNode = createASTNode(Identifier, identifier);
-        mainNode->left = funcCallNode;
         match(TOKEN_SEMICOLON);  // Match ';'
-        return mainNode;
+        return funcCallNode;
     }
     if (token.type == TOKEN_ASSIGNMENT) {
         // Handle assignment
