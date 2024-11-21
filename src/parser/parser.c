@@ -48,11 +48,12 @@ type_t idType(Token token) {
 }
 
 ASTNode* parseInit(TokenArray* array, SymTable *table) {
+    stat_index = 0;
     tokenArr = array;
     sym_Table = table;
-    SymTable_NewScope(table);
-    //Scroll over function names
-    addFunctionsToSymTable(array, sym_Table);
+//    SymTable_NewScope(table);
+//    //Scroll over function names
+//    addFunctionsToSymTable(array, sym_Table);
     token = get_next_token();  // Initialize the first token
     return parseProgram();  // Parse the program and store the AST root
 }

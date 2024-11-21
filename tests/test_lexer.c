@@ -549,7 +549,7 @@ ENDTEST
 
 TEST(parse_basic_program)
     char *source_code;
-    if (read_source_code("../tests/input/program.ifj24.zig", &source_code)) {
+    if (read_source_code("tests/input/program.ifj24.zig", &source_code)) {
         return;
     }
     freeTokenArray(&tokenArray);
@@ -572,7 +572,7 @@ ENDTEST
 
 TEST(parse_iterative_factorial_program)
     char *source_code;
-    if (read_source_code("../tests/input/factorial_iter.ifj24.zig", &source_code)) {
+    if (read_source_code("tests/input/factorial_iter.ifj24.zig", &source_code)) {
         return;
     }
     freeTokenArray(&tokenArray);
