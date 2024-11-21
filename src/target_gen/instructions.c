@@ -84,6 +84,13 @@ Operand initOperand(OperandType type, OperandAttribute attr)
     return op;
 }
 
+Operand initVarOperand(OperandType type, VarFrameType frame, char *name) {
+    return initOperand(type, initVarAttr(frame, name));
+}
+Operand initStringOperand(OperandType type, char *string) {
+    return initOperand(type, initStringAttr(string));
+}
+
 Operand initEmptyOperand()
 {
     Operand op;

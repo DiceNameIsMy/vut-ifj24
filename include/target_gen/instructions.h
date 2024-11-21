@@ -150,6 +150,8 @@ OperandAttribute initVarAttr(VarFrameType frame, char *name);
 OperandAttribute initStringAttr(char *string);
 
 Operand initOperand(OperandType type, OperandAttribute attr);
+Operand initVarOperand(OperandType type, VarFrameType frame, char *name);
+Operand initStringOperand(OperandType type, char *string);
 Operand initEmptyOperand();
 
 void destroyOperand(Operand *op);

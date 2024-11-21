@@ -44,13 +44,13 @@ int generateTargetCode(ASTNode *root, FILE *output)
   fprintf(outputStream, ".IFJcode24\n");
 
   // Call main function
-  Operand mainFunc = initOperand(OP_CONST_STRING, initStringAttr("TODO:main"));
+  Operand mainFunc = initStringOperand(OP_CONST_STRING, "TODO:main");
   Instruction callMainInst;
   initInstr1(&callMainInst, INST_CALL, mainFunc);
   printInstruction(&callMainInst, outputStream);
 
   // Jump to the end of the generated file
-  Operand endProgramLabel = initOperand(OP_CONST_STRING, initStringAttr("TODO:EndProgramLabel"));
+  Operand endProgramLabel = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction jumpToEndInst;
   initInstr1(&jumpToEndInst, INST_JUMP, endProgramLabel);
   printInstruction(&jumpToEndInst, outputStream);
@@ -64,7 +64,7 @@ int generateTargetCode(ASTNode *root, FILE *output)
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initOperand(OP_CONST_STRING, initStringAttr("TODO:EndProgramLabel"));
+  Operand var = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction inst;
   initInstr1(&inst, INST_LABEL, var);
   printInstruction(&inst, outputStream);
@@ -81,7 +81,7 @@ int generateFunctions(ASTNode *node)
   int result = 0;
 
   // Add label for function name
-  Operand var = initOperand(OP_CONST_STRING, initStringAttr("TODO:FunctionName"));
+  Operand var = initStringOperand(OP_CONST_STRING, "TODO:FunctionName");
   Instruction inst;
   initInstr1(&inst, INST_LABEL, var);
   printInstruction(&inst, outputStream);
@@ -120,7 +120,7 @@ int generateStatements(ASTNode *node)
 
 int generateDeclaration(ASTNode *node)
 {
-  Operand var = initOperand(OP_VAR, initVarAttr(FRAME_LF, "TODO"));
+  Operand var = initVarOperand(OP_VAR, FRAME_LF, "TODO");
   Instruction inst;
   initInstr1(&inst, INST_DEFVAR, var);
   printInstruction(&inst, outputStream);
@@ -131,8 +131,8 @@ int generateDeclaration(ASTNode *node)
 
 int generateAssignment(ASTNode *node)
 {
-  Operand dest = initOperand(OP_VAR, initStringAttr("TODO"));
-  Operand src = initOperand(OP_VAR, initStringAttr("TODO"));
+  Operand dest = initVarOperand(OP_VAR, FRAME_LF, "TODO");
+  Operand src = initVarOperand(OP_VAR, FRAME_LF, "TODO");
   Instruction inst;
   initInstr2(&inst, INST_MOVE, dest, src);
   printInstruction(&inst, outputStream);
@@ -178,7 +178,7 @@ int generateFunctionCall(ASTNode *node)
 
   // Call function
   Instruction callInst;
-  initInstr1(&callInst, INST_CALL, initOperand(OP_CONST_STRING, initStringAttr("TODO:FunctionName")));
+  initInstr1(&callInst, INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
   printInstruction(&callInst, outputStream);
 
   // Pop frame
