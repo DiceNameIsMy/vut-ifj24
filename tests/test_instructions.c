@@ -29,23 +29,6 @@ char* getTempFileContent() {
     return buffer;
 }
 
-TEST(init_instruction_with_not_enough_operands)
-    Instruction inst;
-    if (initInstr0(&inst, INST_LABEL) == 0) {
-        FAIL("Succeeded to initialize an instruction with not enough operands");
-    }
-    destroyInstruction(&inst);
-ENDTEST
-
-TEST(init_instruction_with_too_many_operands)
-    Operand op1 = initOperand(OP_CONST_INT64, (OperandAttribute) {.i64 = 10});
-    Instruction inst;
-    if (initInstr1(&inst, INST_RETURN, op1) == 0) {
-        FAIL("Succeeded to initialize an instruction with too many operands");
-    }
-    destroyInstruction(&inst);
-ENDTEST
-
 TEST(print_0_operand_instruction)
     tempFile = tmpfile();
     if (tempFile == NULL) {
@@ -53,12 +36,7 @@ TEST(print_0_operand_instruction)
         return;
     }
 
-    Instruction inst;
-    if (initInstr0(&inst, INST_RETURN) == -1) {
-        fclose(tempFile);
-        FAIL("Failed to initialize instruction");
-        return;
-    }
+    Instruction inst = initInstr0(INST_RETURN);
     printInstruction(&inst, tempFile);
     destroyInstruction(&inst);
 
@@ -81,22 +59,11 @@ TEST(print_3_operand_instruction)
         return;
     }
 
-    OperandAttribute varAttr;
-    if (initVarAttr(&varAttr, FRAME_GF, "var_name") == -1) {
-        fclose(tempFile);
-        FAIL("Failed to initialize variable attribute");
-        return;
-    }
-
+    OperandAttribute varAttr = initVarAttr(FRAME_GF, "var_name");
     Operand op1 = initOperand(OP_VAR, varAttr);
     Operand op2 = initOperand(OP_CONST_INT64, (OperandAttribute) {.i64 = 10});
     Operand op3 = initOperand(OP_CONST_FLOAT64, (OperandAttribute) {.f64 = 10.5});
-    Instruction inst;
-    if (initInstr3(&inst, INST_ADD, op1, op2, op3) == -1) {
-        fclose(tempFile);
-        FAIL("Failed to initialize instruction");
-        return;
-    }
+    Instruction inst = initInstr3(INST_ADD, op1, op2, op3);
     printInstruction(&inst, tempFile);
     destroyInstruction(&inst);
 

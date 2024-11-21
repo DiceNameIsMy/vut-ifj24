@@ -84,10 +84,12 @@ Operand initOperand(OperandType type, OperandAttribute attr)
     return op;
 }
 
-Operand initVarOperand(OperandType type, VarFrameType frame, char *name) {
+Operand initVarOperand(OperandType type, VarFrameType frame, char *name)
+{
     return initOperand(type, initVarAttr(frame, name));
 }
-Operand initStringOperand(OperandType type, char *string) {
+Operand initStringOperand(OperandType type, char *string)
+{
     return initOperand(type, initStringAttr(string));
 }
 
@@ -114,7 +116,6 @@ void destroyOperand(Operand *op)
     }
 }
 
-
 Instruction initInstr0(InstType type)
 {
     if (!hasNoOperands(type))
@@ -123,9 +124,11 @@ Instruction initInstr0(InstType type)
         exit(99);
     }
     Instruction inst;
-    if (!initInstruction(&inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand())) {
+    if (initInstruction(&inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand()) == -1)
+    {
         exit(99);
     }
+    return inst;
 }
 
 Instruction initInstr1(InstType type, Operand opFirst)
@@ -141,9 +144,11 @@ Instruction initInstr1(InstType type, Operand opFirst)
         exit(99);
     }
     Instruction inst;
-    if (!initInstruction(&inst, type, opFirst, initEmptyOperand(), initEmptyOperand())) {
+    if (initInstruction(&inst, type, opFirst, initEmptyOperand(), initEmptyOperand()) == -1)
+    {
         exit(99);
     }
+    return inst;
 }
 
 Instruction initInstr2(InstType type, Operand opFirst, Operand opSecond)
@@ -164,9 +169,11 @@ Instruction initInstr2(InstType type, Operand opFirst, Operand opSecond)
         exit(99);
     }
     Instruction inst;
-    if (!initInstruction(&inst, type, opFirst, opSecond, initEmptyOperand())) {
+    if (initInstruction(&inst, type, opFirst, opSecond, initEmptyOperand()) == -1)
+    {
         exit(99);
     }
+    return inst;
 }
 
 Instruction initInstr3(InstType type, Operand opFirst, Operand opSecond, Operand opThird)
@@ -192,9 +199,11 @@ Instruction initInstr3(InstType type, Operand opFirst, Operand opSecond, Operand
         exit(99);
     }
     Instruction inst;
-    if (!initInstruction(&inst, type, opFirst, opSecond, opThird)) {
+    if (initInstruction(&inst, type, opFirst, opSecond, opThird) == -1)
+    {
         exit(99);
     }
+    return inst;
 }
 
 void destroyInstruction(Instruction *inst)
@@ -246,7 +255,10 @@ int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird)
 {
     if (inst == NULL)
+    {
+        loginfo("Instruction pointer is NULL");
         return -1;
+    }
 
     inst->type = type;
     inst->opFirst = opFirst;
