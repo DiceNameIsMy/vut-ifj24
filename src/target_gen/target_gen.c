@@ -2,6 +2,9 @@
 // Created by nur on 16.11.24.
 //
 
+#include <string.h>
+
+#include "logging.h"
 #include "structs/ast.h"
 
 #include "target_gen/instructions.h"
@@ -17,8 +20,13 @@ SymTable *symbolTable;
 int generateFunctions(ASTNode *node);
 int generateStatements(ASTNode *node);
 int generateAssignment(ASTNode *node);
-int generateExpression(ASTNode *node);
+
+/// @brief Expression is converted to a sequence of
+/// instructions that lead to outVar value to be computed.
+int generateExpression(ASTNode *node, Operand *outVar);
+
 int generateConditionalBlock(ASTNode *node);
+int generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 int generateFunctionCall(ASTNode *node);
 int generateFunctionCallParameters(ASTNode *node);
 
@@ -89,12 +97,12 @@ int generateFunctions(ASTNode *node)
   int result = 0;
 
   // Add label for function name
-  Operand var = initStringOperand(OP_CONST_STRING, "TODO:FunctionName");
+  Operand var = initStringOperand(OP_LABEL, node->value);
   Instruction inst = initInstr1(INST_LABEL, var);
   printInstruction(&inst, outputStream);
-  
+
   // Define all local variables
-  // TODO: 
+  // TODO:
   // - Enter a scope related to this block
   // - Get all variables in this scope using a symtable
 
@@ -117,10 +125,36 @@ int generateFunctions(ASTNode *node)
 
 int generateStatements(ASTNode *node)
 {
-  // If declaration, skip, as every declaration in this scope has already been done
-  // If assignment, run generateAssignment
-  // If an if statement, run generateConditionalBlock
-  // If a new block, run generateStatements
+  while (node != NULL)
+  {
+    switch (node->nodeType)
+    {
+    case VarDeclaration:
+    case ConstDeclaration:
+      // Skip, as every declaration in this scope has already
+      // been made at the beginning of the function
+      break;
+    case Assignment:
+      generateAssignment(node);
+      break;
+    case BlockStatement:
+      // TODO: Generate DEFVAR for variables in this block
+      generateStatements(node->left);
+      break;
+    case IfStatement:
+      loginfo("If statement not implemented yet");
+      exit(99);
+    case WhileStatement:
+      loginfo("While statement not implemented yet");
+      exit(99);
+    case ReturnStatement:
+      loginfo("Return statement not implemented yet");
+      exit(99);
+    default:
+      loginfo("Unexpected statement type: %s", nodeTypeToString(node->nodeType));
+      exit(99);
+    }
+  }
 
   // Generate every consecutive statement
   if (node->next != NULL)
@@ -132,19 +166,97 @@ int generateStatements(ASTNode *node)
 
 int generateAssignment(ASTNode *node)
 {
-  Operand dest = initVarOperand(OP_VAR, FRAME_LF, "TODO");
-  Operand src = initVarOperand(OP_VAR, FRAME_LF, "TODO");
-  Instruction inst = initInstr2(INST_MOVE, dest, src);
-  printInstruction(&inst, outputStream);
+  assert(node->nodeType == Assignment);
+  assert(node->left->nodeType == Identifier);
+
+  Operand dest;
+  if (strcmp(node->left->value, "_") == 0)
+  {
+    // TODO: assign to a really temporary varaible
+    dest = initVarOperand(OP_VAR, FRAME_LF, "TODO:TemporaryVariable");
+  }
+  else
+  {
+    dest = initVarOperand(OP_VAR, FRAME_LF, node->left->value);
+  }
+
+  // Generate assigment evaluation
+  generateExpression(node->right, &dest);
 
   return 0;
 }
 
-int generateExpression(ASTNode *node)
+int generateExpression(ASTNode *node, Operand *outVar)
 {
-  // If binary expression, run generateBinaryExpression
-  // If unary expression, run generateUnaryExpression
-  // If function call, run generateFunctionCall
+  switch (node->nodeType)
+  {
+  case BinaryOperation:
+    // TODO
+    loginfo("Binary operation not implemented yet");
+    exit(99);
+    break;
+
+  case FuncCall:
+    generateFunctionCall(node);
+    assert(node->right->nodeType, ReturnType);
+
+    bool returnsVoid = strcmp(node->right->value, "void") == 0;
+    if (!returnsVoid)
+    {
+      Instruction inst = initInstr1(INST_POPS, *outVar);
+      printInstruction(&inst, outputStream);
+    }
+    break;
+
+  case BuiltInFunctionCall:
+    generateBuiltInFunctionCall(node, outVar);
+    break;
+
+  case Identifier:
+    Instruction inst = initInstr2(
+        INST_MOVE,
+        *outVar,
+        initVarOperand(OP_VAR, FRAME_LF, node->value));
+    printInstruction(&inst, outputStream);
+    break;
+
+  case IntLiteral:
+    Instruction inst = initInstr2(
+        INST_MOVE,
+        *outVar,
+        initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = 0})); // TODO: Set real value
+    printInstruction(&inst, outputStream);
+    break;
+
+  case FloatLiteral:
+    Instruction inst = initInstr2(
+        INST_MOVE,
+        *outVar,
+        initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = 0})); // TODO: Set real value
+    printInstruction(&inst, outputStream);
+    break;
+
+  case StringLiteral:
+    Instruction inst = initInstr2(
+        INST_MOVE,
+        *outVar,
+        initStringOperand(OP_CONST_STRING, node->value));
+    printInstruction(&inst, outputStream);
+    break;
+
+  case NullLiteral:
+    Instruction inst = initInstr2(
+        INST_MOVE,
+        *outVar,
+        initOperand(OP_CONST_NIL, (OperandAttribute){}));
+    printInstruction(&inst, outputStream);
+    break;
+
+  default:
+    loginfo("Unexpected factor type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+
   return 0;
 }
 
@@ -154,7 +266,7 @@ int generateConditionalBlock(ASTNode *node)
   // jump to label on false
 
   // Define all local variables
-  // TODO: 
+  // TODO:
   // - Enter a scope related to this block
   // - Get all variables in this scope using a symtable
 
@@ -164,14 +276,69 @@ int generateConditionalBlock(ASTNode *node)
   return 0;
 }
 
+int generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
+{
+  assert(node->nodeType == BuiltInFunctionCall);
+
+  if (strcmp(node->value, "ifj.readstr") == 0)
+  {
+    Instruction readInst = initInstr2(
+        INST_READ,
+        *outVar,
+        initStringOperand(OP_TYPE, "string"));
+    printInstruction(&readInst, outputStream);
+  }
+  else if (strcmp(node->value, "ifj.readi32") == 0)
+  {
+    // TODO: Implement readi32
+  }
+  else if (strcmp(node->value, "ifj.readf64") == 0)
+  {
+    // TODO: Implement readf64
+  }
+  else if (strcmp(node->value, "ifj.i2f") == 0)
+  {
+    // TODO: Implement i2f
+  }
+  else if (strcmp(node->value, "ifj.f2i") == 0)
+  {
+    // TODO: Implement f2i
+  }
+  else if (strcmp(node->value, "ifj.string") == 0)
+  {
+    // TODO: Implement string
+  }
+  else if (strcmp(node->value, "ifj.length") == 0)
+  {
+    // TODO: Implement length
+  }
+  else if (strcmp(node->value, "ifj.concat") == 0)
+  {
+    // TODO: Implement concat
+  }
+  else if (strcmp(node->value, "ifj.substring") == 0)
+  {
+    // TODO: Implement substring
+  }
+  else
+  {
+    loginfo("Unexpected builtin function call: %s", node->value);
+    exit(99);
+  }
+
+  return 0;
+}
+
 int generateFunctionCall(ASTNode *node)
 {
+  assert(node->nodeType == FuncCall);
+
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
   printInstruction(&createFrameInst, outputStream);
 
   // Add parameters
-  int result = generateFunctionCallParameters(node);
+  int result = generateFunctionCallParameters(node->left);
   if (result != 0)
   {
     return result;
@@ -182,13 +349,14 @@ int generateFunctionCall(ASTNode *node)
   printInstruction(&pushFrameInst, outputStream);
 
   // Call function
-  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
+  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, node->value));
   printInstruction(&callInst, outputStream);
 
   // Pop frame
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
   printInstruction(&popFrameInst, outputStream);
 
+  // Return value is stored in Stack.
   return 0;
 }
 
