@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 // Instruction types
 typedef enum
@@ -112,9 +113,9 @@ typedef enum
 } OperandType;
 
 typedef enum {
-    GF,
-    LF,
-    TF,
+    FRAME_GF,
+    FRAME_LF,
+    FRAME_TF,
 } VarFrameType;
 
 typedef struct
@@ -146,18 +147,21 @@ typedef struct
     Operand opThird;
 } Instruction;
 
-int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name);
-int Instr_initStringAttribute(OperandAttribute *attr, char *string);
+
+OperandAttribute initVarAttr(VarFrameType frame, char *name);
+OperandAttribute Instr_initStringAttribute(char *string);
 
 Operand initOperand(OperandType type, OperandAttribute attr);
+Operand initVarOperand(OperandType type, VarFrameType frame, char *name);
+Operand initStringOperand(OperandType type, char *string);
 Operand initEmptyOperand();
 
 void destroyOperand(Operand *op);
 
-int initInstr0(Instruction *inst, InstType type);
-int initInstr1(Instruction *inst, InstType type, Operand opFirst);
-int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond);
-int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird);
+Instruction initInstr0(InstType type);
+Instruction initInstr1(InstType type, Operand opFirst);
+Instruction initInstr2(InstType type, Operand opFirst, Operand opSecond);
+Instruction initInstr3(InstType type, Operand opFirst, Operand opSecond, Operand opThird);
 
 void destroyInstruction(Instruction *inst);
 

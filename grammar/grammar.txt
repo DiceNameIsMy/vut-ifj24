@@ -71,6 +71,8 @@
 [Identifier] ::= id [CallParam]
 [Identifier] ::= '_'
 
+[CallInFunc] ::= id
+
 [CallParam] ::= '(' [Expression] [CallParamTail] ')'
 [CallParam] ::= ε
 

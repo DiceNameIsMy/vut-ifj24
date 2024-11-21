@@ -2,11 +2,6 @@
 // Created by nur on 19.10.24.
 //
 
-/* Before you add anything to the BST make sure that:
-*  - you have free the "key" later if you malloc-ed it
-*  - same with "data"
-*/
-
 #ifndef BVS_H
 #define BVS_H
 
@@ -30,6 +25,9 @@ typedef struct {
 int BVS_Init(BVS *bvs);
 void BVS_Free(BVS *bvs);
 void BVS_Delete(BVS *BVS, char *key);
+
+/// @brief After insesrtion, free they key parameter if it was allocated prior to that.
+///        The key is duplicated in the tree.
 void BVS_Insert(BVS *bvs, char *key, void *data, size_t size); //size field is a crutch so that we can work with a copy of the data
 void *BVS_Search(BVS *bvs, char *key); //returns found data
 

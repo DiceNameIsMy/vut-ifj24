@@ -18,7 +18,3 @@ target_link_libraries(test_dynBuffer PRIVATE StructsLibDbg)
 
 add_executable(test_bvs test_bvs.c test_utils.h)
 target_link_libraries(test_bvs PRIVATE StructsLibDbg)
-
-
-add_executable(test_instructions test_instructions.c test_utils.h)
-target_link_libraries(test_instructions PRIVATE TargetGenLibDbg)
