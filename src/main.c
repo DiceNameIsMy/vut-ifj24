@@ -10,7 +10,6 @@
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
-
 ASTNode* astNode;
 SymTable *symTable;
 
