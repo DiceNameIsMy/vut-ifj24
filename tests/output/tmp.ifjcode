@@ -9,6 +9,9 @@ JUMP endProgram
 # Expects:
 # - LF@number
 # - LF@string
+# Returns: 
+#   A return value is pushed on the stack. 
+#   If return value is not scpeficied, nothing is pushed.
 LABEL func
     # Define local variables
     DEFVAR LF@v1
