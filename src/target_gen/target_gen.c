@@ -45,14 +45,12 @@ int generateTargetCode(ASTNode *root, FILE *output)
 
   // Call main function
   Operand mainFunc = initStringOperand(OP_CONST_STRING, "TODO:main");
-  Instruction callMainInst;
-  initInstr1(&callMainInst, INST_CALL, mainFunc);
+  Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
   printInstruction(&callMainInst, outputStream);
 
   // Jump to the end of the generated file
   Operand endProgramLabel = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
-  Instruction jumpToEndInst;
-  initInstr1(&jumpToEndInst, INST_JUMP, endProgramLabel);
+  Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   printInstruction(&jumpToEndInst, outputStream);
 
   // Generate functions
@@ -65,8 +63,7 @@ int generateTargetCode(ASTNode *root, FILE *output)
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
-  Instruction inst;
-  initInstr1(&inst, INST_LABEL, var);
+  Instruction inst = initInstr1(INST_LABEL, var);
   printInstruction(&inst, outputStream);
 
   return 0;
@@ -82,8 +79,7 @@ int generateFunctions(ASTNode *node)
 
   // Add label for function name
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:FunctionName");
-  Instruction inst;
-  initInstr1(&inst, INST_LABEL, var);
+  Instruction inst = initInstr1(INST_LABEL, var);
   printInstruction(&inst, outputStream);
 
   // Add function body
@@ -121,8 +117,7 @@ int generateStatements(ASTNode *node)
 int generateDeclaration(ASTNode *node)
 {
   Operand var = initVarOperand(OP_VAR, FRAME_LF, "TODO");
-  Instruction inst;
-  initInstr1(&inst, INST_DEFVAR, var);
+  Instruction inst = initInstr1(INST_DEFVAR, var);
   printInstruction(&inst, outputStream);
 
   // TODO: If has value on node->right, run generateAssignment on the same node?
@@ -133,8 +128,7 @@ int generateAssignment(ASTNode *node)
 {
   Operand dest = initVarOperand(OP_VAR, FRAME_LF, "TODO");
   Operand src = initVarOperand(OP_VAR, FRAME_LF, "TODO");
-  Instruction inst;
-  initInstr2(&inst, INST_MOVE, dest, src);
+  Instruction inst = initInstr2(INST_MOVE, dest, src);
   printInstruction(&inst, outputStream);
 
   return 0;
@@ -161,8 +155,7 @@ int generateConditionalBlock(ASTNode *node)
 int generateFunctionCall(ASTNode *node)
 {
   // Create TF for parameters
-  Instruction createFrameInst;
-  initInstr0(&createFrameInst, INST_CREATEFRAME);
+  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
   printInstruction(&createFrameInst, outputStream);
 
   // Add parameters
@@ -172,18 +165,15 @@ int generateFunctionCall(ASTNode *node)
   }
 
   // Push frame
-  Instruction pushFrameInst;
-  initInstr0(&pushFrameInst, INST_PUSHFRAME);
+  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
   printInstruction(&pushFrameInst, outputStream);
 
   // Call function
-  Instruction callInst;
-  initInstr1(&callInst, INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
+  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
   printInstruction(&callInst, outputStream);
 
   // Pop frame
-  Instruction popFrameInst;
-  initInstr0(&popFrameInst, INST_POPFRAME);
+  Instruction popFrameInst = initInstr0(INST_POPFRAME);
   printInstruction(&popFrameInst, outputStream);
 
   return 0;

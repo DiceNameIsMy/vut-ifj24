@@ -156,10 +156,10 @@ Operand initEmptyOperand();
 
 void destroyOperand(Operand *op);
 
-int initInstr0(Instruction *inst, InstType type);
-int initInstr1(Instruction *inst, InstType type, Operand opFirst);
-int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond);
-int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird);
+Instruction initInstr0(InstType type);
+Instruction initInstr1(InstType type, Operand opFirst);
+Instruction initInstr2(InstType type, Operand opFirst, Operand opSecond);
+Instruction initInstr3(InstType type, Operand opFirst, Operand opSecond, Operand opThird);
 
 void destroyInstruction(Instruction *inst);
 

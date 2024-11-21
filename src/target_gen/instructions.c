@@ -114,74 +114,87 @@ void destroyOperand(Operand *op)
     }
 }
 
-int initInstr0(Instruction *inst, InstType type)
+
+Instruction initInstr0(InstType type)
 {
     if (!hasNoOperands(type))
     {
         loginfo("Instruction %s does not support 0 operands", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand());
+    Instruction inst;
+    if (!initInstruction(&inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand())) {
+        exit(99);
+    }
 }
 
-int initInstr1(Instruction *inst, InstType type, Operand opFirst)
+Instruction initInstr1(InstType type, Operand opFirst)
 {
     if (!hasOneOperand(type))
     {
         loginfo("Instruction %s does not support 1 operand", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isFirstOperandValid(type, opFirst))
     {
         loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, opFirst, initEmptyOperand(), initEmptyOperand());
+    Instruction inst;
+    if (!initInstruction(&inst, type, opFirst, initEmptyOperand(), initEmptyOperand())) {
+        exit(99);
+    }
 }
 
-int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond)
+Instruction initInstr2(InstType type, Operand opFirst, Operand opSecond)
 {
     if (!hasTwoOperands(type))
     {
         loginfo("Instruction %s does not support 2 operands", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isFirstOperandValid(type, opFirst))
     {
         loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isSecondOperandValid(type, opSecond))
     {
         loginfo("Invalid 2nd operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, opFirst, opSecond, initEmptyOperand());
+    Instruction inst;
+    if (!initInstruction(&inst, type, opFirst, opSecond, initEmptyOperand())) {
+        exit(99);
+    }
 }
 
-int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird)
+Instruction initInstr3(InstType type, Operand opFirst, Operand opSecond, Operand opThird)
 {
     if (!hasThreeOperands(type))
     {
         loginfo("Instruction %s does not support 3 operands", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isFirstOperandValid(type, opFirst))
     {
         loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isSecondOperandValid(type, opSecond))
     {
         loginfo("Invalid 2nd operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isThirdOperandValid(type, opThird))
     {
         loginfo("Invalid 3rd operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, opFirst, opSecond, opThird);
+    Instruction inst;
+    if (!initInstruction(&inst, type, opFirst, opSecond, opThird)) {
+        exit(99);
+    }
 }
 
 void destroyInstruction(Instruction *inst)
