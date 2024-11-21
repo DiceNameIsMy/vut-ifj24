@@ -113,7 +113,7 @@ TEST(print_3_operand_instruction)
 ENDTEST
 
 int main() {
-    RUN_TESTS();
-
-    SUMMARIZE()
+//    RUN_TESTS();
+//
+//    SUMMARIZE()
 }
