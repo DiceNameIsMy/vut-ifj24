@@ -6,6 +6,7 @@
 #include "structs/ast.h"
 #include "structs/symtable.h"
 #include "logging.h"
+#include "target_gen/target_gen.h"
 
 #define CHUNK_SIZE 1024
 
@@ -60,11 +61,10 @@ int main(void) {
 
     astNode = parseInit(&tokenArray, &Table); // Parse the source code
 
-    generateTargetCode(astNode, &Table, stdout); // Generate the target code
+    //generateTargetCode(astNode, &Table, stdout); // Generate the target code
 
     freeTokenArray(&tokenArray); // Free the token array
-
-    printf("Hello, World!\n");
+    clearAstNode(astNode);
     return 0;
 }
 
