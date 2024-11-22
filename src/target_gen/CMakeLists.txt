@@ -4,6 +4,7 @@ set(SOURCE_FILES
     instructions.c
     target_gen.c
     target_func_scope.c
+    target_label_context.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
