@@ -40,18 +40,15 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
             SymTable_AddSymbol(table, &funName);
             token_no+=2;
             if(token_no >= array->size || array->tokens[token_no].type != TOKEN_LEFT_ROUND_BRACKET) {
-                fprintf(stderr, "NO LEFT BRACKET\n");
                 exit(2);
             }
             token_no++;        
             while(array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET) {
                 if(token_no >= array->size || array->tokens[token_no].type != TOKEN_ID) {
-                    fprintf(stderr, "NO ID\n");
                     exit(2);
                 }
                 token_no++;
                 if(token_no >= array->size || array->tokens[token_no].type != TOKEN_COLON) {
-                    fprintf(stderr, "NO COLON\n");
                     exit(2);
                 }
                 token_no++;
@@ -78,13 +75,11 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
                         SymTable_PushFuncParam(table, funName.name, U8_ARRAY);
                         break;
                     default:
-                        fprintf(stderr, "JUST FOR LULZ\n");
                         exit(2);
                 }
                 token_no++;
                 if(token_no >= array->size || 
                    (array->tokens[token_no].type != TOKEN_COMMA && array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET)) {
-                    fprintf(stderr, "NO RIGHT BRACKET NOR COMMA\n");
                     exit(2);
                 }
                 if(array->tokens[token_no].type == TOKEN_RIGHT_ROUND_BRACKET) {
@@ -505,7 +500,6 @@ ASTNode* parseConstDeclaration() {
         symbol.type = typeNode->valType; //the type we expect from the exptession on the right
     }
 
-    SymTable_AddSymbol(sym_Table, &symbol);
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
@@ -513,7 +507,9 @@ ASTNode* parseConstDeclaration() {
         fprintf(stderr, "Error: Cannot assign to a variable of an uncompatible type\n");
         exit(7);//I'll lookup the right code later or even write a special routine for this
     }
+    symbol.type = exprNode->valType;
 
+    SymTable_AddSymbol(sym_Table, &symbol);
     // Create the AST node for the const declaration
     ASTNode* constNode = createASTNode(ConstDeclaration, constName);
     constNode->left = typeNode;    // Attach type as left child (if available)
@@ -807,7 +803,6 @@ ASTNode* parseVarDeclaration() {
         symbol.type = typeNode->valType;
     }
 
-    SymTable_AddSymbol(sym_Table, &symbol);
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
@@ -816,7 +811,9 @@ ASTNode* parseVarDeclaration() {
         fprintf(stderr, "Error: Cannot assign a value to a variable of incompatible type\n");
         exit(7);
     }
+    symbol.type = exprNode->valType;
 
+    SymTable_AddSymbol(sym_Table, &symbol);
     // Create AST node for variable declaration
     ASTNode* varNode = createASTNode(VarDeclaration, varName);
     varNode->left = typeNode;   // Attach type as left child (if available)
@@ -913,9 +910,9 @@ ASTNode* parseIfStatement() {
     // Parse the condition expression
     ASTNode* conditionNode = parseExpression();
 
-    if(conditionNode->valType != BOOL) { //PERHAPS
+    if(conditionNode->valType != BOOL && conditionNode->valType != I32) { //PERHAPS
         fprintf(stderr, "Error: Cannot evaluate a condition\n");
-        exit(10);
+        exit(7);
     }
     
     match(TOKEN_RIGHT_ROUND_BRACKET);  // Match ')'
@@ -926,6 +923,14 @@ ASTNode* parseIfStatement() {
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar = strdup(token.attribute.str);
+        Symbol symbol;
+        symbol.name = token.attribute.str;
+        symbol.type = NONETYPE;
+        symbol.mut = true;
+        symbol.init = false;
+        symbol.retType = NONETYPE;
+        symbol.paramList = NULL;
+        SymTable_AddSymbol(sym_Table, &symbol);
         if_malloc_error(bindingVar);
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode(NullBinding, bindingVar);
@@ -970,20 +975,29 @@ ASTNode* parseWhileStatement() {
 
     // Parse the condition expression
     ASTNode* conditionNode = parseExpression();
-    if(conditionNode->valType != BOOL) {
+    if(conditionNode->valType != BOOL && conditionNode->valType != I32) {
         fprintf(stderr, "Error: Cannot evaluate a condition\n");
-        exit(10);
+        exit(7);
     }
     match(TOKEN_RIGHT_ROUND_BRACKET);   // Match ')'
 
     // Handle nullable binding if present
     ASTNode* bindingNode = NULL;
+    SymTable_NewScope(sym_Table);
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar;
         if(isMatch(TOKEN_ID)) {
             bindingVar = strdup(token.attribute.str);
             if_malloc_error(bindingVar);
+            Symbol symbol;
+            symbol.name = token.attribute.str;
+            symbol.type = NONETYPE;
+            symbol.mut = true;
+            symbol.init = false;
+            symbol.retType = NONETYPE;
+            symbol.paramList = NULL;
+            SymTable_AddSymbol(sym_Table, &symbol);
         }
         else{
             // Handle syntax error
@@ -995,7 +1009,6 @@ ASTNode* parseWhileStatement() {
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
     }
 
-    SymTable_NewScope(sym_Table);
     match(TOKEN_LEFT_CURLY_BRACKET);    // Match '{'
     ASTNode* bodyNode = parseStatementList();  // Parse the loop body
     SymTable_UpperScope(sym_Table);
