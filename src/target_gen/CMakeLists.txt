@@ -1,8 +1,9 @@
 project(TargetGenLib)
 
 set(SOURCE_FILES
-    target_gen.c
     instructions.c
+    target_gen.c
+    target_func_scope.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
