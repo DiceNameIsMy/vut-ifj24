@@ -1,8 +1,5 @@
 .IFJcode24
 
-# It's easiest to jump to main at the beginning, 
-# because we can't define functions after main.
-
 CALL main
 JUMP endProgram
 
