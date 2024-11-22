@@ -60,7 +60,7 @@ int main(void) {
 
     astNode = parseInit(&tokenArray, &Table); // Parse the source code
 
-    generateTargetCode(astNode, symTable, stdout); // Generate the target code
+    generateTargetCode(astNode, &Table, stdout); // Generate the target code
 
     freeTokenArray(&tokenArray); // Free the token array
 

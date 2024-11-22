@@ -6,6 +6,7 @@
 #include "structs/symtable.h"
 #include "structs/bvs.h"
 #include "structs/stack.h"
+#include <string.h>
 #include <stdio.h>
 
 #define MAX_SCOPES 65536 
