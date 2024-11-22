@@ -42,7 +42,7 @@ int read_source_code(const char *filename, char **source_code) {
 
 TEST(parse_basic_program)
     char *source_code;
-    if (read_source_code("tests/input/syntax/program.ifj24.zig", &source_code)) {
+    if (read_source_code("/home/gladiator/Projects/IFJ/vut-ifj24/tests/input/syntax/program.ifj24.zig", &source_code)) {
         return;
     }
     freeTokenArray(&tokenArray);
@@ -57,7 +57,7 @@ ENDTEST
 
 TEST(parse_fac_iter_funcs_program)
     char *source_code;
-    if (read_source_code("tests/input/syntax/factorial_iter.ifj24.zig", &source_code)) {
+    if (read_source_code("/home/gladiator/Projects/IFJ/vut-ifj24/tests/input/syntax/factorial_iter.ifj24.zig", &source_code)) {
         return;
     }
     freeTokenArray(&tokenArray);

@@ -26,19 +26,19 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
             funName.paramList = NULL;
             SymTable_AddSymbol(table, &funName);
             token_no+=2;
-            if(token_no >= array->size) {
-                exit(2);
-            }
-            if(array->tokens[token_no].type != TOKEN_LEFT_ROUND_BRACKET) {
+            if(token_no >= array->size || array->tokens[token_no].type != TOKEN_LEFT_ROUND_BRACKET) {
+                fprintf(stderr, "NO LEFT BRACKET\n");
                 exit(2);
             }
             token_no++;        
             while(array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET) {
                 if(token_no >= array->size || array->tokens[token_no].type != TOKEN_ID) {
+                    fprintf(stderr, "NO ID\n");
                     exit(2);
                 }
                 token_no++;
                 if(token_no >= array->size || array->tokens[token_no].type != TOKEN_COLON) {
+                    fprintf(stderr, "NO COLON\n");
                     exit(2);
                 }
                 token_no++;
@@ -65,11 +65,13 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
                         SymTable_PushFuncParam(table, funName.name, U8_ARRAY);
                         break;
                     default:
+                        fprintf(stderr, "JUST FOR LULZ\n");
                         exit(2);
                 }
                 token_no++;
                 if(token_no >= array->size || 
                    (array->tokens[token_no].type != TOKEN_COMMA && array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET)) {
+                    fprintf(stderr, "NO RIGHT BRACKET NOR COMMA\n");
                     exit(2);
                 }
                 if(array->tokens[token_no].type == TOKEN_RIGHT_ROUND_BRACKET) {
@@ -101,7 +103,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
                     SymTable_SetRetType(table, funName.name, U8_ARRAY);
                     break;
                 default:
-                    exit(2);
+                    SymTable_SetRetType(table, funName.name, NONETYPE);
             }
         }
     }
@@ -651,6 +653,8 @@ ASTNode* parseFactor() {
                 exit(2); // or handle error gracefully
             }
 
+            match(TOKEN_ID);
+
             // Parse function call parameters
             ASTNode* params = NULL;
             if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
@@ -757,10 +761,17 @@ ASTNode* parseFunctionCall(char *funcName) {
 ASTNode* parseVarDeclaration() {
     match(TOKEN_KEYWORD_VAR);  // Match 'var' keyword
     char* varName;
+    Symbol symbol;
     // Capture variable name
     if (isMatch(TOKEN_ID)){
         varName = strdup(token.attribute.str);
         if_malloc_error(varName);
+        symbol.name = token.attribute.str;
+        symbol.type = NONETYPE;
+        symbol.mut = true;
+        symbol.init = true;
+        symbol.retType = NONETYPE;
+        symbol.paramList = NULL;
     } else{
         // Handle syntax error
         fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
@@ -770,9 +781,18 @@ ASTNode* parseVarDeclaration() {
 
     // Use parseVarType to handle optional type annotation
     ASTNode* typeNode = parseVarType();  // Returns the type node or NULL if no type
+    if (typeNode != NULL) {
+        symbol.type = typeNode->valType;
+    }
+
+    SymTable_AddSymbol(sym_Table, &symbol);
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
+
+    if(!isConv(symbol.type, exprNode->valType)) {
+        exit(-1);
+    }
 
     // Create AST node for variable declaration
     ASTNode* varNode = createASTNode(VarDeclaration, varName);
@@ -797,17 +817,33 @@ ASTNode* parseAssignmentOrFunctionCall() {
         match(TOKEN_DOT);
 
         // Parse the function name after the dot
-        char* functionName = strdup(token.attribute.str);
+        char *functionName;
+        if(isMatch(TOKEN_ID)) {
+            functionName = (char *)calloc(100, sizeof(char)); //MAX_FUNCTIONNAME_LENGTH=100
+            strcat(functionName, identifier);
+            strcat(functionName, ".");
+            strcat(functionName, token.attribute.str); //build a function name
+            if_malloc_error(functionName);
+        } else {
+            exit(2);
+        }
+        
         match(TOKEN_ID);
 
         // Parse function call parameters
         ASTNode* params = NULL;
         if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
             params = parseFunctionCall(functionName);
+        } else {
+            exit(2);
         }
 
         // Create a node for the qualified function call
         ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
+        funcCallNode->valType = SymTable_GetRetType(sym_Table, functionName);
+        if(funcCallNode->valType != NONETYPE) {
+            exit(-1);
+        }
         funcCallNode->left = params;  // Attach parameters as left child
         // Attach the main identifier (e.g., 'ifj') as an additional node
         match(TOKEN_SEMICOLON);  // Match ';'
@@ -818,6 +854,9 @@ ASTNode* parseAssignmentOrFunctionCall() {
         match(TOKEN_ASSIGNMENT);  // Match '='
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
+        if(!isConv(SymTable_GetType(sym_Table, identifier), exprNode->valType)) { //typecheck
+            exit(-1);
+        }
         ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
         assignNode->left = exprNode;  // Attach the expression as the left child
 
@@ -826,6 +865,9 @@ ASTNode* parseAssignmentOrFunctionCall() {
     } else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
         // Handle function call
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
+        if(SymTable_GetRetType(sym_Table, identifier) != NONETYPE) {
+            exit(-1);
+        }
         funcCallNode->left = parseFunctionCall(identifier);  // Attach the argument list as the left child
 
         match(TOKEN_SEMICOLON);  // Match ';'
