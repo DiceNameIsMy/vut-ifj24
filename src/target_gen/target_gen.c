@@ -3,6 +3,7 @@
 //
 
 #include <string.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "structs/ast.h"
@@ -17,18 +18,24 @@ SymTable *symbolTable;
 /* Private Function Declarations */
 /**********************************************************/
 
-int generateFunctions(ASTNode *node);
-int generateStatements(ASTNode *node);
-int generateAssignment(ASTNode *node);
+void generateFunctions(ASTNode *node);
+void generateStatements(ASTNode *node);
+void generateAssignment(ASTNode *node);
 
 /// @brief Expression is converted to a sequence of
-/// instructions that lead to outVar value to be computed.
-int generateExpression(ASTNode *node, Operand *outVar);
+///        instructions that lead to outVar value to be computed.
+void generateExpression(ASTNode *node, Operand *outVar);
+void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
-int generateConditionalBlock(ASTNode *node);
-int generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
-int generateFunctionCall(ASTNode *node);
-int generateFunctionCallParameters(ASTNode *node);
+void generateConditionalBlock(ASTNode *node);
+void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
+void generateFunctionCall(ASTNode *node);
+void generateFunctionCallParameters(ASTNode *node);
+
+InstType binaryNodeToInstructionType(ASTNode *node);
+bool negateBinaryInstruction(ASTNode *node);
+Operand initConstantOperand(ASTNode *node);
+bool isVarOrConstant(ASTNode *node);
 
 /**********************************************************/
 /* Public Functions Definitions */
@@ -80,11 +87,7 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   printInstruction(&jumpToEndInst, target_outputStream);
 
   // Generate functions
-  int result = generateFunctions(root->right);
-  if (result != 0)
-  {
-    return result;
-  }
+  generateFunctions(root->right);
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
@@ -99,10 +102,8 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
 /* Private Functions Definitions */
 /**********************************************************/
 
-int generateFunctions(ASTNode *node)
+void generateFunctions(ASTNode *node)
 {
-  int result = 0;
-
   // Add label for function name
   Operand var = initStringOperand(OP_LABEL, node->value.string);
   Instruction inst = initInstr1(INST_LABEL, var);
@@ -114,23 +115,16 @@ int generateFunctions(ASTNode *node)
   // - Get all variables in this scope using a symtable
 
   // Add function body
-  result = generateStatements(node->right);
-  if (result != 0)
-  {
-    return result;
-  }
+  generateStatements(node->right);
 
   // Generate every other function
   if (node->next != NULL)
   {
     return generateFunctions(node->next);
   }
-
-  // All functions were generated successfully
-  return 0;
 }
 
-int generateStatements(ASTNode *node)
+void generateStatements(ASTNode *node)
 {
   while (node != NULL)
   {
@@ -166,12 +160,11 @@ int generateStatements(ASTNode *node)
   // Generate every consecutive statement
   if (node->next != NULL)
   {
-    return generateStatements(node->next);
+    generateStatements(node->next);
   }
-  return 0;
 }
 
-int generateAssignment(ASTNode *node)
+void generateAssignment(ASTNode *node)
 {
   assert(node->nodeType == Assignment);
   assert(node->left->nodeType == Identifier);
@@ -189,12 +182,12 @@ int generateAssignment(ASTNode *node)
 
   // Generate assigment evaluation
   generateExpression(node->right, &dest);
-
-  return 0;
 }
 
-int generateExpression(ASTNode *node, Operand *outVar)
+void generateExpression(ASTNode *node, Operand *outVar)
 {
+  Instruction inst;
+
   switch (node->nodeType)
   {
   case AddOperation:
@@ -212,12 +205,12 @@ int generateExpression(ASTNode *node, Operand *outVar)
 
   case FuncCall:
     generateFunctionCall(node);
-    assert(node->right->nodeType, ReturnType);
+    assert(node->right->nodeType == ReturnType);
 
     bool returnsVoid = strcmp(node->right->value.string, "void") == 0;
     if (!returnsVoid)
     {
-      Instruction inst = initInstr1(INST_POPS, *outVar);
+      inst = initInstr1(INST_POPS, *outVar);
       printInstruction(&inst, target_outputStream);
     }
     break;
@@ -227,7 +220,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case Identifier:
-    Instruction inst = initInstr2(
+    inst = initInstr2(
         INST_MOVE,
         *outVar,
         initVarOperand(OP_VAR, FRAME_LF, node->value.string));
@@ -235,7 +228,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case IntLiteral:
-    Instruction inst = initInstr2(
+    inst = initInstr2(
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer}));
@@ -243,7 +236,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case FloatLiteral:
-    Instruction inst = initInstr2(
+    inst = initInstr2(
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real}));
@@ -251,7 +244,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case StringLiteral:
-    Instruction inst = initInstr2(
+    inst = initInstr2(
         INST_MOVE,
         *outVar,
         initStringOperand(OP_CONST_STRING, node->value.string));
@@ -259,7 +252,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case NullLiteral:
-    Instruction inst = initInstr2(
+    inst = initInstr2(
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_NIL, (OperandAttribute){}));
@@ -270,11 +263,9 @@ int generateExpression(ASTNode *node, Operand *outVar)
     loginfo("Unexpected factor type: %s", nodeTypeToString(node->nodeType));
     exit(99);
   }
-
-  return 0;
 }
 
-int generateBinaryExpression(ASTNode *node, Operand *outVar)
+void generateBinaryExpression(ASTNode *node, Operand *outVar)
 {
   InstType instType = binaryNodeToInstructionType(node);
   bool negate = negateBinaryInstruction(node);
@@ -428,7 +419,7 @@ bool isVarOrConstant(ASTNode *node)
   return node->nodeType == Identifier || node->nodeType == IntLiteral || node->nodeType == FloatLiteral || node->nodeType == StringLiteral || node->nodeType == NullLiteral;
 }
 
-int generateConditionalBlock(ASTNode *node)
+void generateConditionalBlock(ASTNode *node)
 {
   // express condition & put it into a local variable
   // jump to label on false
@@ -441,10 +432,9 @@ int generateConditionalBlock(ASTNode *node)
   // run generateStatements
 
   // label
-  return 0;
 }
 
-int generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
+void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
   assert(node->nodeType == BuiltInFunctionCall);
 
@@ -493,11 +483,9 @@ int generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     loginfo("Unexpected builtin function call: %s", node->value.string);
     exit(99);
   }
-
-  return 0;
 }
 
-int generateFunctionCall(ASTNode *node)
+void generateFunctionCall(ASTNode *node)
 {
   assert(node->nodeType == FuncCall);
 
@@ -506,11 +494,7 @@ int generateFunctionCall(ASTNode *node)
   printInstruction(&createFrameInst, target_outputStream);
 
   // Add parameters
-  int result = generateFunctionCallParameters(node->left);
-  if (result != 0)
-  {
-    return result;
-  }
+  generateFunctionCallParameters(node->left);
 
   // Push frame
   Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
@@ -523,12 +507,9 @@ int generateFunctionCall(ASTNode *node)
   // Pop frame
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
   printInstruction(&popFrameInst, target_outputStream);
-
-  // Return value is stored in Stack.
-  return 0;
 }
 
-int generateFunctionCallParameters(ASTNode *node)
+void generateFunctionCallParameters(ASTNode *node)
 {
   // TODO: Some loop to go through all parameters, define and assign them
 
@@ -548,6 +529,4 @@ int generateFunctionCallParameters(ASTNode *node)
 
   Instruction instr = initInstr2(INST_MOVE, param, var);
   printInstruction(&instr, target_outputStream);
-
-  return 0;
 }

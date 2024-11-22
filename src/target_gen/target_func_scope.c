@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "logging.h"
 
 #include "structs/queue.h"
@@ -25,7 +27,7 @@ Instruction TargetFS_PopNext(TargetFuncScope *scope) {
     if (!Queue_IsEmpty(scope->varDeclarationsQueue)) {
 
         Variable *var = NULL;
-        Queue_Dequeue(scope->varDeclarationsQueue, &var);
+        Queue_Dequeue(scope->varDeclarationsQueue, (void **)&var);
         if (var == NULL) {
             loginfo("No more variables to pop from the function scope, even though there should be");
             exit(99);
@@ -42,7 +44,7 @@ Instruction TargetFS_PopNext(TargetFuncScope *scope) {
     if (!Queue_IsEmpty(scope->otherInstructionsQueue)) {
 
         Instruction *instPtr = NULL;
-        Queue_Dequeue(scope->otherInstructionsQueue, &instPtr);
+        Queue_Dequeue(scope->otherInstructionsQueue, (void **)&instPtr);
         if (instPtr == NULL) {
             loginfo("No more instructions to pop from the function scope, even though there should be");
             exit(99);

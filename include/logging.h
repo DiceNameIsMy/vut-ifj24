@@ -12,6 +12,7 @@
 #endif
 
 #ifdef DEBUG
+#include <string.h>
 #define loginfo( s, ... ) \
 fprintf( stderr, "[INF] %s:%u: " s "\n", \
          strstr(__FILE__, BASE_PATH) ? strstr(__FILE__, BASE_PATH) + sizeof(BASE_PATH) - 1 : __FILE__, \
