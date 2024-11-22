@@ -18,7 +18,7 @@
 
 TokenArray tokenArray;
 ASTNode* astNode;
-SymTable *symTable;
+SymTable symTable;
 
 int read_source_code(const char *filename, char **source_code) {
     if (source_code == NULL) {
@@ -48,8 +48,8 @@ TEST(parse_basic_program)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
-    //SymTable_Init(symTable);
-    astNode = parseInit(&tokenArray, symTable);
+    SymTable_Init(&symTable);
+    astNode = parseInit(&tokenArray, &symTable);
     clearAstNode(astNode);
     free(source_code);
 ENDTEST
@@ -63,8 +63,8 @@ TEST(parse_fac_iter_funcs_program)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
-    //SymTable_Init(symTable);
-    astNode = parseInit(&tokenArray, symTable);
+    SymTable_Init(&symTable);
+    astNode = parseInit(&tokenArray, &symTable);
     clearAstNode(astNode);
     free(source_code);
 ENDTEST
@@ -77,8 +77,8 @@ TEST(parse_fac_rec_funcs_program)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
-    //SymTable_Init(symTable);
-    astNode = parseInit(&tokenArray, symTable);
+    SymTable_Init(&symTable);
+    astNode = parseInit(&tokenArray, &symTable);
     clearAstNode(astNode);
     free(source_code);
 ENDTEST
@@ -92,8 +92,8 @@ TEST(parse_stdlib_funcs_program)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
-    //SymTable_Init(symTable);
-    astNode = parseInit(&tokenArray, symTable);
+    SymTable_Init(&symTable);
+    astNode = parseInit(&tokenArray, &symTable);
     clearAstNode(astNode);
     free(source_code);
 ENDTEST
