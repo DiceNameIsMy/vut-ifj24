@@ -15,13 +15,26 @@ unsigned int stat_index = 0;
 bool falseStatement = false;
 
 void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
+    Symbol funWrite = {"ifj.write", FUNCTION, false, true, NONETYPE, NULL};
+    Symbol funReadi32 = {"ifj.readi32", FUNCTION, false, true, I32, NULL};
+    Symbol funf2i = {"ifj.f2i", FUNCTION, false, true, I32, NULL};
+    Symbol funi2f = {"ifj.i2f", FUNCTION, false, true, F64, NULL};
+    SymTable_AddSymbol(table, &funWrite);
+    SymTable_AddSymbol(table, &funReadi32);
+    SymTable_AddSymbol(table, &funf2i);
+    SymTable_AddSymbol(table, &funi2f);
+    SymTable_PushFuncParam(table, "ifj.write", U8_ARRAY);
+    SymTable_PushFuncParam(table, "ifj.f2i", F64);
+    SymTable_PushFuncParam(table, "ifj.i2f", I32);
+    
+    
     int token_no = 0;
     for(token_no = 0; token_no < array->size; token_no++) {
         if(array->tokens[token_no].type == TOKEN_KEYWORD_FN && token_no != array->size - 1 && array->tokens[token_no+1].type == TOKEN_ID) {
             Symbol funName;
             funName.name = array->tokens[token_no + 1].attribute.str;
             funName.init = true;
-            funName.mut = true;
+            funName.mut = false;
             funName.type = FUNCTION;
             funName.paramList = NULL;
             SymTable_AddSymbol(table, &funName);
@@ -130,7 +143,7 @@ type_t idType(Token token) {
 }
 
 bool isConv(type_t type1, type_t type2) {
-    if(type1 != type2 && ((type1 != F64_NULLABLE && type1 != F64) || (type2 != I32_NULLABLE && type2 != I32))) {
+    if(type1 != NONETYPE && type1 != type2 && ((type1 != F64_NULLABLE && type1 != F64) || (type2 != I32_NULLABLE && type2 != I32))) {
       return false;  
     }
     return true;
@@ -497,7 +510,8 @@ ASTNode* parseConstDeclaration() {
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
     if(!isConv(symbol.type, exprNode->valType)) {
-        exit(-1);//I'll lookup the right code later or even write a special routine for this
+        fprintf(stderr, "Error: Cannot assign to a variable of an uncompatible type\n");
+        exit(7);//I'll lookup the right code later or even write a special routine for this
     }
 
     // Create the AST node for the const declaration
@@ -566,7 +580,8 @@ ASTNode* parseRelationalTail(ASTNode* left) {
         ASTNode* right = parseSimpleExpression();
 
         if(!isConv(left->valType, right->valType)) {
-            exit(-1);
+            fprintf(stderr, "Error: Cannot compare uncompatible types\n");
+            exit(7);
         }
         // Create an AST node for the relational operation
         ASTNode* opNode = createBinaryASTNode(operator, left, right);
@@ -591,7 +606,8 @@ ASTNode* parseSimpleExpression() {
         ASTNode* right = parseTerm();
 
         if(!isConv(left->valType, right->valType)) {
-            exit(-1);
+            fprintf(stderr, "Error: cannot add/subtract uncompatible types\n");
+            exit(7);
         }
         // Create a binary operation node
         left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
@@ -613,7 +629,8 @@ ASTNode* parseTerm() {
         // Parse the next factor (right operand)
         ASTNode* right = parseFactor();
         if(!isConv(right->valType, left->valType)) {
-            exit(-1);
+            fprintf(stderr, "Error: cannot multiply/divide uncompatible types\n");
+            exit(7);
         }
         // Create a binary operation node
         left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
@@ -726,9 +743,11 @@ ASTNode* parseFunctionCall(char *funcName) {
     if (token.type != TOKEN_RIGHT_ROUND_BRACKET) {
         argsHead = parseExpression();  // Parse the first argument expression
         currentArg = argsHead;
+
         
-        if(param == NULL || currentArg->valType != param->paramType) { //incorrect count or type
-            exit(-1);
+        if(param == NULL || (currentArg->valType != param->paramType)) { //incorrect count or type
+            fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
+            exit(4);
         }
 
         // Parse additional arguments, if any, separated by commas
@@ -742,14 +761,17 @@ ASTNode* parseFunctionCall(char *funcName) {
 
             param = param->next;
             if(param == NULL || currentArg->valType != param->paramType) {
-                exit(-1);
+            fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
+                exit(4);
             }
         }
     }
-    
-    param = param->next;
+    if(param != NULL) {
+        param = param->next;
+    }
     if(param != NULL) { //too few arguments
-        exit(-1); 
+        fprintf(stderr, "Error: Too few arguments provided fpr function %s\n", funcName);
+        exit(4); 
     }
     
     match(TOKEN_RIGHT_ROUND_BRACKET);  // Match ')'
@@ -791,7 +813,8 @@ ASTNode* parseVarDeclaration() {
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
 
     if(!isConv(symbol.type, exprNode->valType)) {
-        exit(-1);
+        fprintf(stderr, "Error: Cannot assign a value to a variable of incompatible type\n");
+        exit(7);
     }
 
     // Create AST node for variable declaration
@@ -842,7 +865,8 @@ ASTNode* parseAssignmentOrFunctionCall() {
         ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
         funcCallNode->valType = SymTable_GetRetType(sym_Table, functionName);
         if(funcCallNode->valType != NONETYPE) {
-            exit(-1);
+            fprintf(stderr, "Error: Function (%s) output is abandoned\n", functionName);
+            exit(4);
         }
         funcCallNode->left = params;  // Attach parameters as left child
         // Attach the main identifier (e.g., 'ifj') as an additional node
@@ -855,7 +879,8 @@ ASTNode* parseAssignmentOrFunctionCall() {
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
         if(!isConv(SymTable_GetType(sym_Table, identifier), exprNode->valType)) { //typecheck
-            exit(-1);
+            fprintf(stderr, "Error: Cannot assign a value to a variable of uncompatible type\n");
+            exit(7);
         }
         ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
         assignNode->left = exprNode;  // Attach the expression as the left child
@@ -866,7 +891,8 @@ ASTNode* parseAssignmentOrFunctionCall() {
         // Handle function call
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
         if(SymTable_GetRetType(sym_Table, identifier) != NONETYPE) {
-            exit(-1);
+            fprintf(stderr, "Error: Function (%s) output is abandoned\n", identifier);
+            exit(4);
         }
         funcCallNode->left = parseFunctionCall(identifier);  // Attach the argument list as the left child
 
@@ -886,10 +912,17 @@ ASTNode* parseIfStatement() {
 
     // Parse the condition expression
     ASTNode* conditionNode = parseExpression();
+
+    if(conditionNode->valType != BOOL) { //PERHAPS
+        fprintf(stderr, "Error: Cannot evaluate a condition\n");
+        exit(10);
+    }
+    
     match(TOKEN_RIGHT_ROUND_BRACKET);  // Match ')'
 
     // Handle nullable binding if present
     ASTNode* bindingNode = NULL;
+    SymTable_NewScope(sym_Table);
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar = strdup(token.attribute.str);
@@ -901,6 +934,7 @@ ASTNode* parseIfStatement() {
 
     match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
     ASTNode* trueBranch = parseStatementList();  // Parse statements in the true branch
+    SymTable_UpperScope(sym_Table);
     match(TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
 
     // Optional 'else' block
@@ -911,8 +945,10 @@ ASTNode* parseIfStatement() {
         if (token.type == TOKEN_KEYWORD_IF){
             falseBranch = parseIfStatement();
         } else{
+            SymTable_NewScope(sym_Table);
             match(TOKEN_LEFT_CURLY_BRACKET); // Match '{'
             falseBranch = parseStatementList();  // Parse statements in the false branch
+            SymTable_UpperScope(sym_Table);
             match(TOKEN_RIGHT_CURLY_BRACKET);    // Match '}'
         }
     }
@@ -934,6 +970,10 @@ ASTNode* parseWhileStatement() {
 
     // Parse the condition expression
     ASTNode* conditionNode = parseExpression();
+    if(conditionNode->valType != BOOL) {
+        fprintf(stderr, "Error: Cannot evaluate a condition\n");
+        exit(10);
+    }
     match(TOKEN_RIGHT_ROUND_BRACKET);   // Match ')'
 
     // Handle nullable binding if present
@@ -955,8 +995,10 @@ ASTNode* parseWhileStatement() {
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
     }
 
+    SymTable_NewScope(sym_Table);
     match(TOKEN_LEFT_CURLY_BRACKET);    // Match '{'
     ASTNode* bodyNode = parseStatementList();  // Parse the loop body
+    SymTable_UpperScope(sym_Table);
     match(TOKEN_RIGHT_CURLY_BRACKET);   // Match '}'
 
     // Create the AST node for the while statement
@@ -980,6 +1022,7 @@ ASTNode* parseReturnStatement() {
 
     // Create the AST node for the return statement
     ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
+    returnNode->valType = (exprNode == NULL) ? NONETYPE : exprNode->valType;
     returnNode->left = exprNode;  // Attach the expression as the left child (if present)
 
     match(TOKEN_SEMICOLON);  // Match ';'

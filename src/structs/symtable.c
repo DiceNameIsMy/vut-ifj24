@@ -39,66 +39,103 @@ void SymTable_UpperScope(SymTable *table) {
 }
 
 Symbol *SymTable_Search(SymTable *table, char *name) {
-  return ((Symbol *)(BVS_Search(table->current->tree, name)));
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  return ((Symbol *)(BVS_Search(current->tree, name)));
 }
 
 void SymTable_SetType(SymTable *table, char *name, type_t type) {
-  ((Symbol *)(BVS_Search(table->current->tree, name)))->type = type;//TODO: implement "current" mechanism
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  ((Symbol *)(BVS_Search(current->tree, name)))->type = type;//TODO: implement "current" mechanism
   return;
 }
 
 void SymTable_SetMut(SymTable *table, char *name, bool isMutable) {
-  ((Symbol *)(BVS_Search(table->current->tree, name)))->mut = isMutable;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  ((Symbol *)(BVS_Search(current->tree, name)))->mut = isMutable;
   return;
 }
 
 void SymTable_SetInit(SymTable *table, char *name, bool isInit) {
-  ((Symbol *)(BVS_Search(table->current->tree, name)))->init = isInit;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  ((Symbol *)(BVS_Search(current->tree, name)))->init = isInit;
   return;
 }
 
 void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType) {
-  Symbol *symbol = (Symbol *)(BVS_Search(table->current->tree, name));
-  Param *current = symbol->paramList;
-  if(current == NULL) {
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  Symbol *symbol = (Symbol *)(BVS_Search(current->tree, name));
+  
+  Param *currentParam = symbol->paramList;
+  if(currentParam == NULL) {
     symbol->paramList = (Param *)malloc(sizeof(Param));
     symbol->paramList->paramType = paramType;
     symbol->paramList->next = NULL;
+  fprintf(stderr, "Param pushed for %s\n", name);
     return;
   }
-  Param *next = current;
-  while(next != NULL) {
-    current = next;
-    next = current->next;
+  Param *nextParam = currentParam;
+  while(nextParam != NULL) {
+    currentParam = nextParam;
+    nextParam = currentParam->next;
   }
-  current->next = (Param *)malloc(sizeof(Param));
-  current->next->paramType = paramType;
-  current->next->next = NULL;
+  currentParam->next = (Param *)malloc(sizeof(Param));
+  currentParam->next->paramType = paramType;
+  currentParam->next->next = NULL;
+  fprintf(stderr, "Param pushed for %s", name);
   return;
 }
 
 void SymTable_SetRetType(SymTable *table, char *name, type_t retType) {
-  ((Symbol *)(BVS_Search(table->current->tree, name)))->retType = retType;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  ((Symbol *)(BVS_Search(current->tree, name)))->retType = retType;
+  return;
 }
 
 type_t SymTable_GetType(SymTable *table, char *name) {
-  return ((Symbol *)(BVS_Search(table->current->tree, name)))->type;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  return ((Symbol *)(BVS_Search(current->tree, name)))->type;
 }
 
 bool SymTable_GetMut(SymTable *table, char *name) {
-  return ((Symbol *)(BVS_Search(table->current->tree, name)))->mut;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  return ((Symbol *)(BVS_Search(current->tree, name)))->mut;
 }
 
 bool SymTable_GetInit(SymTable *table, char *name) {
-  return ((Symbol *)(BVS_Search(table->current->tree, name)))->init;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  return ((Symbol *)(BVS_Search(current->tree, name)))->init;
 }
 
 type_t SymTable_GetRetType(SymTable *table, char *name) {
-  return ((Symbol *)(BVS_Search(table->current->tree, name)))->retType;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  return ((Symbol *)(BVS_Search(current->tree, name)))->retType;
 }
 
 Param *SymTable_GetParamList(SymTable *table, char *name) {
-  return ((Symbol *)(BVS_Search(table->current->tree, name)))->paramList;
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  return ((Symbol *)(BVS_Search(current->tree, name)))->paramList;
 }
 
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol) {
