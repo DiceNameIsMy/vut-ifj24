@@ -1,7 +1,12 @@
 .IFJcode24
 
+CREATEFRAME # Create an initial frame for calling the main function
+PUSHFRAME
+
 CALL main
-JUMP endProgram
+POPFRAME # Get rid of the frame
+
+JUMP endProgram # Finish the program execution
 
 # Expects:
 # - LF@number
@@ -34,10 +39,60 @@ LABEL func
 
     RETURN
 
+LABEL if_statements
+    # To generate an if statement with null binding: if (a) |b| { ... }
+        DEFVAR LF@a
+        DEFVAR LF@tmp
+        DEFVAR LF@tmp2
+        DEFVAR LF@b
+
+        # Compare type with nil
+        TYPE LF@tmp LF@a
+        EQ LF@tmp2 LF@tmp string@nil
+
+        # Execute an if check
+        JUMPIFEQ condition_is_false LF@tmp2 bool@false
+        
+        # Export value to b before running the block
+        MOVE LF@b LF@a
+
+        # { ... }
+
+        LABEL condition_is_false
+
+    # To generate an if statement with else: if (x) { ... } else { ... }
+        DEFVAR LF@x
+        MOVE LF@x bool@true
+        JUMPIFEQ else_branch LF@x bool@false
+
+        # { ... }
+        WRITE string@Running\032useful\032code(if)...\010
+
+        JUMP end_if
+        LABEL else_branch
+
+        # { ... }
+        WRITE string@Running\032useful\032code(else)...\010
+
+        LABEL end_if
+
+    RETURN
+
+
 LABEL main
-    # Create frame for local variables
-    CREATEFRAME
-    PUSHFRAME
+    # Given 2 strings,
+    DEFVAR LF@x
+    DEFVAR LF@y
+    MOVE LF@x string@hello
+    MOVE LF@y string@hello
+
+    # Here's how to compare them
+    DEFVAR LF@z
+    EQ LF@z LF@x LF@y
+
+    WRITE string@Comparison\032result:\032
+    WRITE LF@z
+    WRITE string@\010
 
     # Define a variable
     DEFVAR LF@magic_number
@@ -57,8 +112,10 @@ LABEL main
     CALL func
     POPFRAME # Get rid of the function's local frame
 
-    # Remove a frame for local variables
-    POPFRAME
+    # Call function
+    PUSHFRAME # Move TF to LF as that's what a function expects
+    CALL if_statements
+    POPFRAME # Get rid of the function's local frame
 
     # Main function is special: it does not have a return at the end.
     RETURN
