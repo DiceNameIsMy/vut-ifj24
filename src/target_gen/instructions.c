@@ -38,38 +38,42 @@ void printOperand(Operand *op);
 /* Public Functions Definitions */
 /**********************************************************/
 
-int initVarAttribute(OperandAttribute *attr, VarFrameType frame, char *name)
+OperandAttribute initVarAttr(VarFrameType frame, char *name)
 {
-    if (attr == NULL || name == NULL)
+    if (name == NULL)
     {
-        return -1;
+        exit(99);
     }
 
-    attr->var.frame = frame;
-    attr->var.name = strdup(name);
-    if (attr->var.name == NULL)
+    OperandAttribute attr;
+    attr.var.frame = frame;
+    attr.var.name = strdup(name);
+    if (attr.var.name == NULL)
     {
         loginfo("Failed to allocate memory for variable name");
-        return -1;
+        exit(99);
     }
 
-    return 0;
+    return attr;
 }
 
-int initStringAttribute(OperandAttribute *attr, char *string)
+
+OperandAttribute Instr_initStringAttribute(char *string)
 {
-    if (attr == NULL || string == NULL)
+    if (string == NULL)
     {
-        return -1;
-    }
-    attr->string = strdup(string);
-    if (attr->string == NULL)
-    {
-        loginfo("Failed to allocate memory for string");
-        return -1;
+        exit(99);
     }
 
-    return 0;
+    OperandAttribute attr;
+    attr.string = strdup(string);
+    if (attr.string == NULL)
+    {
+        loginfo("Failed to allocate memory for string");
+        exit(99);
+    }
+
+    return attr;
 }
 
 Operand initOperand(OperandType type, OperandAttribute attr)
@@ -79,6 +83,15 @@ Operand initOperand(OperandType type, OperandAttribute attr)
     op.attr = attr;
 
     return op;
+}
+
+Operand initVarOperand(OperandType type, VarFrameType frame, char *name)
+{
+    return initOperand(type, initVarAttr(frame, name));
+}
+Operand initStringOperand(OperandType type, char *string)
+{
+    return initOperand(type, Instr_initStringAttribute(string));
 }
 
 Operand initEmptyOperand()
@@ -104,74 +117,94 @@ void destroyOperand(Operand *op)
     }
 }
 
-int initInstr0(Instruction *inst, InstType type)
+Instruction initInstr0(InstType type)
 {
     if (!hasNoOperands(type))
     {
-        loginfo("Instruction %s does not support 0 operands", getInstructionKeyword(type), type);
-        return -1;
+        loginfo("Instruction %s does not support 0 operands", getInstructionKeyword(type));
+        exit(99);
     }
-    return initInstruction(inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand());
+    Instruction inst;
+    if (initInstruction(&inst, type, initEmptyOperand(), initEmptyOperand(), initEmptyOperand()) == -1)
+    {
+        exit(99);
+    }
+    return inst;
 }
 
-int initInstr1(Instruction *inst, InstType type, Operand opFirst)
+Instruction initInstr1(InstType type, Operand opFirst)
 {
     if (!hasOneOperand(type))
     {
-        loginfo("Instruction %s does not support 1 operand", getInstructionKeyword(type), type);
-        return -1;
+        loginfo("Instruction %s does not support 1 operand", getInstructionKeyword(type));
+        exit(99);
     }
     if (!isFirstOperandValid(type, opFirst))
     {
         loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, opFirst, initEmptyOperand(), initEmptyOperand());
+    Instruction inst;
+    if (initInstruction(&inst, type, opFirst, initEmptyOperand(), initEmptyOperand()) == -1)
+    {
+        exit(99);
+    }
+    return inst;
 }
 
-int initInstr2(Instruction *inst, InstType type, Operand opFirst, Operand opSecond)
+Instruction initInstr2(InstType type, Operand opFirst, Operand opSecond)
 {
     if (!hasTwoOperands(type))
     {
-        loginfo("Instruction %s does not support 2 operands", getInstructionKeyword(type), type);
-        return -1;
+        loginfo("Instruction %s does not support 2 operands", getInstructionKeyword(type));
+        exit(99);
     }
     if (!isFirstOperandValid(type, opFirst))
     {
         loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isSecondOperandValid(type, opSecond))
     {
         loginfo("Invalid 2nd operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, opFirst, opSecond, initEmptyOperand());
+    Instruction inst;
+    if (initInstruction(&inst, type, opFirst, opSecond, initEmptyOperand()) == -1)
+    {
+        exit(99);
+    }
+    return inst;
 }
 
-int initInstr3(Instruction *inst, InstType type, Operand opFirst, Operand opSecond, Operand opThird)
+Instruction initInstr3(InstType type, Operand opFirst, Operand opSecond, Operand opThird)
 {
     if (!hasThreeOperands(type))
     {
-        loginfo("Instruction %s does not support 3 operands", getInstructionKeyword(type), type);
-        return -1;
+        loginfo("Instruction %s does not support 3 operands", getInstructionKeyword(type));
+        exit(99);
     }
     if (!isFirstOperandValid(type, opFirst))
     {
         loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isSecondOperandValid(type, opSecond))
     {
         loginfo("Invalid 2nd operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
     if (!isThirdOperandValid(type, opThird))
     {
         loginfo("Invalid 3rd operand for instruction %s", getInstructionKeyword(type));
-        return -1;
+        exit(99);
     }
-    return initInstruction(inst, type, opFirst, opSecond, opThird);
+    Instruction inst;
+    if (initInstruction(&inst, type, opFirst, opSecond, opThird) == -1)
+    {
+        exit(99);
+    }
+    return inst;
 }
 
 void destroyInstruction(Instruction *inst)
@@ -223,7 +256,10 @@ int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird)
 {
     if (inst == NULL)
+    {
+        loginfo("Instruction pointer is NULL");
         return -1;
+    }
 
     inst->type = type;
     inst->opFirst = opFirst;
@@ -568,11 +604,11 @@ void printOperand(Operand *op)
 void printVar(Operand *op)
 {
     char *frame = NULL;
-    if (op->attr.var.frame == GF)
+    if (op->attr.var.frame == FRAME_GF)
         frame = "GF";
-    else if (op->attr.var.frame == LF)
+    else if (op->attr.var.frame == FRAME_LF)
         frame = "LF";
-    else if (op->attr.var.frame == TF)
+    else if (op->attr.var.frame == FRAME_TF)
         frame = "TF";
     else
         loginfo("Invalid frame type %d", op->attr.var.frame);

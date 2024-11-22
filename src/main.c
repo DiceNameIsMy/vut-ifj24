@@ -10,7 +10,9 @@
 #define CHUNK_SIZE 1024
 
 TokenArray tokenArray;
+
 SymTable Table;
+
 ASTNode* astNode;
 
 int endWithCode(int code) {
@@ -48,7 +50,7 @@ int main(void) {
     // Read the source code from stdin
     char* source_code = readStdinAsString();
     if (source_code == NULL) {
-        return 1;
+        return 99; // Exit with an allocation error
     }
     SymTable_Init(&Table);
     // Run the lexer
@@ -57,6 +59,8 @@ int main(void) {
     free(source_code); // Free the source code buffer
 
     astNode = parseInit(&tokenArray, &Table); // Parse the source code
+
+    generateTargetCode(astNode, symTable, stdout); // Generate the target code
 
     freeTokenArray(&tokenArray); // Free the token array
 

@@ -1,8 +1,6 @@
 #!/bin/bash
 
 mkdir -p cmake-build-debug
-cd cmake-build-debug || exit
-cmake ./..
-cd ./..
+cmake --build cmake-build-debug
 
 find . -type f -wholename "./cmake-build-debug/tests/test_*" -executable | ./scripts/run_tests.sh

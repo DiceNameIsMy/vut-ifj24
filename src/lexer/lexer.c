@@ -157,8 +157,8 @@ bool isIdentifier(const char *str) {
     // Regular expression that checks if string is a valid identifier
     // but disallows a single underscore '_'
     if (regcomp(&regex, "^[a-zA-Z_][a-zA-Z0-9_]*$", REG_EXTENDED)) {
-        return false; // Return false if regex compilation fails
-        // Is it a reason for exit(99)?
+        endWithCode(99); // error - regex compilation failed
+        // return false; // Return false if regex compilation fails
     }
     // Execute the regex check
     int result = regexec(&regex, str, 0, NULL, 0);
@@ -650,7 +650,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                     // Process the word as a token
                     TokenType tokenType;
                     TokenAttribute attribute;
-                    printf("IFJ: %s\n", buff.data);
+                    // printf("IFJ: %s\n", buff.data);
                     attribute.str = strdup(buff.data);
                     const Token token = createToken(TOKEN_ID, attribute);
                     addToken(tokenArray, token);
