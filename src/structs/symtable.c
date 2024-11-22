@@ -81,7 +81,6 @@ void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType) {
     symbol->paramList = (Param *)malloc(sizeof(Param));
     symbol->paramList->paramType = paramType;
     symbol->paramList->next = NULL;
-  fprintf(stderr, "Param pushed for %s\n", name);
     return;
   }
   Param *nextParam = currentParam;

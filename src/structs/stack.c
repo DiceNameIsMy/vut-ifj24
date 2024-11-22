@@ -55,7 +55,7 @@ void StackPush(Stack *s, void *data, size_t dataSize) {
     }
     memcpy(item, data, dataSize);  // Copy the data to the newly allocated memory
     s->items[++(s->top)] = item;   // Store the pointer in the stack
-    printf("Item pushed to stack\n");
+    //printf("Item pushed to stack\n");
 }
 
 // Pop an element from the stack and return a pointer to it
