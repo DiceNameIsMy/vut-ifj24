@@ -57,7 +57,8 @@ OperandAttribute initVarAttr(VarFrameType frame, char *name)
     return attr;
 }
 
-OperandAttribute initStringAttr(char *string)
+
+OperandAttribute Instr_initStringAttribute(char *string)
 {
     if (string == NULL)
     {
@@ -90,7 +91,7 @@ Operand initVarOperand(OperandType type, VarFrameType frame, char *name)
 }
 Operand initStringOperand(OperandType type, char *string)
 {
-    return initOperand(type, initStringAttr(string));
+    return initOperand(type, Instr_initStringAttribute(string));
 }
 
 Operand initEmptyOperand()

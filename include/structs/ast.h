@@ -1,6 +1,8 @@
 //
 // Created by malbert on 10/23/24.
 //
+#include "symtable.h"
+
 #ifndef AST_H
 #define AST_H
 
@@ -14,7 +16,16 @@ typedef enum {
     DataType,
     BlockStatement,
     ConstDeclaration,
-    BinaryOperation,
+    AddOperation,
+    SubOperation,
+    MulOperation,
+    DivOperation,
+    LessEqOperation,
+    LessOperation,
+    EqualOperation,
+    NotEqualOperation,
+    GreaterEqOperation,
+    GreaterOperation,
     FuncCall,
     Identifier,
     IntLiteral,
@@ -40,10 +51,17 @@ typedef enum {
 //        default: return "Unknown";
 //    }
 //}
+typedef union ASTValue{
+    char *string;
+    Symbol *symbol;
+    int integer;
+    double real;
+} ASTValue;
 
 typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
-    char* value;    // Literal value or identifier
+    type_t valType;
+    ASTValue value;    // Literal value or identifier
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node
     struct ASTNode* next;      // Pointer to the next statement (for sequences of statements)
@@ -51,7 +69,9 @@ typedef struct ASTNode {
 } ASTNode;
 
 ASTNode* createASTNode(NodeType nodeType, char* value);
-ASTNode* createBinaryASTNode(char* operator, ASTNode* left, ASTNode* right);
+ASTNode* createASTNodeInteger(NodeType nodeType, int value);
+ASTNode* createASTNodeReal(NodeType nodeType, double value);
+ASTNode* createBinaryASTNode(NodeType operator, ASTNode* left, ASTNode* right);
 void clearAstNode(ASTNode *node);
 
 const char *nodeTypeToString(NodeType nodeType);

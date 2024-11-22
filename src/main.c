@@ -9,9 +9,15 @@
 #include "target_gen/target_gen.h"
 
 #include "logging.h"
+#include "target_gen/target_gen.h"
 
 #define CHUNK_SIZE 1024
 
+TokenArray tokenArray;
+
+SymTable Table;
+
+ASTNode* astNode;
 
 int endWithCode(int code) {
     exit(code);
@@ -50,27 +56,18 @@ int main(void) {
     if (source_code == NULL) {
         return 99; // Exit with an allocation error
     }
-
-    SymTable *symTable;
-    SymTable_Init(symTable);
-
-    // Run lexer
-    TokenArray tokenArray;
+    SymTable_Init(&Table);
+    // Run the lexer
     initTokenArray(&tokenArray);
     runLexer(source_code, &tokenArray);
     free(source_code); // Free the source code buffer
 
-    // Run parser
-    ASTNode* astNode;
-    astNode = parseInit(&tokenArray, symTable); // Parse the source code
+    astNode = parseInit(&tokenArray, &Table); // Parse the source code
 
-    if (generateTargetCode(astNode, NULL, stdout) != 0) {
-        loginfo("Invlaid target code generation arguments");
-        return 99;
-    }
+    //generateTargetCode(astNode, &Table, stdout); // Generate the target code
 
     freeTokenArray(&tokenArray); // Free the token array
-
+    clearAstNode(astNode);
     return 0;
 }
 

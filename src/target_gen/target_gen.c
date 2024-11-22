@@ -10,7 +10,7 @@
 #include "target_gen/instructions.h"
 #include "target_gen/target_gen.h"
 
-FILE *outputStream;
+FILE *target_outputStream;
 SymTable *symbolTable;
 
 /**********************************************************/
@@ -62,21 +62,21 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   {
     return -1;
   }
-  outputStream = output;
+  target_outputStream = output;
   symbolTable = symTable;
 
   // Every .ifjcode program should start with this
-  fprintf(outputStream, ".IFJcode24\n");
+  fprintf(target_outputStream, ".IFJcode24\n");
 
   // Call main function
   Operand mainFunc = initStringOperand(OP_CONST_STRING, "TODO:main");
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
-  printInstruction(&callMainInst, outputStream);
+  printInstruction(&callMainInst, target_outputStream);
 
   // Jump to the end of the generated file
   Operand endProgramLabel = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
-  printInstruction(&jumpToEndInst, outputStream);
+  printInstruction(&jumpToEndInst, target_outputStream);
 
   // Generate functions
   int result = generateFunctions(root->right);
@@ -89,7 +89,7 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   // the program will jump to this label to end the program.
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction inst = initInstr1(INST_LABEL, var);
-  printInstruction(&inst, outputStream);
+  printInstruction(&inst, target_outputStream);
 
   return 0;
 }
@@ -103,10 +103,10 @@ int generateFunctions(ASTNode *node)
   int result = 0;
 
   // Add label for function name
-  Operand var = initStringOperand(OP_LABEL, node->value);
+  Operand var = initStringOperand(OP_LABEL, node->value.string);
   Instruction inst = initInstr1(INST_LABEL, var);
-  printInstruction(&inst, outputStream);
-
+  printInstruction(&inst, target_outputStream);
+  
   // Define all local variables
   // TODO:
   // - Enter a scope related to this block
@@ -176,14 +176,14 @@ int generateAssignment(ASTNode *node)
   assert(node->left->nodeType == Identifier);
 
   Operand dest;
-  if (strcmp(node->left->value, "_") == 0)
+  if (strcmp(node->left->value.string, "_") == 0)
   {
     // TODO: assign to a really temporary varaible
     dest = initVarOperand(OP_VAR, FRAME_LF, "TODO:TemporaryVariable");
   }
   else
   {
-    dest = initVarOperand(OP_VAR, FRAME_LF, node->left->value);
+    dest = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
   }
 
   // Generate assigment evaluation
@@ -196,9 +196,18 @@ int generateExpression(ASTNode *node, Operand *outVar)
 {
   switch (node->nodeType)
   {
-  case BinaryOperation:
+  case AddOperation:
+  case SubOperation:
+  case MulOperation:
+  case DivOperation:
+  case LessEqOperation:
+  case LessOperation:
+  case EqualOperation:
+  case NotEqualOperation:
+  case GreaterEqOperation:
+  case GreaterOperation:
     // TODO
-    loginfo("Binary operation not implemented yet");
+    loginfo("Binary operations are not implemented yet");
     exit(99);
     break;
 
@@ -206,11 +215,11 @@ int generateExpression(ASTNode *node, Operand *outVar)
     generateFunctionCall(node);
     assert(node->right->nodeType, ReturnType);
 
-    bool returnsVoid = strcmp(node->right->value, "void") == 0;
+    bool returnsVoid = strcmp(node->right->value.string, "void") == 0;
     if (!returnsVoid)
     {
       Instruction inst = initInstr1(INST_POPS, *outVar);
-      printInstruction(&inst, outputStream);
+      printInstruction(&inst, target_outputStream);
     }
     break;
 
@@ -222,8 +231,8 @@ int generateExpression(ASTNode *node, Operand *outVar)
     Instruction inst = initInstr2(
         INST_MOVE,
         *outVar,
-        initVarOperand(OP_VAR, FRAME_LF, node->value));
-    printInstruction(&inst, outputStream);
+        initVarOperand(OP_VAR, FRAME_LF, node->value.string));
+    printInstruction(&inst, target_outputStream);
     break;
 
   case IntLiteral:
@@ -231,7 +240,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = 0})); // TODO: Set real value
-    printInstruction(&inst, outputStream);
+    printInstruction(&inst, target_outputStream);
     break;
 
   case FloatLiteral:
@@ -239,15 +248,15 @@ int generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = 0})); // TODO: Set real value
-    printInstruction(&inst, outputStream);
+    printInstruction(&inst, target_outputStream);
     break;
 
   case StringLiteral:
     Instruction inst = initInstr2(
         INST_MOVE,
         *outVar,
-        initStringOperand(OP_CONST_STRING, node->value));
-    printInstruction(&inst, outputStream);
+        initStringOperand(OP_CONST_STRING, node->value.string));
+    printInstruction(&inst, target_outputStream);
     break;
 
   case NullLiteral:
@@ -255,7 +264,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_NIL, (OperandAttribute){}));
-    printInstruction(&inst, outputStream);
+    printInstruction(&inst, target_outputStream);
     break;
 
   default:
@@ -286,49 +295,49 @@ int generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
   assert(node->nodeType == BuiltInFunctionCall);
 
-  if (strcmp(node->value, "ifj.readstr") == 0)
+  if (strcmp(node->value.string, "ifj.readstr") == 0)
   {
     Instruction readInst = initInstr2(
         INST_READ,
         *outVar,
         initStringOperand(OP_TYPE, "string"));
-    printInstruction(&readInst, outputStream);
+    printInstruction(&readInst, target_outputStream);
   }
-  else if (strcmp(node->value, "ifj.readi32") == 0)
+  else if (strcmp(node->value.string, "ifj.readi32") == 0)
   {
     // TODO: Implement readi32
   }
-  else if (strcmp(node->value, "ifj.readf64") == 0)
+  else if (strcmp(node->value.string, "ifj.readf64") == 0)
   {
     // TODO: Implement readf64
   }
-  else if (strcmp(node->value, "ifj.i2f") == 0)
+  else if (strcmp(node->value.string, "ifj.i2f") == 0)
   {
     // TODO: Implement i2f
   }
-  else if (strcmp(node->value, "ifj.f2i") == 0)
+  else if (strcmp(node->value.string, "ifj.f2i") == 0)
   {
     // TODO: Implement f2i
   }
-  else if (strcmp(node->value, "ifj.string") == 0)
+  else if (strcmp(node->value.string, "ifj.string") == 0)
   {
     // TODO: Implement string
   }
-  else if (strcmp(node->value, "ifj.length") == 0)
+  else if (strcmp(node->value.string, "ifj.length") == 0)
   {
     // TODO: Implement length
   }
-  else if (strcmp(node->value, "ifj.concat") == 0)
+  else if (strcmp(node->value.string, "ifj.concat") == 0)
   {
     // TODO: Implement concat
   }
-  else if (strcmp(node->value, "ifj.substring") == 0)
+  else if (strcmp(node->value.string, "ifj.substring") == 0)
   {
     // TODO: Implement substring
   }
   else
   {
-    loginfo("Unexpected builtin function call: %s", node->value);
+    loginfo("Unexpected builtin function call: %s", node->value.string);
     exit(99);
   }
 
@@ -341,7 +350,7 @@ int generateFunctionCall(ASTNode *node)
 
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  printInstruction(&createFrameInst, outputStream);
+  printInstruction(&createFrameInst, target_outputStream);
 
   // Add parameters
   int result = generateFunctionCallParameters(node->left);
@@ -352,15 +361,15 @@ int generateFunctionCall(ASTNode *node)
 
   // Push frame
   Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  printInstruction(&pushFrameInst, outputStream);
+  printInstruction(&pushFrameInst, target_outputStream);
 
   // Call function
-  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, node->value));
-  printInstruction(&callInst, outputStream);
+  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
+  printInstruction(&callInst, target_outputStream);
 
   // Pop frame
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
-  printInstruction(&popFrameInst, outputStream);
+  printInstruction(&popFrameInst, target_outputStream);
 
   // Return value is stored in Stack.
   return 0;
@@ -385,7 +394,7 @@ int generateFunctionCallParameters(ASTNode *node)
   }
 
   Instruction instr = initInstr2(INST_MOVE, param, var);
-  printInstruction(&instr, outputStream);
+  printInstruction(&instr, target_outputStream);
 
   return 0;
 }
