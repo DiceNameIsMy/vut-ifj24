@@ -34,14 +34,15 @@ int generateFunctionCallParameters(ASTNode *node);
 /* Public Functions Definitions */
 /**********************************************************/
 
-
 // TODO: Proper error handling
 
-// TODO: For each symbol (function id, variable), in a symtable assign an ID to it. 
+// TODO: For each symbol (function id, variable), in a symtable assign an ID to it.
 //       Use this ID when generating code.
 
-// TODO: When temporary variables are needed, generate a unique name for them in a format 
+// TODO: When temporary variables are needed, generate a unique name for them in a format
 //       "tmp_<scope_id>_<id>", where id is a unique number for each temporary variable.
+
+// TODO: For ALL variables in a function, define them at the beginning of the function
 
 // TODO: When generating code, we might want to insert instructions between other instructions.
 //   if that will be the case, instead of just outputting on the fly, we might need to store the
@@ -106,7 +107,7 @@ int generateFunctions(ASTNode *node)
   Operand var = initStringOperand(OP_LABEL, node->value.string);
   Instruction inst = initInstr1(INST_LABEL, var);
   printInstruction(&inst, target_outputStream);
-  
+
   // Define all local variables
   // TODO:
   // - Enter a scope related to this block
@@ -206,9 +207,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
   case NotEqualOperation:
   case GreaterEqOperation:
   case GreaterOperation:
-    // TODO
-    loginfo("Binary operations are not implemented yet");
-    exit(99);
+    generateBinaryExpression(node, outVar);
     break;
 
   case FuncCall:
@@ -239,7 +238,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     Instruction inst = initInstr2(
         INST_MOVE,
         *outVar,
-        initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = 0})); // TODO: Set real value
+        initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer}));
     printInstruction(&inst, target_outputStream);
     break;
 
@@ -247,7 +246,7 @@ int generateExpression(ASTNode *node, Operand *outVar)
     Instruction inst = initInstr2(
         INST_MOVE,
         *outVar,
-        initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = 0})); // TODO: Set real value
+        initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real}));
     printInstruction(&inst, target_outputStream);
     break;
 
@@ -273,6 +272,160 @@ int generateExpression(ASTNode *node, Operand *outVar)
   }
 
   return 0;
+}
+
+int generateBinaryExpression(ASTNode *node, Operand *outVar)
+{
+  InstType instType = binaryNodeToInstructionType(node);
+  bool negate = negateBinaryInstruction(node);
+
+  bool inlineLeft = isVarOrConstant(node->left);
+  bool inlineRight = isVarOrConstant(node->right);
+
+  Instruction inst;
+  if (inlineLeft && inlineRight)
+  {
+    // outVar = leftInline <op> rightInline
+    inst = initInstr3(
+        instType,
+        *outVar,
+        initVarOperand(OP_VAR, FRAME_LF, node->left->value.string),
+        initVarOperand(OP_VAR, FRAME_LF, node->right->value.string));
+  }
+  else if (inlineLeft && !inlineRight)
+  {
+    // outVar = evaluate(right)
+    generateExpression(node->right, outVar);
+
+    // outVar = leftInline <op> outVar
+    Operand inlineLeftOperand = initConstantOperand(node->left);
+    inst = initInstr3(
+        instType,
+        *outVar,
+        inlineLeftOperand,
+        *outVar);
+  }
+  else if (!inlineLeft && inlineRight)
+  {
+    // outVar = evaluate(left)
+    generateExpression(node->left, outVar);
+
+    // outVar = outVar <op> rightInline
+    Operand inlineRightOperand = initConstantOperand(node->right);
+    inst = initInstr3(
+        instType,
+        *outVar,
+        *outVar,
+        inlineRightOperand);
+  }
+  else
+  {
+    // outVar = evaluate(left)
+    generateExpression(node->left, outVar);
+
+    // TODO: Add this variable to the DEFVAR list
+    Operand defVar = initVarOperand(OP_VAR, FRAME_LF, "TODO:ExtraVariable");
+
+    // defVar = evaluate(right)
+    generateExpression(node->right, &defVar);
+
+    // outVar = outVar <op> defVar
+    inst = initInstr3(
+        instType,
+        *outVar,
+        *outVar,
+        defVar);
+  }
+
+  printInstruction(&inst, target_outputStream);
+}
+
+InstType binaryNodeToInstructionType(ASTNode *node)
+{
+  switch (node->nodeType)
+  {
+  case AddOperation:
+    return INST_ADD;
+  case SubOperation:
+    return INST_SUB;
+  case MulOperation:
+    return INST_MUL;
+  case DivOperation:
+    if (node->valType == I32 || node->valType == I32_NULLABLE)
+    {
+      return INST_IDIV;
+    }
+    else if (node->valType == F64 || node->valType == F64_NULLABLE)
+    {
+      return INST_DIV;
+    }
+    loginfo("Unexpected division of type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  case LessOperation:
+    return INST_LT;
+  case EqualOperation:
+    return INST_EQ;
+  case GreaterOperation:
+    return INST_GT;
+  case NotEqualOperation:
+    // For NotEqualOperation operation there is no 1to1 mapping to target.
+    // There is though 1to2:
+    //  - EQ t <a> <b>
+    //  - NOT t t
+    return INST_EQ;
+  case LessEqOperation:
+    return INST_GT;
+  case GreaterEqOperation:
+    return INST_LT;
+  default:
+    loginfo("Unexpected binary operation type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+}
+
+bool negateBinaryInstruction(ASTNode *node)
+{
+  switch (node->nodeType)
+  {
+  case AddOperation:
+  case SubOperation:
+  case MulOperation:
+  case DivOperation:
+  case LessOperation:
+  case EqualOperation:
+    return false;
+  case NotEqualOperation:
+  case GreaterOperation:
+  case LessEqOperation:
+  case GreaterEqOperation:
+    return true;
+  default:
+    loginfo("Unexpected binary instruction type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+}
+
+Operand initConstantOperand(ASTNode *node)
+{
+  switch (node->nodeType)
+  {
+  case IntLiteral:
+    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
+  case FloatLiteral:
+    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
+  case StringLiteral:
+    return initStringOperand(OP_CONST_STRING, node->value.string);
+  case NullLiteral:
+    return initOperand(OP_CONST_NIL, (OperandAttribute){});
+  default:
+    loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+}
+
+bool isVarOrConstant(ASTNode *node)
+{
+  return node->nodeType == Identifier || node->nodeType == IntLiteral || node->nodeType == FloatLiteral || node->nodeType == StringLiteral || node->nodeType == NullLiteral;
 }
 
 int generateConditionalBlock(ASTNode *node)
