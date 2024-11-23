@@ -19,6 +19,10 @@ void IdIndexer_Init(IdIndexer *indexer);
 void IdIndexer_Destroy(IdIndexer *indexer);
 
 /// @brief Find or create a unique name.
-char *IdIndexer_GetOrLoad(IdIndexer *indexer, char *name);
+char *IdIndexer_GetOrCreate(IdIndexer *indexer, char *name);
+
+/// @brief Create a unique name for the given identifier. 
+///        It is not stored, but the counter is incremented nonetheless.
+char *IdIndexer_CreateOneTime(IdIndexer *indexer, char *name);
 
 #endif // TARGET_LABEL_CONTEXT_H

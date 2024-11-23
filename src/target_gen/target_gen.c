@@ -34,6 +34,7 @@ void addVarDefinition(Variable *var);
 
 void generateFunctions(ASTNode *node);
 void generateStatements(ASTNode *node);
+void generateDeclaration(ASTNode *node);
 void generateAssignment(ASTNode *node);
 
 /// @brief Expression is converted to a sequence of
@@ -100,15 +101,25 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   // Every .ifjcode program should start with this
   fprintf(outputStream, ".IFJcode24\n");
 
+  // Create an initial frame for the program
+  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
+  addInstruction(createFrameInst);
+  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
+  addInstruction(pushFrameInst);
+
   // Call main function
-  char *mainLabel = IdIndexer_GetOrLoad(labelIndexer, "main");
+  char *mainLabel = IdIndexer_GetOrCreate(labelIndexer, "main");
   Operand mainFunc = initStringOperand(OP_LABEL, mainLabel);
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
   addInstruction(callMainInst);
 
+  // Pop the frame since its no longer needed
+  Instruction popFrameInst = initInstr0(INST_POPFRAME);
+  addInstruction(popFrameInst);
+
   // Jump to the end of the generated file
-  char *endProgramLabelName = IdIndexer_GetOrLoad(labelIndexer, "end_program");
-  Operand endProgramLabel = initStringOperand(OP_LABEL,endProgramLabelName);
+  char *endProgramLabelName = IdIndexer_GetOrCreate(labelIndexer, "end_program");
+  Operand endProgramLabel = initStringOperand(OP_LABEL, endProgramLabelName);
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   addInstruction(jumpToEndInst);
 
@@ -179,10 +190,9 @@ void generateFunctions(ASTNode *node)
   IdIndexer_Init(funcVarsIndexer);
 
   // Add label for function name
-  char* funcLabel = IdIndexer_GetOrLoad(labelIndexer, node->value.string);
-  Operand var = initStringOperand(OP_LABEL, funcLabel);
-  Instruction inst = initInstr1(INST_LABEL, var);
-  addInstruction(inst);
+  char *funcLabel = IdIndexer_GetOrCreate(labelIndexer, node->value.string);
+  Instruction inst = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, funcLabel));
+  TargetFS_SetFuncLabel(funcScope, funcLabel);
 
   // Generate function body
   generateStatements(node->next);
@@ -221,8 +231,7 @@ void generateStatements(ASTNode *node)
   {
   case VarDeclaration:
   case ConstDeclaration:
-    Variable var = {.frame = FRAME_LF, .name = node->left->value.string};
-    addVarDefinition(&var);
+    generateDeclaration(node);
     break;
   case Assignment:
     generateAssignment(node);
@@ -248,21 +257,25 @@ void generateStatements(ASTNode *node)
       ASTNode *returnNode = node->left;
       Operand returnOperand;
 
-      inspectAstNode(returnNode);
-
       bool generateInline = isVarOrConstant(returnNode);
       if (node->left->nodeType == Identifier)
       {
-        returnOperand = initVarOperand(OP_VAR, FRAME_LF, returnNode->value.string);
+        // Identifiers can be inlined.
+        char *idName = IdIndexer_GetOrCreate(funcVarsIndexer, returnNode->value.string);
+        returnOperand = initVarOperand(OP_VAR, FRAME_LF, idName);
       }
       else if (isConstant(returnNode))
       {
+        // Constants can be inlined.
         returnOperand = initConstantOperand(returnNode);
       }
       else
       {
-        // Identifiers and constants can be inlined. Other expressions must be evaluated with extra instructions.
-        returnOperand = initVarOperand(OP_VAR, FRAME_LF, "TODO:ExtraVariable");
+        // Other expressions must be evaluated with extra instructions.
+        char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+        returnOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+
+        // Generate an expression that assigns the result to the returnOperand
         generateExpression(node->left, &returnOperand);
       }
 
@@ -285,24 +298,40 @@ void generateStatements(ASTNode *node)
   }
 }
 
+void generateDeclaration(ASTNode *node)
+{
+  inspectAstNode(node);
+
+  // Get var unique name
+  char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
+  Operand varOperand = initVarOperand(OP_VAR, FRAME_LF, varName);
+
+  // Add to declarations
+  addVarDefinition(&varOperand.attr.var);
+
+  // Make an assignment
+  generateExpression(node->right, &varOperand);
+}
+
 void generateAssignment(ASTNode *node)
 {
+  inspectAstNode(node);
   assert(node->nodeType == Assignment);
   assert(node->left->nodeType == Identifier);
 
+  char *varName;
   Operand dest;
   if (strcmp(node->left->value.string, "_") == 0)
   {
-    // TODO: Add var definition only if it's not already defined
-    // TODO: create a temporary variable name
-    Variable var = {.frame = FRAME_LF, .name = "TODO:TemporaryVariable"};
-    addVarDefinition(&var);
-    dest = initVarOperand(OP_VAR, FRAME_LF, var.name);
+    // TODO: A value is assigned but would never be used. Can it be done in some better way?
+    varName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
   }
   else
   {
-    dest = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
+    varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->left->value.string);
   }
+  dest = initVarOperand(OP_VAR, FRAME_LF, varName);
+  addVarDefinition(&dest.attr.var);
 
   // Generate assigment evaluation
   generateExpression(node->right, &dest);
@@ -344,43 +373,24 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case Identifier:
-    inst = initInstr2(
-        INST_MOVE,
-        *outVar,
-        initVarOperand(OP_VAR, FRAME_LF, node->value.string));
-    addInstruction(inst);
+    char *idName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
+    *outVar = initVarOperand(OP_VAR, FRAME_LF, idName);
     break;
 
   case IntLiteral:
-    inst = initInstr2(
-        INST_MOVE,
-        *outVar,
-        initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer}));
-    addInstruction(inst);
+    *outVar = initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
     break;
 
   case FloatLiteral:
-    inst = initInstr2(
-        INST_MOVE,
-        *outVar,
-        initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real}));
-    addInstruction(inst);
+    *outVar = initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
     break;
 
   case StringLiteral:
-    inst = initInstr2(
-        INST_MOVE,
-        *outVar,
-        initStringOperand(OP_CONST_STRING, node->value.string));
-    addInstruction(inst);
+    *outVar = initStringOperand(OP_CONST_STRING, node->value.string);
     break;
 
   case NullLiteral:
-    inst = initInstr2(
-        INST_MOVE,
-        *outVar,
-        initOperand(OP_CONST_NIL, (OperandAttribute){}));
-    addInstruction(inst);
+    *outVar = initOperand(OP_CONST_NIL, (OperandAttribute){});
     break;
 
   default:
@@ -438,8 +448,9 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     // outVar = evaluate(left)
     generateExpression(node->left, outVar);
 
-    // TODO: Add this variable to the DEFVAR list
-    Operand defVar = initVarOperand(OP_VAR, FRAME_LF, "TODO:ExtraVariable");
+    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+    Operand defVar = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+    addVarDefinition(&defVar.attr.var);
 
     // defVar = evaluate(right)
     generateExpression(node->right, &defVar);
@@ -630,7 +641,8 @@ void generateFunctionCall(ASTNode *node)
   addInstruction(pushFrameInst);
 
   // Call function
-  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, "TODO:FunctionName"));
+  char *funcNameLabel = IdIndexer_GetOrCreate(labelIndexer, node->value.string);
+  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, funcNameLabel));
   addInstruction(callInst);
 
   // Pop frame
@@ -640,6 +652,8 @@ void generateFunctionCall(ASTNode *node)
 
 void generateFunctionCallParameters(ASTNode *node)
 {
+  inspectAstNode(node);
+
   // TODO: Some loop to go through all parameters, define and assign them
 
   Operand param = initVarOperand(OP_VAR, FRAME_TF, "called_func_param_name");

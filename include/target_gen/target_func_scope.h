@@ -6,6 +6,7 @@
 #include "target_gen/instructions.h"
 
 typedef struct {
+  Instruction *labelInstr;
   Queue *varDeclarationsQueue;
   Queue *otherInstructionsQueue;
 } TargetFuncScope;
@@ -13,6 +14,7 @@ typedef struct {
 void TargetFS_Init(TargetFuncScope *scope);
 void TargetFS_Destroy(TargetFuncScope *scope);
 
+void TargetFS_SetFuncLabel(TargetFuncScope *scope, char *label);
 void TargetFS_AddVar(TargetFuncScope *scope, Variable var);
 void TargetFS_AddInst(TargetFuncScope *scope, Instruction inst);
 

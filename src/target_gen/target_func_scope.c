@@ -26,6 +26,7 @@ void TargetFS_Init(TargetFuncScope *scope)
         exit(99);
     }
 
+    scope->labelInstr = NULL;
     Queue_Init(scope->varDeclarationsQueue);
     Queue_Init(scope->otherInstructionsQueue);
 }
@@ -47,9 +48,29 @@ void TargetFS_Destroy(TargetFuncScope *scope)
         loginfo("Failed to destroy the other instructions queue.");
         exit(99);
     }
-
+    if (scope->labelInstr != NULL)
+    {
+        free(scope->labelInstr);
+    }
     free(scope->varDeclarationsQueue);
     free(scope->otherInstructionsQueue);
+}
+
+void TargetFS_SetFuncLabel(TargetFuncScope *scope, char *label)
+{
+    if (scope->labelInstr != NULL)
+    {
+        loginfo("Function scope already has a label instruction.");
+        exit(99);
+    }
+
+    scope->labelInstr = malloc(sizeof(Instruction));
+    if (scope->labelInstr == NULL)
+    {
+        loginfo("Failed to allocate memory for the label instruction.");
+        exit(99);
+    }
+    *scope->labelInstr = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, label));
 }
 
 void TargetFS_AddVar(TargetFuncScope *scope, Variable var)
@@ -86,8 +107,13 @@ Instruction TargetFS_PopNext(TargetFuncScope *scope)
 {
     Instruction *instPtr = NULL;
 
-    // First, all DEFVAR instructions are processed
-    if (!Queue_IsEmpty(scope->varDeclarationsQueue))
+    // First, process the label, then DEFVARs, then function body
+    if (scope->labelInstr != NULL)
+    {
+        instPtr = scope->labelInstr;
+        scope->labelInstr = NULL;
+    }
+    else if (!Queue_IsEmpty(scope->varDeclarationsQueue))
     {
         Queue_Dequeue(scope->varDeclarationsQueue, (void **)&instPtr);
         if (instPtr == NULL)
