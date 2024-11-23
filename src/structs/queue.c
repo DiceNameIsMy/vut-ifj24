@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include "logging.h"
+
 #include "structs/queue.h"
 
 void Queue_Init(Queue *queue)
@@ -52,12 +54,15 @@ void Queue_Dequeue(Queue *queue, void **out)
     if (queue->first == NULL)
     {
         *out = NULL;
+        return;
     }
 
-    // Remove first item from the queue
+    // Take the first item from the queue
     QueueItem *item = queue->first;
-    queue->first = item->next;
+    *out = item->data;
 
+    // Remove item
+    queue->first = item->next;
     // If the queue is now empty, set last to NULL
     if (queue->first == NULL)
     {
@@ -65,6 +70,6 @@ void Queue_Dequeue(Queue *queue, void **out)
     }
 
     // Return the data and free the QueueItem
-    out = item->data;
+    *out = item->data;
     free(item);
 }
