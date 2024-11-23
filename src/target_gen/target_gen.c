@@ -21,7 +21,7 @@ TargetFuncScope *funcScope = NULL;
 /**********************************************************/
 
 /// @brief If there is scope defined, add it there. Otherwise, print it to the output stream.
-void addInstruction(Instruction *inst);
+void addInstruction(Instruction inst);
 
 /// @brief Call this function if a new variable must be defined for a
 ///        function that is being generated.
@@ -90,12 +90,12 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   // Call main function
   Operand mainFunc = initStringOperand(OP_LABEL, "TODO:main");
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
-  addInstruction(&callMainInst);
+  addInstruction(callMainInst);
 
   // Jump to the end of the generated file
   Operand endProgramLabel = initStringOperand(OP_LABEL, "TODO:EndProgramLabel");
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
-  addInstruction(&jumpToEndInst);
+  addInstruction(jumpToEndInst);
 
   // Generate functions
   generateFunctions(root->right);
@@ -104,7 +104,7 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   // the program will jump to this label to end the program.
   Operand var = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
   Instruction inst = initInstr1(INST_LABEL, var);
-  addInstruction(&inst);
+  addInstruction(inst);
 
   return 0;
 }
@@ -113,15 +113,16 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
 /* Private Functions Definitions */
 /**********************************************************/
 
-void addInstruction(Instruction *inst)
+void addInstruction(Instruction inst)
 {
   if (funcScope != NULL)
   {
-    TargetFS_AddInst(funcScope, *inst);
+    TargetFS_AddInst(funcScope, inst);
   }
   else
   {
-    printInstruction(inst, outputStream);
+    printInstruction(&inst, outputStream);
+    destroyInstruction(&inst);
   }
 }
 
@@ -152,15 +153,17 @@ void generateFunctions(ASTNode *node)
   // Add label for function name
   Operand var = initStringOperand(OP_LABEL, node->value.string);
   Instruction inst = initInstr1(INST_LABEL, var);
-  addInstruction(&inst);
+  addInstruction(inst);
 
   // Generate function body
   generateStatements(node->next);
 
   // Print every instruction accumulated for the current scope(function)
+  loginfo("Generating function body");
   while (!TargetFS_IsEmpty(funcScope))
   {
     Instruction inst = TargetFS_PopNext(funcScope);
+    loginfo("Printing instruction");
     printInstruction(&inst, outputStream);
     destroyInstruction(&inst);
   }
@@ -206,7 +209,7 @@ void generateStatements(ASTNode *node)
     if (node->valType == NONETYPE)
     {
       Instruction returnInst = initInstr0(INST_RETURN);
-      addInstruction(&returnInst);
+      addInstruction(returnInst);
     }
     else
     {
@@ -279,7 +282,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
     if (!returnsVoid)
     {
       inst = initInstr1(INST_POPS, *outVar);
-      addInstruction(&inst);
+      addInstruction(inst);
     }
     break;
 
@@ -292,7 +295,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initVarOperand(OP_VAR, FRAME_LF, node->value.string));
-    addInstruction(&inst);
+    addInstruction(inst);
     break;
 
   case IntLiteral:
@@ -300,7 +303,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer}));
-    addInstruction(&inst);
+    addInstruction(inst);
     break;
 
   case FloatLiteral:
@@ -308,7 +311,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real}));
-    addInstruction(&inst);
+    addInstruction(inst);
     break;
 
   case StringLiteral:
@@ -316,7 +319,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initStringOperand(OP_CONST_STRING, node->value.string));
-    addInstruction(&inst);
+    addInstruction(inst);
     break;
 
   case NullLiteral:
@@ -324,7 +327,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
         INST_MOVE,
         *outVar,
         initOperand(OP_CONST_NIL, (OperandAttribute){}));
-    addInstruction(&inst);
+    addInstruction(inst);
     break;
 
   default:
@@ -396,7 +399,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
         defVar);
   }
 
-  addInstruction(&inst);
+  addInstruction(inst);
 }
 
 InstType binaryNodeToInstructionType(ASTNode *node)
@@ -512,7 +515,7 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
         INST_READ,
         *outVar,
         initStringOperand(OP_TYPE, "string"));
-    addInstruction(&readInst);
+    addInstruction(readInst);
   }
   else if (strcmp(node->value.string, "ifj.readi32") == 0)
   {
@@ -559,22 +562,22 @@ void generateFunctionCall(ASTNode *node)
 
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  addInstruction(&createFrameInst);
+  addInstruction(createFrameInst);
 
   // Add parameters
   generateFunctionCallParameters(node->left);
 
   // Push frame
   Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  addInstruction(&pushFrameInst);
+  addInstruction(pushFrameInst);
 
   // Call function
   Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
-  addInstruction(&callInst);
+  addInstruction(callInst);
 
   // Pop frame
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
-  addInstruction(&popFrameInst);
+  addInstruction(popFrameInst);
 }
 
 void generateFunctionCallParameters(ASTNode *node)
@@ -596,5 +599,5 @@ void generateFunctionCallParameters(ASTNode *node)
   }
 
   Instruction instr = initInstr2(INST_MOVE, param, var);
-  addInstruction(&instr);
+  addInstruction(instr);
 }
