@@ -14,6 +14,7 @@ int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird);
 
 const char *getInstructionKeyword(InstType type);
+const char *getOperandTypeName(OperandType type);
 
 void printInstructionKeyword(Instruction *inst, FILE *stream);
 
@@ -31,6 +32,7 @@ bool isSymbolOperand(Operand *op);
 void printVar(Operand *op, FILE *stream);
 void printConst(Operand *op, FILE *stream);
 void printOperand(Operand *op, FILE *stream);
+
 
 /**********************************************************/
 /* Public Functions Definitions */
@@ -139,7 +141,7 @@ Instruction initInstr1(InstType type, Operand opFirst)
     }
     if (!isFirstOperandValid(type, opFirst))
     {
-        loginfo("Invalid 1st operand for instruction %s", getInstructionKeyword(type));
+        loginfo("Invalid 1st operand for instruction %s of type %s", getInstructionKeyword(type), getOperandTypeName(opFirst.type));
         exit(99);
     }
     Instruction inst;
@@ -394,6 +396,33 @@ const char *getInstructionKeyword(InstType type)
         return "DPRINT";
     default:
         return "# [Unknown instruction] #";
+    }
+}
+
+const char *getOperandTypeName(OperandType type)
+{
+    switch (type)
+    {
+    case OP_VAR:
+        return "Variable";
+    case OP_CONST_BOOL:
+        return "Boolean";
+    case OP_CONST_INT64:
+        return "Integer";
+    case OP_CONST_FLOAT64:
+        return "Float";
+    case OP_CONST_STRING:
+        return "String";
+    case OP_CONST_NIL:
+        return "Nil";
+    case OP_LABEL:
+        return "Label";
+    case OP_TYPE:
+        return "Type";
+    case OP_NONE:
+        return "None";
+    default:
+        return "Unknown";
     }
 }
 

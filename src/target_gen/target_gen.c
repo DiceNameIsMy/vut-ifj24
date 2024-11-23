@@ -44,6 +44,7 @@ void generateFunctionCallParameters(ASTNode *node);
 InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
 Operand initConstantOperand(ASTNode *node);
+bool isConstant(ASTNode *node);
 bool isVarOrConstant(ASTNode *node);
 
 /**********************************************************/
@@ -102,7 +103,7 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
+  Operand var = initStringOperand(OP_LABEL, "TODO:EndProgramLabel");
   Instruction inst = initInstr1(INST_LABEL, var);
   addInstruction(inst);
 
@@ -163,7 +164,6 @@ void generateFunctions(ASTNode *node)
   while (!TargetFS_IsEmpty(funcScope))
   {
     Instruction inst = TargetFS_PopNext(funcScope);
-    loginfo("Printing instruction");
     printInstruction(&inst, outputStream);
     destroyInstruction(&inst);
   }
@@ -206,16 +206,37 @@ void generateStatements(ASTNode *node)
     exit(99);
   case ReturnStatement:
 
-    if (node->valType == NONETYPE)
+    if (node->valType == NONETYPE) // Return void
     {
       Instruction returnInst = initInstr0(INST_RETURN);
       addInstruction(returnInst);
     }
     else
     {
-      inspectAstNode(node);
-      loginfo("Return statement not implemented yet");
-      exit(99);
+      ASTNode *returnNode = node->left;
+      Operand returnOperand;
+
+      inspectAstNode(returnNode);
+
+      bool generateInline = isVarOrConstant(returnNode);
+      if (node->left->nodeType == Identifier)
+      {
+        returnOperand = initVarOperand(OP_VAR, FRAME_LF, returnNode->value.string);
+      }
+      else if (isConstant(returnNode))
+      {
+        returnOperand = initConstantOperand(returnNode);
+      }
+      else
+      {
+        // Identifiers and constants can be inlined. Other expressions must be evaluated with extra instructions.
+        returnOperand = initVarOperand(OP_VAR, FRAME_LF, "TODO:ExtraVariable");
+        generateExpression(node->left, &returnOperand);
+      }
+
+      // Push the return value to the stack
+      Instruction pushInst = initInstr1(INST_PUSHS, returnOperand);
+      addInstruction(pushInst);
     }
     break;
 
@@ -485,9 +506,14 @@ Operand initConstantOperand(ASTNode *node)
   }
 }
 
+bool isConstant(ASTNode *node)
+{
+  return node->nodeType == IntLiteral || node->nodeType == FloatLiteral || node->nodeType == StringLiteral || node->nodeType == NullLiteral;
+}
+
 bool isVarOrConstant(ASTNode *node)
 {
-  return node->nodeType == Identifier || node->nodeType == IntLiteral || node->nodeType == FloatLiteral || node->nodeType == StringLiteral || node->nodeType == NullLiteral;
+  return node->nodeType == Identifier || isConstant(node);
 }
 
 void generateConditionalBlock(ASTNode *node)
@@ -572,7 +598,7 @@ void generateFunctionCall(ASTNode *node)
   addInstruction(pushFrameInst);
 
   // Call function
-  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_CONST_STRING, "TODO:FunctionName"));
+  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, "TODO:FunctionName"));
   addInstruction(callInst);
 
   // Pop frame
