@@ -6,8 +6,6 @@
 #include "logging.h"
 #include "target_gen/instructions.h"
 
-FILE *outputStream;
-
 /**********************************************************/
 /* Private Function Declarations */
 /**********************************************************/
@@ -17,7 +15,7 @@ int initInstruction(Instruction *inst, InstType type,
 
 const char *getInstructionKeyword(InstType type);
 
-void printInstructionKeyword(Instruction *inst);
+void printInstructionKeyword(Instruction *inst, FILE *stream);
 
 bool hasNoOperands(InstType type);
 bool hasOneOperand(InstType type);
@@ -30,9 +28,9 @@ bool isThirdOperandValid(InstType type, Operand op);
 
 bool isSymbolOperand(Operand *op);
 
-void printVar(Operand *op);
-void printConst(Operand *op);
-void printOperand(Operand *op);
+void printVar(Operand *op, FILE *stream);
+void printConst(Operand *op, FILE *stream);
+void printOperand(Operand *op, FILE *stream);
 
 /**********************************************************/
 /* Public Functions Definitions */
@@ -223,29 +221,28 @@ void printInstruction(Instruction *inst, FILE *stream)
     {
         return;
     }
-    outputStream = stream == NULL ? stdout : stream;
 
-    printInstructionKeyword(inst);
+    printInstructionKeyword(inst, stream);
 
     if (hasNoOperands(inst->type))
     {
     }
     else if (hasOneOperand(inst->type))
     {
-        printOperand(&inst->opFirst);
+        printOperand(&inst->opFirst, stream);
     }
     else if (hasTwoOperands(inst->type))
     {
-        printOperand(&inst->opFirst);
-        printOperand(&inst->opSecond);
+        printOperand(&inst->opFirst, stream);
+        printOperand(&inst->opSecond, stream);
     }
     else if (hasThreeOperands(inst->type))
     {
-        printOperand(&inst->opFirst);
-        printOperand(&inst->opSecond);
-        printOperand(&inst->opThird);
+        printOperand(&inst->opFirst, stream);
+        printOperand(&inst->opSecond, stream);
+        printOperand(&inst->opThird, stream);
     }
-    fprintf(outputStream, "\n");
+    fprintf(stream, "\n");
 }
 
 /**********************************************************/
@@ -400,9 +397,9 @@ const char *getInstructionKeyword(InstType type)
     }
 }
 
-void printInstructionKeyword(Instruction *inst)
+void printInstructionKeyword(Instruction *inst, FILE *stream)
 {
-    fprintf(outputStream, "%s", getInstructionKeyword(inst->type));
+    fprintf(stream, "%s", getInstructionKeyword(inst->type));
 }
 
 bool hasNoOperands(InstType type)
@@ -574,25 +571,25 @@ bool isSymbolOperand(Operand *op)
     return op->type == OP_VAR || op->type == OP_CONST_BOOL || op->type == OP_CONST_INT64 || op->type == OP_CONST_FLOAT64 || op->type == OP_CONST_STRING || op->type == OP_CONST_NIL;
 }
 
-void printOperand(Operand *op)
+void printOperand(Operand *op, FILE *stream)
 {
     switch (op->type)
     {
     case OP_VAR:
-        printVar(op);
+        printVar(op, stream);
         break;
     case OP_CONST_BOOL:
     case OP_CONST_INT64:
     case OP_CONST_FLOAT64:
     case OP_CONST_STRING:
     case OP_CONST_NIL:
-        printConst(op);
+        printConst(op, stream);
         break;
     case OP_LABEL:
-        fprintf(outputStream, " label@%s", op->attr.string);
+        fprintf(stream, " label@%s", op->attr.string);
         break;
     case OP_TYPE:
-        fprintf(outputStream, " type@%s", op->attr.string);
+        fprintf(stream, " type@%s", op->attr.string);
         break;
     case OP_NONE:
         break;
@@ -601,7 +598,7 @@ void printOperand(Operand *op)
     }
 }
 
-void printVar(Operand *op)
+void printVar(Operand *op, FILE *stream)
 {
     char *frame = NULL;
     if (op->attr.var.frame == FRAME_GF)
@@ -613,31 +610,31 @@ void printVar(Operand *op)
     else
         loginfo("Invalid frame type %d", op->attr.var.frame);
 
-    fprintf(outputStream, " %s@%s", frame, op->attr.var.name);
+    fprintf(stream, " %s@%s", frame, op->attr.var.name);
 }
 
-void printConst(Operand *op)
+void printConst(Operand *op, FILE *stream)
 {
     switch (op->type)
     {
     case OP_CONST_BOOL:
-        fprintf(outputStream, " bool@%s", op->attr.boolean ? "true" : "false");
+        fprintf(stream, " bool@%s", op->attr.boolean ? "true" : "false");
         break;
     case OP_CONST_INT64:
         // PRId64 is used to ensure that it would be correctly printed
-        fprintf(outputStream, " int@%" PRId64, op->attr.i64);
+        fprintf(stream, " int@%" PRId64, op->attr.i64);
         break;
     case OP_CONST_FLOAT64:
-        fprintf(outputStream, " float@%.14gp+0", op->attr.f64);
+        fprintf(stream, " float@%.14gp+0", op->attr.f64);
         break;
     case OP_CONST_STRING:
-        fprintf(outputStream, " string@%s", op->attr.string);
+        fprintf(stream, " string@%s", op->attr.string);
         break;
     case OP_CONST_NIL:
-        fprintf(outputStream, " nil@nil");
+        fprintf(stream, " nil@nil");
         break;
     default:
-        fprintf(outputStream, " [ERROR: Invalid constant type %d]", op->type);
+        fprintf(stream, " [ERROR: Invalid constant type %d]", op->type);
         loginfo("Invalid constant type %d", op->type);
     }
 }
