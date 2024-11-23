@@ -7,6 +7,21 @@
 #include "target_gen/target_func_scope.h"
 
 void TargetFS_Init(TargetFuncScope *scope) {
+    if (scope == NULL) {
+        loginfo("Function scope is NULL when trying to initialize it.");
+        exit(99);
+    }
+    scope->varDeclarationsQueue = malloc(sizeof(Queue));
+    if (scope->varDeclarationsQueue == NULL) {
+        loginfo("Failed to allocate memory for the variable declarations queue.");
+        exit(99);
+    }
+    scope->otherInstructionsQueue = malloc(sizeof(Queue));
+    if (scope->otherInstructionsQueue == NULL) {
+        loginfo("Failed to allocate memory for the other instructions queue.");
+        exit(99);
+    }
+
     Queue_Init(scope->varDeclarationsQueue);
     Queue_Init(scope->otherInstructionsQueue);
 }
@@ -19,11 +34,14 @@ void TargetFS_Destroy(TargetFuncScope *scope) {
     if (Queue_Destroy(scope->varDeclarationsQueue) != 0) {
         loginfo("Failed to destroy the variable declarations queue.");
         exit(99);
-    }
+    }    
     if (Queue_Destroy(scope->otherInstructionsQueue) != 0) {
         loginfo("Failed to destroy the other instructions queue.");
         exit(99);
     }
+
+    free(scope->varDeclarationsQueue);
+    free(scope->otherInstructionsQueue);
 }
 
 void TargetFS_AddVar(TargetFuncScope *scope, Variable var) {
