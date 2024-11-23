@@ -3,13 +3,17 @@
 //
 #include <stdlib.h>
 #include <string.h>
-#include "stdio.h"
-#include "../../include/structs/ast.h" // Assuming the AST structure is defined here
 
-ASTNode* createASTNode(NodeType nodeType, char* value) {
+#include "logging.h"
+#include "stdio.h"
+#include "structs/ast.h"
+
+ASTNode *createASTNode(NodeType nodeType, char *value)
+{
     // Allocate memory for the ASTNode
-    ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
-    if (newNode == NULL) {
+    ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
+    if (newNode == NULL)
+    {
         fprintf(stderr, "Memory allocation failed for ASTNode\n");
         exit(99);
     }
@@ -17,10 +21,10 @@ ASTNode* createASTNode(NodeType nodeType, char* value) {
     // Allocate and copy the nodeType
     newNode->nodeType = nodeType;
 
-
     // Allocate and copy the value (if provided)
     newNode->value.string = value ? strdup(value) : NULL;
-    if (newNode->value.string == NULL && value) {
+    if (newNode->value.string == NULL && value)
+    {
         fprintf(stderr, "Memory allocation failed for nodeType\n");
         free(newNode);
         exit(99);
@@ -34,10 +38,12 @@ ASTNode* createASTNode(NodeType nodeType, char* value) {
     return newNode;
 }
 
-ASTNode* createASTNodeInteger(NodeType nodeType, int value) {
+ASTNode *createASTNodeInteger(NodeType nodeType, int value)
+{
     // Allocate memory for the ASTNode
-    ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
-    if (newNode == NULL) {
+    ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
+    if (newNode == NULL)
+    {
         fprintf(stderr, "Memory allocation failed for ASTNode\n");
         exit(99);
     }
@@ -54,18 +60,18 @@ ASTNode* createASTNodeInteger(NodeType nodeType, int value) {
     return newNode;
 }
 
-
-ASTNode* createASTNodeReal(NodeType nodeType, double value) {
+ASTNode *createASTNodeReal(NodeType nodeType, double value)
+{
     // Allocate memory for the ASTNode
-    ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
-    if (newNode == NULL) {
+    ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
+    if (newNode == NULL)
+    {
         fprintf(stderr, "Memory allocation failed for ASTNode\n");
         exit(99);
     }
 
     // Allocate and copy the nodeType
     newNode->nodeType = nodeType;
-
 
     // Allocate and copy the value (if provided)
     newNode->value.real = value;
@@ -78,10 +84,12 @@ ASTNode* createASTNodeReal(NodeType nodeType, double value) {
     return newNode;
 }
 
-ASTNode* createBinaryASTNode(NodeType operator, ASTNode* left, ASTNode* right) {
+ASTNode *createBinaryASTNode(NodeType operator, ASTNode * left, ASTNode *right)
+{
     // Allocate memory for the ASTNode
-    ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
-    if (newNode == NULL) {
+    ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
+    if (newNode == NULL)
+    {
         fprintf(stderr, "Memory allocation failed for ASTNode\n");
         exit(99);
     }
@@ -102,8 +110,10 @@ ASTNode* createBinaryASTNode(NodeType operator, ASTNode* left, ASTNode* right) {
     return newNode;
 }
 
-void clearAstNode(ASTNode *node){
-    if (node == NULL){
+void clearAstNode(ASTNode *node)
+{
+    if (node == NULL)
+    {
         return;
     }
     clearAstNode(node->left);
@@ -113,3 +123,99 @@ void clearAstNode(ASTNode *node){
     free(node);
 }
 
+const char *nodeTypeToString(NodeType nodeType)
+{
+    switch (nodeType)
+    {
+    case Program:
+        return "Program";
+    case Prolog:
+        return "Prolog";
+    case FunctionDef:
+        return "FunctionDef";
+    case Parameter:
+        return "Parameter";
+    case ReturnType:
+        return "ReturnType";
+    case DataType:
+        return "DataType";
+    case BlockStatement:
+        return "BlockStatement";
+    case ConstDeclaration:
+        return "ConstDeclaration";
+    case AddOperation:
+        return "AddOperation";
+    case SubOperation:
+        return "SubOperation";
+    case MulOperation:
+        return "MulOperation";
+    case DivOperation:
+        return "DivOperation";
+    case LessEqOperation:
+        return "LessEqOperation";
+    case LessOperation:
+        return "LessOperation";
+    case EqualOperation:
+        return "EqualOperation";
+    case NotEqualOperation:
+        return "NotEqualOperation";
+    case GreaterEqOperation:
+        return "GreaterEqOperation";
+    case GreaterOperation:
+        return "GreaterOperation";
+    case FuncCall:
+        return "FuncCall";
+    case Identifier:
+        return "Identifier";
+    case IntLiteral:
+        return "IntLiteral";
+    case FloatLiteral:
+        return "FloatLiteral";
+    case StringLiteral:
+        return "StringLiteral";
+    case NullLiteral:
+        return "NullLiteral";
+    case VarDeclaration:
+        return "VarDeclaration";
+    case NullBinding:
+        return "NullBinding";
+    case IfStatement:
+        return "IfStatement";
+    case WhileStatement:
+        return "WhileStatement";
+    case ReturnStatement:
+        return "ReturnStatement";
+    case Assignment:
+        return "Assignment";
+    case BuiltInFunctionCall:
+        return "BuiltInFunctionCall";
+    default:
+        return "Unknown";
+    }
+}
+
+void inspectAstNode(ASTNode *node)
+{
+    if (node == NULL)
+    {
+        loginfo("Node is NULL");
+        return;
+    }
+    loginfo("Node type: %s, with valType: %i", nodeTypeToString(node->nodeType), node->valType);
+    if (node->left != NULL)
+        loginfo("Left node type: %s", nodeTypeToString(node->left->nodeType));
+    else
+        loginfo("Left node is NULL");
+    if (node->right != NULL)
+        loginfo("Right node type: %s", nodeTypeToString(node->right->nodeType));
+    else
+        loginfo("Right node is NULL");
+    if (node->next != NULL)
+        loginfo("Next node type: %s", nodeTypeToString(node->next->nodeType));
+    else
+        loginfo("Next node is NULL");
+    if (node->binding != NULL)
+        loginfo("Binding node type: %s", nodeTypeToString(node->binding->nodeType));
+    else
+        loginfo("Binding node is NULL");
+}

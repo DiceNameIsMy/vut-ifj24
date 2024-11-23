@@ -1,8 +1,10 @@
 project(TargetGenLib)
 
 set(SOURCE_FILES
-    target_gen.c
+    id_indexer.c
     instructions.c
+    target_gen.c
+    target_func_scope.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})

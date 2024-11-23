@@ -6,6 +6,7 @@ set(SOURCE_FILES
         dynBuffer.c
         stack.c
         symtable.c
+        queue.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
