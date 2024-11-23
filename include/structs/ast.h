@@ -75,5 +75,6 @@ ASTNode* createBinaryASTNode(NodeType operator, ASTNode* left, ASTNode* right);
 void clearAstNode(ASTNode *node);
 
 const char *nodeTypeToString(NodeType nodeType);
+void inspectAstNode(ASTNode *node);
 
 #endif // AST_H
