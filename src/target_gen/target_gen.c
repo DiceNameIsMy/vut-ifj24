@@ -77,12 +77,12 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   fprintf(target_outputStream, ".IFJcode24\n");
 
   // Call main function
-  Operand mainFunc = initStringOperand(OP_CONST_STRING, "TODO:main");
+  Operand mainFunc = initStringOperand(OP_LABEL, "TODO:main");
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
   printInstruction(&callMainInst, target_outputStream);
 
   // Jump to the end of the generated file
-  Operand endProgramLabel = initStringOperand(OP_CONST_STRING, "TODO:EndProgramLabel");
+  Operand endProgramLabel = initStringOperand(OP_LABEL, "TODO:EndProgramLabel");
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   printInstruction(&jumpToEndInst, target_outputStream);
 
