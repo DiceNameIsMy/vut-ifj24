@@ -8,13 +8,18 @@
 #include "logging.h"
 #include "structs/ast.h"
 
+#include "target_gen/id_indexer.h"
 #include "target_gen/instructions.h"
 #include "target_gen/target_gen.h"
 #include "target_gen/target_func_scope.h"
 
 FILE *outputStream;
 SymTable *symbolTable;
+
 TargetFuncScope *funcScope = NULL;
+IdIndexer *funcVarsIndexer = NULL;
+
+IdIndexer *labelIndexer = NULL;
 
 /**********************************************************/
 /* Private Function Declarations */
@@ -84,17 +89,26 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   }
   outputStream = output;
   symbolTable = symTable;
+  labelIndexer = malloc(sizeof(IdIndexer));
+  if (labelIndexer == NULL)
+  {
+    loginfo("Failed to allocate memory for label context");
+    exit(99);
+  }
+  IdIndexer_Init(labelIndexer);
 
   // Every .ifjcode program should start with this
   fprintf(outputStream, ".IFJcode24\n");
 
   // Call main function
-  Operand mainFunc = initStringOperand(OP_LABEL, "TODO:main");
+  char *mainLabel = IdIndexer_GetOrLoad(labelIndexer, "main");
+  Operand mainFunc = initStringOperand(OP_LABEL, mainLabel);
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
   addInstruction(callMainInst);
 
   // Jump to the end of the generated file
-  Operand endProgramLabel = initStringOperand(OP_LABEL, "TODO:EndProgramLabel");
+  char *endProgramLabelName = IdIndexer_GetOrLoad(labelIndexer, "end_program");
+  Operand endProgramLabel = initStringOperand(OP_LABEL,endProgramLabelName);
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   addInstruction(jumpToEndInst);
 
@@ -103,9 +117,12 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initStringOperand(OP_LABEL, "TODO:EndProgramLabel");
+  Operand var = initStringOperand(OP_LABEL, endProgramLabelName);
   Instruction inst = initInstr1(INST_LABEL, var);
   addInstruction(inst);
+
+  IdIndexer_Destroy(labelIndexer);
+  labelIndexer = NULL;
 
   return 0;
 }
@@ -151,8 +168,19 @@ void generateFunctions(ASTNode *node)
   }
   TargetFS_Init(funcScope);
 
+  // Initialize a function variables indexer
+  assert(funcVarsIndexer == NULL);
+  funcVarsIndexer = malloc(sizeof(IdIndexer));
+  if (funcVarsIndexer == NULL)
+  {
+    loginfo("Failed to allocate memory for function variables indexer");
+    exit(99);
+  }
+  IdIndexer_Init(funcVarsIndexer);
+
   // Add label for function name
-  Operand var = initStringOperand(OP_LABEL, node->value.string);
+  char* funcLabel = IdIndexer_GetOrLoad(labelIndexer, node->value.string);
+  Operand var = initStringOperand(OP_LABEL, funcLabel);
   Instruction inst = initInstr1(INST_LABEL, var);
   addInstruction(inst);
 
@@ -172,6 +200,11 @@ void generateFunctions(ASTNode *node)
   TargetFS_Destroy(funcScope);
   free(funcScope);
   funcScope = NULL;
+
+  // Remove the function variables indexer
+  IdIndexer_Destroy(funcVarsIndexer);
+  free(funcVarsIndexer);
+  funcVarsIndexer = NULL;
 
   // Generate every other function
   if (node->binding != NULL)
@@ -195,7 +228,6 @@ void generateStatements(ASTNode *node)
     generateAssignment(node);
     break;
   case BlockStatement:
-    // TODO: Generate DEFVAR for variables in this block
     generateStatements(node->left);
     break;
   case IfStatement:

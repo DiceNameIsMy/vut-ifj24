@@ -4,13 +4,13 @@
 #include "logging.h"
 #include "structs/bvs.h"
 
-#include "target_gen/target_label_context.h"
+#include "target_gen/id_indexer.h"
 
 /**********************************************************/
 /* Private Functions */
 /**********************************************************/
 
-void constructLabel(char *name, int counter, char **label)
+void constructUniqueName(char *name, int counter, char **label)
 {
     size_t labelLength = strlen(name) + 1 + 4; // name + underscore + 4 digits
 
@@ -28,36 +28,36 @@ void constructLabel(char *name, int counter, char **label)
 /* Public Functions Definitions */
 /**********************************************************/
 
-void TargetLC_Init(TargetLabelContext *ctx)
+void IdIndexer_Init(IdIndexer *indexer)
 {
-    BVS_Init(ctx->labels);
-    ctx->counter = 0;
+    indexer->identifiers = malloc(sizeof(BVS));
+    if (indexer->identifiers == NULL)
+    {
+        loginfo("Failed to allocate memory for BVS");
+        exit(99);
+    }
+    BVS_Init(indexer->identifiers);
+    indexer->counter = 0;
 }
 
-char *TargetLC_GetOrLoadFuncLabel(TargetLabelContext *ctx, char *name)
+void IdIndexer_Destroy(IdIndexer *indexer)
 {
-    char *label = BVS_Search(ctx->labels, name);
+    BVS_Free(indexer->identifiers);
+    free(indexer->identifiers);
+    indexer->counter = 0;
+}
+
+char *IdIndexer_GetOrLoad(IdIndexer *indexer, char *name)
+{
+    char *label = BVS_Search(indexer->identifiers, name);
 
     if (label == NULL)
     {
         // Func label is not found. Construct it's name and insert it
-        constructLabel(name, ctx->counter, &label);
+        constructUniqueName(name, indexer->counter, &label);
 
-        BVS_Insert(ctx->labels, name, label, strlen(label) + 1);
-        ctx->counter++;
+        BVS_Insert(indexer->identifiers, name, label, strlen(label) + 1);
+        indexer->counter++;
     }
-    return label;
-}
-
-char *TargetLC_AddOtherLabel(TargetLabelContext *ctx, char *name)
-{
-    char *label;
-
-    constructLabel(name, ctx->counter, &label);
-
-    // Label is not inserted into the tree, because it's not a function label.
-    // User does not need to retrieve it later in the code execution.
-    ctx->counter++;
-
     return label;
 }
