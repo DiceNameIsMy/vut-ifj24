@@ -11,6 +11,8 @@ typedef struct {
 } TargetFuncScope;
 
 void TargetFS_Init(TargetFuncScope *scope);
+void TargetFS_Destroy(TargetFuncScope *scope);
+
 void TargetFS_AddVar(TargetFuncScope *scope, Variable var);
 void TargetFS_AddInst(TargetFuncScope *scope, Instruction inst);
 

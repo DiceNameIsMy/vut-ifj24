@@ -11,6 +11,21 @@ void TargetFS_Init(TargetFuncScope *scope) {
     Queue_Init(scope->otherInstructionsQueue);
 }
 
+void TargetFS_Destroy(TargetFuncScope *scope) {
+    if (!TargetFS_IsEmpty(scope)) {
+        loginfo("Function scope is not empty when trying to destroy it.");
+        exit(99);
+    }
+    if (Queue_Destroy(scope->varDeclarationsQueue) != 0) {
+        loginfo("Failed to destroy the variable declarations queue.");
+        exit(99);
+    }
+    if (Queue_Destroy(scope->otherInstructionsQueue) != 0) {
+        loginfo("Failed to destroy the other instructions queue.");
+        exit(99);
+    }
+}
+
 void TargetFS_AddVar(TargetFuncScope *scope, Variable var) {
     Queue_Enqueue(scope->varDeclarationsQueue, &var);
 }
