@@ -586,7 +586,7 @@ void printOperand(Operand *op, FILE *stream)
         printConst(op, stream);
         break;
     case OP_LABEL:
-        fprintf(stream, " label@%s", op->attr.string);
+        fprintf(stream, " %s", op->attr.string);
         break;
     case OP_TYPE:
         fprintf(stream, " type@%s", op->attr.string);
