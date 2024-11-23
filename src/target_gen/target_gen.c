@@ -117,7 +117,6 @@ void addInstruction(Instruction *inst)
 {
   if (funcScope != NULL)
   {
-    loginfo("Adding instruction to function scope");
     TargetFS_AddInst(funcScope, *inst);
   }
   else
@@ -139,7 +138,7 @@ void addVarDefinition(Variable *var)
 void generateFunctions(ASTNode *node)
 {
   loginfo("Generating function %s", node->value.string);
-  
+
   // Initialize a function scope
   assert(funcScope == NULL);
   funcScope = malloc(sizeof(TargetFuncScope));
@@ -156,7 +155,7 @@ void generateFunctions(ASTNode *node)
   addInstruction(&inst);
 
   // Generate function body
-  generateStatements(node->right);
+  generateStatements(node->next);
 
   // Print every instruction accumulated for the current scope(function)
   while (!TargetFS_IsEmpty(funcScope))
@@ -172,45 +171,55 @@ void generateFunctions(ASTNode *node)
   funcScope = NULL;
 
   // Generate every other function
-  if (node->next != NULL)
+  if (node->binding != NULL)
   {
-    return generateFunctions(node->next);
+    return generateFunctions(node->binding);
   }
 }
 
 void generateStatements(ASTNode *node)
 {
-  while (node != NULL)
-  {
-    loginfo("Generating statement: %s", nodeTypeToString(node->nodeType));
+  loginfo("Generating statement: %s", nodeTypeToString(node->nodeType));
 
-    switch (node->nodeType)
+  switch (node->nodeType)
+  {
+  case VarDeclaration:
+  case ConstDeclaration:
+    Variable var = {.frame = FRAME_LF, .name = node->left->value.string};
+    addVarDefinition(&var);
+    break;
+  case Assignment:
+    generateAssignment(node);
+    break;
+  case BlockStatement:
+    // TODO: Generate DEFVAR for variables in this block
+    generateStatements(node->left);
+    break;
+  case IfStatement:
+    loginfo("If statement not implemented yet");
+    exit(99);
+  case WhileStatement:
+    loginfo("While statement not implemented yet");
+    exit(99);
+  case ReturnStatement:
+
+    if (node->valType == NONETYPE)
     {
-    case VarDeclaration:
-    case ConstDeclaration:
-      // Skip, as every declaration in this scope has already
-      // been made at the beginning of the function
-      break;
-    case Assignment:
-      generateAssignment(node);
-      break;
-    case BlockStatement:
-      // TODO: Generate DEFVAR for variables in this block
-      generateStatements(node->left);
-      break;
-    case IfStatement:
-      loginfo("If statement not implemented yet");
-      exit(99);
-    case WhileStatement:
-      loginfo("While statement not implemented yet");
-      exit(99);
-    case ReturnStatement:
+      Instruction returnInst = initInstr0(INST_RETURN);
+      addInstruction(&returnInst);
+    }
+    else
+    {
+      inspectAstNode(node);
       loginfo("Return statement not implemented yet");
       exit(99);
-    default:
-      loginfo("Unexpected statement type: %s", nodeTypeToString(node->nodeType));
-      exit(99);
     }
+    break;
+
+  default:
+    inspectAstNode(node);
+    loginfo("Unexpected statement type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
   }
 
   // Generate every consecutive statement
@@ -228,8 +237,11 @@ void generateAssignment(ASTNode *node)
   Operand dest;
   if (strcmp(node->left->value.string, "_") == 0)
   {
-    // TODO: assign to a really temporary varaible
-    dest = initVarOperand(OP_VAR, FRAME_LF, "TODO:TemporaryVariable");
+    // TODO: Add var definition only if it's not already defined
+    // TODO: create a temporary variable name
+    Variable var = {.frame = FRAME_LF, .name = "TODO:TemporaryVariable"};
+    addVarDefinition(&var);
+    dest = initVarOperand(OP_VAR, FRAME_LF, var.name);
   }
   else
   {
