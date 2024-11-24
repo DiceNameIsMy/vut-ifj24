@@ -44,7 +44,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
 void generateConditionalBlock(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
-void generateFunctionCall(ASTNode *node);
+void generateFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCallParameters(ASTNode *node);
 
 InstType binaryNodeToInstructionType(ASTNode *node);
@@ -353,15 +353,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case FuncCall:
-    generateFunctionCall(node);
-    assert(node->right->nodeType == ReturnType);
-
-    bool returnsVoid = strcmp(node->right->value.string, "void") == 0;
-    if (!returnsVoid)
-    {
-      inst = initInstr1(INST_POPS, *outVar);
-      addInstruction(inst);
-    }
+    generateFunctionCall(node, outVar);
     break;
 
   case BuiltInFunctionCall:
@@ -621,7 +613,7 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   }
 }
 
-void generateFunctionCall(ASTNode *node)
+void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
   assert(node->nodeType == FuncCall);
 
@@ -644,6 +636,17 @@ void generateFunctionCall(ASTNode *node)
   // Pop frame
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
   addInstruction(popFrameInst);
+
+  // If function returns a value, put it into outVar
+  assert(node->right->nodeType == ReturnType);
+  bool returnsVoid = strcmp(node->right->value.string, "void") == 0;
+  if (!returnsVoid)
+  {
+    char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+    *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
+    addVarDefinition(outVar);
+    addInstruction(initInstr1(INST_POPS, *outVar));
+  }
 }
 
 void generateFunctionCallParameters(ASTNode *node)
