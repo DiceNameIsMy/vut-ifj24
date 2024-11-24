@@ -321,11 +321,12 @@ void generateDeclaration(ASTNode *node)
 
 void generateAssignment(ASTNode *node)
 {
-  assert(node->nodeType == Assignment);
-  assert(node->left->nodeType == Identifier);
+  inspectAstNode(node);
 
+  assert(node->nodeType == Assignment);
+
+  // If variable name is _, generate a temporary variable name
   char *varName;
-  Operand dest;
   if (strcmp(node->left->value.string, "_") == 0)
   {
     // TODO: A value is assigned but would never be used. Can it be done in some better way?
@@ -333,13 +334,14 @@ void generateAssignment(ASTNode *node)
   }
   else
   {
-    varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->left->value.string);
+    varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
   }
+
+  Operand dest;
   dest = initVarOperand(OP_VAR, FRAME_LF, varName);
-  addVarDefinition(&dest.attr.var);
 
   // Generate assigment evaluation
-  generateExpression(node->right, &dest);
+  generateExpression(node->left, &dest);
 }
 
 void generateExpression(ASTNode *node, Operand *outVar)
@@ -675,6 +677,41 @@ void generateIfStatement(ASTNode *node)
 void generateWhileStatement(ASTNode *node)
 {
   inspectAstNode(node);
+
+  // Create a label for the beginning of the while loop
+  char *whileIterLabelName = IdIndexer_CreateOneTime(labelIndexer, "while_iteration");
+  Operand whileIterLabel = initStringOperand(OP_LABEL, whileIterLabelName);
+  addInstruction(initInstr1(INST_LABEL, whileIterLabel));
+
+  // Define a label name to jump to when the condition is false
+  char *endWhileLabelName = IdIndexer_CreateOneTime(labelIndexer, "end_while");
+  Operand endWhileLabel = initStringOperand(OP_LABEL, endWhileLabelName);
+
+  // Evaluate while (...)
+  Operand whileCondition;
+  generateExpression(node->left, &whileCondition);
+
+  // Jump to the end of the loop if the condition is false
+  Instruction instrCondEndLoop = initInstr3(
+      INST_JUMPIFEQ,
+      endWhileLabel,
+      whileCondition,
+      initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));  
+  addInstruction(instrCondEndLoop);
+
+  // Generate a body of while () { ... }
+  ASTNode *bodyStatement = node->right;
+  while (bodyStatement != NULL)
+  {
+    generateStatement(bodyStatement);
+    bodyStatement = bodyStatement->next;
+  }
+
+  // Jump to the beginning of the loop
+  addInstruction(initInstr1(INST_JUMP, whileIterLabel));
+
+  // Add label for the end of the while loop
+  addInstruction(initInstr1(INST_LABEL, endWhileLabel));
 }
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
