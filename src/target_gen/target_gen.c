@@ -399,41 +399,41 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 
   bool outVarInitialized = false;
 
-  Operand leftOp;
+  Operand leftOperand;
   if (leftIsVar)
-    leftOp = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
+    leftOperand = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
   else if (leftIsConstant)
-    leftOp = initConstantOperand(node->left);
+    leftOperand = initConstantOperand(node->left);
   else if (rightCanBeInline) {
     // Left operand is not inline but right operand is. 
     // Evaluate left at the place of outVar & then use it to set the final value to outVar.
     generateExpression(node->left, outVar);
-    leftOp = *outVar;
+    leftOperand = *outVar;
     outVarInitialized = true;
   } else {
     // Both operands can't be inlined. Set left's value to outVar.
     generateExpression(node->left, outVar);
-    leftOp = *outVar;
+    leftOperand = *outVar;
     outVarInitialized = true;
   }
 
-  Operand rightOp;
+  Operand rightOperand;
   if (rightIsVar)
-    rightOp = initVarOperand(OP_VAR, FRAME_LF, node->right->value.string);
+    rightOperand = initVarOperand(OP_VAR, FRAME_LF, node->right->value.string);
   else if (rightIsConstant)
-    rightOp = initConstantOperand(node->right);
+    rightOperand = initConstantOperand(node->right);
   else if (leftCanBeInline) {
     // Same as for left, but for right operand.
     generateExpression(node->right, outVar);
-    rightOp = *outVar;
+    rightOperand = *outVar;
     outVarInitialized = true;
   } else {
     // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
     char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    rightOp = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
-    addVarDefinition(&rightOp.attr.var);
+    rightOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+    addVarDefinition(&rightOperand.attr.var);
 
-    generateExpression(node->right, &rightOp);
+    generateExpression(node->right, &rightOperand);
   }
 
   if (!outVarInitialized)
@@ -444,7 +444,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   }
 
   Instruction inst;
-  inst = initInstr3(binaryNodeToInstructionType(node), *outVar, leftOp, rightOp);
+  inst = initInstr3(binaryNodeToInstructionType(node), *outVar, leftOperand, rightOperand);
   addInstruction(inst);
 
   bool negate = negateBinaryInstruction(node);
@@ -513,6 +513,8 @@ bool negateBinaryInstruction(ASTNode *node)
   case GreaterOperation:
   case LessEqOperation:
   case GreaterEqOperation:
+    // These relational binary instructions do not have a 1 to 1 mapping to target.
+    // They can only to acheived by negating the result of their counterpart.
     return true;
   default:
     loginfo("Unexpected binary instruction type: %s", nodeTypeToString(node->nodeType));
