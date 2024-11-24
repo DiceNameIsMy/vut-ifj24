@@ -243,9 +243,11 @@ void generateStatement(ASTNode *node)
     break;
   case IfStatement:
     loginfo("If statement not implemented yet");
+    inspectAstNode(node);
     exit(99);
   case WhileStatement:
     loginfo("While statement not implemented yet");
+    inspectAstNode(node);
     exit(99);
   case ReturnStatement:
 
@@ -288,8 +290,8 @@ void generateStatement(ASTNode *node)
     break;
 
   default:
-    inspectAstNode(node);
     loginfo("Unexpected statement type: %s", nodeTypeToString(node->nodeType));
+    inspectAstNode(node);
     exit(99);
   }
 }
@@ -383,6 +385,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
 
   default:
     loginfo("Unexpected factor type: %s", nodeTypeToString(node->nodeType));
+    inspectAstNode(node);
     exit(99);
   }
 }
@@ -647,7 +650,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   {
     char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
     *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
-    addVarDefinition(outVar);
+    addVarDefinition(&outVar->attr.var);
     addInstruction(initInstr1(INST_POPS, *outVar));
   }
 }
