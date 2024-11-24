@@ -32,8 +32,8 @@ void addInstruction(Instruction inst);
 ///        function that is being generated.
 void addVarDefinition(Variable *var);
 
-void generateFunctions(ASTNode *node);
-void generateStatements(ASTNode *node);
+void generateFunction(ASTNode *node);
+void generateStatement(ASTNode *node);
 void generateDeclaration(ASTNode *node);
 void generateAssignment(ASTNode *node);
 
@@ -85,6 +85,8 @@ int generateTargetCode(ASTNode *root, FILE *output)
     return -1;
   }
   outputStream = output;
+
+  // Initialize label indexer
   labelIndexer = malloc(sizeof(IdIndexer));
   if (labelIndexer == NULL)
   {
@@ -119,7 +121,12 @@ int generateTargetCode(ASTNode *root, FILE *output)
   addInstruction(jumpToEndInst);
 
   // Generate functions
-  generateFunctions(root->right);
+  ASTNode *funcNode = root->right;
+  while (funcNode != NULL)
+  {
+    generateFunction(funcNode);
+    funcNode = funcNode->binding;
+  }
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
@@ -160,7 +167,7 @@ void addVarDefinition(Variable *var)
   TFC_AddVar(funcScope, *var);
 }
 
-void generateFunctions(ASTNode *node)
+void generateFunction(ASTNode *node)
 {
   loginfo("Generating function %s", node->value.string);
 
@@ -190,9 +197,15 @@ void generateFunctions(ASTNode *node)
   TFC_SetFuncLabel(funcScope, funcLabel);
 
   // Generate function body
-  generateStatements(node->next);
+  ASTNode *statementNode = node->next;
+  while (statementNode != NULL)
+  {
+    generateStatement(statementNode);
+    statementNode = statementNode->next;
+  }
 
-  // Print every instruction accumulated for the current scope(function)
+  // Print every instruction accumulated for the 
+  // current scope(function) after statement generation
   loginfo("Generating function body");
   while (!TFC_IsEmpty(funcScope))
   {
@@ -210,15 +223,9 @@ void generateFunctions(ASTNode *node)
   IdIndexer_Destroy(funcVarsIndexer);
   free(funcVarsIndexer);
   funcVarsIndexer = NULL;
-
-  // Generate every other function
-  if (node->binding != NULL)
-  {
-    return generateFunctions(node->binding);
-  }
 }
 
-void generateStatements(ASTNode *node)
+void generateStatement(ASTNode *node)
 {
   loginfo("Generating statement: %s", nodeTypeToString(node->nodeType));
 
@@ -232,7 +239,7 @@ void generateStatements(ASTNode *node)
     generateAssignment(node);
     break;
   case BlockStatement:
-    generateStatements(node->left);
+    generateStatement(node->left);
     break;
   case IfStatement:
     loginfo("If statement not implemented yet");
@@ -284,12 +291,6 @@ void generateStatements(ASTNode *node)
     inspectAstNode(node);
     loginfo("Unexpected statement type: %s", nodeTypeToString(node->nodeType));
     exit(99);
-  }
-
-  // Generate every consecutive statement
-  if (node->next != NULL)
-  {
-    generateStatements(node->next);
   }
 }
 
