@@ -256,8 +256,10 @@ void generateStatement(ASTNode *node)
     break;
   case IfStatement:
     generateConditionalStatement(node);
+    break;
   case WhileStatement:
     generateWhileStatement(node);
+    break;
   case ReturnStatement:
 
     if (node->valType == NONETYPE) // Return void
@@ -458,7 +460,6 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
     *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
     addVarDefinition(&outVar->attr.var);
-    loginfo("Creating a temporary variable for the result of a binary expression: %s", outVarName);
   }
 
   Instruction inst;
@@ -570,13 +571,17 @@ bool isVarOrConstant(ASTNode *node)
 
 void generateConditionalStatement(ASTNode *node)
 {
-  if (node->right != NULL)
+  // TODO: In IfStatement, else if and else block go one by one through the node->next.
+  //       Adapt to that.
+  if (node->right == NULL)
   {
-    generateIfElseStatement(node);
+    loginfo("Generating if statement");
+    generateIfStatement(node);
   }
   else
   {
-    generateIfStatement(node);
+    loginfo("Generating if-else statement");
+    generateIfElseStatement(node);
   }
 }
 
@@ -616,14 +621,12 @@ void generateIfElseStatement(ASTNode *node)
     elseBlockStatement = elseBlockStatement->next;
   }
   // Skip instructions from other blocks
-  Instruction endConditionLabelInst = initInstr1(INST_JUMP, endConditionLabel);
-  addInstruction(endConditionLabelInst);
+  addInstruction(initInstr1(INST_JUMP, endConditionLabel));
 
   // TODO: Generate else if blocks
 
   // Add label for the block within if condition
-  Instruction ifBlockLabelInst = initInstr1(INST_LABEL, ifBlockLabel);
-  addInstruction(ifBlockLabelInst);
+  addInstruction(initInstr1(INST_LABEL, ifBlockLabel));
 
   // Generate a body of if () { ... }
   ASTNode *ifBlockStatement = node->right;
@@ -633,9 +636,10 @@ void generateIfElseStatement(ASTNode *node)
     ifBlockStatement = ifBlockStatement->next;
   }
 
+  loginfo("Adding label for the end of the conditional statement");
+
   // Add label for the end of the conditional statement
-  Instruction conditionEndingLabel = initInstr1(INST_LABEL, endConditionLabel);
-  addInstruction(conditionEndingLabel);
+  addInstruction(initInstr1(INST_LABEL, endConditionLabel));
 }
 
 void generateIfStatement(ASTNode *node)
@@ -675,6 +679,7 @@ void generateIfStatement(ASTNode *node)
 
 void generateWhileStatement(ASTNode *node)
 {
+  inspectAstNode(node);
   // Create a label for the beginning of the while loop
   char *whileIterLabelName = IdIndexer_CreateOneTime(labelIndexer, "while_iteration");
   Operand whileIterLabel = initStringOperand(OP_LABEL, whileIterLabelName);
@@ -693,7 +698,7 @@ void generateWhileStatement(ASTNode *node)
       INST_JUMPIFEQ,
       endWhileLabel,
       whileCondition,
-      initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));  
+      initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
   addInstruction(instrCondEndLoop);
 
   // Generate a body of while () { ... }
