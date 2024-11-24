@@ -225,25 +225,9 @@ void printInstruction(Instruction *inst, FILE *stream)
     }
 
     printInstructionKeyword(inst, stream);
-
-    if (hasNoOperands(inst->type))
-    {
-    }
-    else if (hasOneOperand(inst->type))
-    {
-        printOperand(&inst->opFirst, stream);
-    }
-    else if (hasTwoOperands(inst->type))
-    {
-        printOperand(&inst->opFirst, stream);
-        printOperand(&inst->opSecond, stream);
-    }
-    else if (hasThreeOperands(inst->type))
-    {
-        printOperand(&inst->opFirst, stream);
-        printOperand(&inst->opSecond, stream);
-        printOperand(&inst->opThird, stream);
-    }
+    printOperand(&inst->opFirst, stream);
+    printOperand(&inst->opSecond, stream);
+    printOperand(&inst->opThird, stream);
     fprintf(stream, "\n");
 }
 
@@ -527,8 +511,6 @@ bool hasThreeOperands(InstType type)
     }
 }
 
-// TODO Require operations to be on the same type
-
 bool isFirstOperandValid(InstType type, Operand op)
 {
     switch (type)
@@ -538,8 +520,7 @@ bool isFirstOperandValid(InstType type, Operand op)
     case INST_EXIT:
         if (isSymbolOperand(&op))
             return true;
-        else
-            loginfo("Invalid instruction %s. Expected symbol as 1st operand, got %d", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected symbol as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     case INST_CALL: // Only allows label
@@ -549,15 +530,13 @@ bool isFirstOperandValid(InstType type, Operand op)
     case INST_JUMPIFNEQS:
         if (op.type == OP_LABEL)
             return true;
-        else
-            loginfo("Invalid instruction %s. Expected label as 1st operand, got %d", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected label as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     default: // Every other instruction only allows var
         if (op.type == OP_VAR)
             return true;
-        else
-            loginfo("Invalid instruction %s. Expected var as 1st operand, got %d", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected var as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
     }
     return false;
