@@ -389,36 +389,44 @@ void generateExpression(ASTNode *node, Operand *outVar)
 
 void generateBinaryExpression(ASTNode *node, Operand *outVar)
 {
-  InstType instType = binaryNodeToInstructionType(node);
-  bool negate = negateBinaryInstruction(node);
+  bool leftIsVar = node->left->nodeType == Identifier;
+  bool leftIsConstant = isConstant(node->left);
+  bool leftCanBeInline = leftIsVar || leftIsConstant;
 
-  bool leftCanBeInline = node->left->nodeType == Identifier || isConstant(node->left);
-  bool rightCanBeInline = node->right->nodeType == Identifier || isConstant(node->right);
+  bool rightIsVar = node->right->nodeType == Identifier;
+  bool rightIsConstant = isConstant(node->right);
+  bool rightCanBeInline = leftIsVar || rightIsConstant;
+
+  bool outVarInitialized = false;
 
   Operand leftOp;
-  if (node->left->nodeType == Identifier)
+  if (leftIsVar)
     leftOp = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
-  else if (isConstant(node->left))
+  else if (leftIsConstant)
     leftOp = initConstantOperand(node->left);
   else if (rightCanBeInline) {
     // Left operand is not inline but right operand is. 
     // Evaluate left at the place of outVar & then use it to set the final value to outVar.
     generateExpression(node->left, outVar);
     leftOp = *outVar;
+    outVarInitialized = true;
   } else {
     // Both operands can't be inlined. Set left's value to outVar.
     generateExpression(node->left, outVar);
+    leftOp = *outVar;
+    outVarInitialized = true;
   }
 
   Operand rightOp;
-  if (node->right->nodeType == Identifier)
+  if (rightIsVar)
     rightOp = initVarOperand(OP_VAR, FRAME_LF, node->right->value.string);
-  else if (isConstant(node->right))
+  else if (rightIsConstant)
     rightOp = initConstantOperand(node->right);
   else if (leftCanBeInline) {
     // Same as for left, but for right operand.
     generateExpression(node->right, outVar);
     rightOp = *outVar;
+    outVarInitialized = true;
   } else {
     // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
     char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
@@ -428,9 +436,23 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     generateExpression(node->right, &rightOp);
   }
 
+  if (!outVarInitialized)
+  {
+    char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+    *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
+    addVarDefinition(&outVar->attr.var);
+  }
+
   Instruction inst;
-  inst = initInstr3(instType, *outVar, leftOp, rightOp);
+  inst = initInstr3(binaryNodeToInstructionType(node), *outVar, leftOp, rightOp);
   addInstruction(inst);
+
+  bool negate = negateBinaryInstruction(node);
+  if (negate)
+  {
+    Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
+    addInstruction(negateInst);
+  }
 }
 
 InstType binaryNodeToInstructionType(ASTNode *node)
