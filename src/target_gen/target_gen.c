@@ -11,12 +11,12 @@
 #include "target_gen/id_indexer.h"
 #include "target_gen/instructions.h"
 #include "target_gen/target_gen.h"
-#include "target_gen/target_func_scope.h"
+#include "target_gen/target_func_context.h"
 
 FILE *outputStream;
 SymTable *symbolTable;
 
-TargetFuncScope *funcScope = NULL;
+TargetFuncContext *funcScope = NULL;
 IdIndexer *funcVarsIndexer = NULL;
 
 IdIndexer *labelIndexer = NULL;
@@ -146,7 +146,7 @@ void addInstruction(Instruction inst)
 {
   if (funcScope != NULL)
   {
-    TargetFS_AddInst(funcScope, inst);
+    TFC_AddInst(funcScope, inst);
   }
   else
   {
@@ -162,7 +162,7 @@ void addVarDefinition(Variable *var)
     loginfo("Attemted to add var definition outside of a function scope");
     exit(99);
   }
-  TargetFS_AddVar(funcScope, *var);
+  TFC_AddVar(funcScope, *var);
 }
 
 void generateFunctions(ASTNode *node)
@@ -171,13 +171,13 @@ void generateFunctions(ASTNode *node)
 
   // Initialize a function scope
   assert(funcScope == NULL);
-  funcScope = malloc(sizeof(TargetFuncScope));
+  funcScope = malloc(sizeof(TargetFuncContext));
   if (funcScope == NULL)
   {
     loginfo("Failed to allocate memory for function scope");
     exit(99);
   }
-  TargetFS_Init(funcScope);
+  TFC_Init(funcScope);
 
   // Initialize a function variables indexer
   assert(funcVarsIndexer == NULL);
@@ -192,22 +192,22 @@ void generateFunctions(ASTNode *node)
   // Add label for function name
   char *funcLabel = IdIndexer_GetOrCreate(labelIndexer, node->value.string);
   Instruction inst = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, funcLabel));
-  TargetFS_SetFuncLabel(funcScope, funcLabel);
+  TFC_SetFuncLabel(funcScope, funcLabel);
 
   // Generate function body
   generateStatements(node->next);
 
   // Print every instruction accumulated for the current scope(function)
   loginfo("Generating function body");
-  while (!TargetFS_IsEmpty(funcScope))
+  while (!TFC_IsEmpty(funcScope))
   {
-    Instruction inst = TargetFS_PopNext(funcScope);
+    Instruction inst = TFC_PopNext(funcScope);
     printInstruction(&inst, outputStream);
     destroyInstruction(&inst);
   }
 
   // Remove the function scope
-  TargetFS_Destroy(funcScope);
+  TFC_Destroy(funcScope);
   free(funcScope);
   funcScope = NULL;
 
