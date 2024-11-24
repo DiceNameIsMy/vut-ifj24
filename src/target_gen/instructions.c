@@ -10,6 +10,8 @@
 /* Private Function Declarations */
 /**********************************************************/
 
+int copyOperand(Operand *dest, Operand *src);
+
 int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird);
 
@@ -235,6 +237,40 @@ void printInstruction(Instruction *inst, FILE *stream)
 /* Function Definitions */
 /**********************************************************/
 
+int copyOperand(Operand *dest, Operand *src)
+{
+    if (dest == NULL || src == NULL)
+    {
+        loginfo("Operand pointers are NULL");
+        return -1;
+    }
+
+    dest->type = src->type;
+    if (src->type == OP_VAR)
+    {
+        dest->attr.var.frame = src->attr.var.frame;
+        dest->attr.var.name = strdup(src->attr.var.name);
+        if (dest->attr.var.name == NULL)
+        {
+            loginfo("Failed to allocate memory for variable name");
+            return -1;
+        }
+    }
+    else if (src->type == OP_CONST_STRING || src->type == OP_LABEL || src->type == OP_TYPE)
+    {
+        dest->attr.string = strdup(src->attr.string);
+        if (dest->attr.string == NULL)
+        {
+            loginfo("Failed to allocate memory for string");
+            return -1;
+        }
+    } else {
+        dest->attr = src->attr;
+    }
+
+    return 0;
+}
+
 int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird)
 {
@@ -245,9 +281,9 @@ int initInstruction(Instruction *inst, InstType type,
     }
 
     inst->type = type;
-    inst->opFirst = opFirst;
-    inst->opSecond = opSecond;
-    inst->opThird = opThird;
+    copyOperand(&inst->opFirst, &opFirst);
+    copyOperand(&inst->opSecond, &opSecond);
+    copyOperand(&inst->opThird, &opThird);
 
     return 0;
 }
@@ -463,6 +499,8 @@ bool hasTwoOperands(InstType type)
     case INST_INT2FLOATS:
     case INST_FLOAT2INTS:
     case INST_INT2CHARS:
+    case INST_NOT:
+    case INST_NOTS:
     case INST_READ:
     case INST_STRLEN:
     case INST_TYPE:
@@ -494,10 +532,8 @@ bool hasThreeOperands(InstType type)
     case INST_EQS:
     case INST_AND:
     case INST_OR:
-    case INST_NOT:
     case INST_ANDS:
     case INST_ORS:
-    case INST_NOTS:
     case INST_STRI2INT:
     case INST_STRI2INTS:
     case INST_CONCAT:
@@ -526,6 +562,8 @@ bool isFirstOperandValid(InstType type, Operand op)
     case INST_CALL: // Only allows label
     case INST_LABEL:
     case INST_JUMP:
+    case INST_JUMPIFEQ:
+    case INST_JUMPIFNEQ:
     case INST_JUMPIFEQS:
     case INST_JUMPIFNEQS:
         if (op.type == OP_LABEL)

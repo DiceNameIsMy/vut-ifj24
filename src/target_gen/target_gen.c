@@ -42,10 +42,11 @@ void generateAssignment(ASTNode *node);
 void generateExpression(ASTNode *node, Operand *outVar);
 void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
-void generateConditionalBlock(ASTNode *node);
+void generateIfStatement(ASTNode *node);
+void generateWhileStatement(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
-void generateFunctionCallParameters(ASTNode *node);
+void generateFunctionCallParameter(ASTNode *node);
 
 InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
@@ -137,6 +138,8 @@ int generateTargetCode(ASTNode *root, FILE *output)
   IdIndexer_Destroy(labelIndexer);
   labelIndexer = NULL;
 
+  loginfo("Target code generation finished");
+
   return 0;
 }
 
@@ -204,6 +207,15 @@ void generateFunction(ASTNode *node)
     statementNode = statementNode->next;
   }
 
+  // TODO: Add return statement if it's implicit
+  loginfo("Function %s returns %i", node->value.string, node->right->valType);
+  inspectAstNode(node->right);
+  if (strcmp(node->right->value.string, "void") == 0)
+  {
+    Instruction returnInst = initInstr0(INST_RETURN);
+    addInstruction(returnInst);
+  }
+
   // Print every instruction accumulated for the
   // current scope(function) after statement generation
   loginfo("Generating function body");
@@ -242,13 +254,9 @@ void generateStatement(ASTNode *node)
     generateStatement(node->left);
     break;
   case IfStatement:
-    loginfo("If statement not implemented yet");
-    inspectAstNode(node);
-    exit(99);
+    generateIfStatement(node);
   case WhileStatement:
-    loginfo("While statement not implemented yet");
-    inspectAstNode(node);
-    exit(99);
+    generateWhileStatement(node);
   case ReturnStatement:
 
     if (node->valType == NONETYPE) // Return void
@@ -298,8 +306,6 @@ void generateStatement(ASTNode *node)
 
 void generateDeclaration(ASTNode *node)
 {
-  inspectAstNode(node);
-
   // Get var unique name
   char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
   Operand varOperand = initVarOperand(OP_VAR, FRAME_LF, varName);
@@ -313,7 +319,6 @@ void generateDeclaration(ASTNode *node)
 
 void generateAssignment(ASTNode *node)
 {
-  inspectAstNode(node);
   assert(node->nodeType == Assignment);
   assert(node->left->nodeType == Identifier);
 
@@ -337,7 +342,7 @@ void generateAssignment(ASTNode *node)
 
 void generateExpression(ASTNode *node, Operand *outVar)
 {
-  Instruction inst;
+  loginfo("Generating expression: %s", nodeTypeToString(node->nodeType));
 
   switch (node->nodeType)
   {
@@ -398,22 +403,25 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 
   bool rightIsVar = node->right->nodeType == Identifier;
   bool rightIsConstant = isConstant(node->right);
-  bool rightCanBeInline = leftIsVar || rightIsConstant;
+  bool rightCanBeInline = rightIsVar || rightIsConstant;
 
   bool outVarInitialized = false;
 
   Operand leftOperand;
   if (leftIsVar)
-    leftOperand = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
+    leftOperand = initVarOperand(OP_VAR, FRAME_LF, IdIndexer_GetOrCreate(funcVarsIndexer, node->left->value.string));
   else if (leftIsConstant)
     leftOperand = initConstantOperand(node->left);
-  else if (rightCanBeInline) {
-    // Left operand is not inline but right operand is. 
+  else if (rightCanBeInline)
+  {
+    // Left operand is not inline but right operand is.
     // Evaluate left at the place of outVar & then use it to set the final value to outVar.
     generateExpression(node->left, outVar);
     leftOperand = *outVar;
     outVarInitialized = true;
-  } else {
+  }
+  else
+  {
     // Both operands can't be inlined. Set left's value to outVar.
     generateExpression(node->left, outVar);
     leftOperand = *outVar;
@@ -422,15 +430,18 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 
   Operand rightOperand;
   if (rightIsVar)
-    rightOperand = initVarOperand(OP_VAR, FRAME_LF, node->right->value.string);
+    rightOperand = initVarOperand(OP_VAR, FRAME_LF, IdIndexer_GetOrCreate(funcVarsIndexer, node->right->value.string));
   else if (rightIsConstant)
     rightOperand = initConstantOperand(node->right);
-  else if (leftCanBeInline) {
+  else if (leftCanBeInline)
+  {
     // Same as for left, but for right operand.
     generateExpression(node->right, outVar);
     rightOperand = *outVar;
     outVarInitialized = true;
-  } else {
+  }
+  else
+  {
     // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
     char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
     rightOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
@@ -444,6 +455,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
     *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
     addVarDefinition(&outVar->attr.var);
+    loginfo("Creating a temporary variable for the result of a binary expression: %s", outVarName);
   }
 
   Instruction inst;
@@ -510,10 +522,10 @@ bool negateBinaryInstruction(ASTNode *node)
   case MulOperation:
   case DivOperation:
   case LessOperation:
+  case GreaterOperation:
   case EqualOperation:
     return false;
   case NotEqualOperation:
-  case GreaterOperation:
   case LessEqOperation:
   case GreaterEqOperation:
     // These relational binary instructions do not have a 1 to 1 mapping to target.
@@ -553,19 +565,62 @@ bool isVarOrConstant(ASTNode *node)
   return node->nodeType == Identifier || isConstant(node);
 }
 
-void generateConditionalBlock(ASTNode *node)
+void generateIfStatement(ASTNode *node)
 {
-  // express condition & put it into a local variable
-  // jump to label on false
+  // Express condition & put it into a local variable
+  Operand ifCondition;
+  generateExpression(node->left, &ifCondition);
+  loginfo("Generated if condition that's stored in %s", ifCondition.attr.var.name);
 
-  // Define all local variables
-  // TODO:
-  // - Enter a scope related to this block
-  // - Get all variables in this scope using a symtable
+  // Create a label to jump to when condition is true
+  char *ifBlockLabelName = IdIndexer_CreateOneTime(labelIndexer, "if_block");
+  Operand ifBlockLabel = initStringOperand(OP_LABEL, ifBlockLabelName);
 
-  // run generateStatements
+  // Create a label to jump to after finishing a block
+  char *endIfLabelName = IdIndexer_CreateOneTime(labelIndexer, "end_if");
+  Operand endConditionLabel = initStringOperand(OP_LABEL, endIfLabelName);
 
-  // label
+  // if condition == true jump to if block
+  Instruction jumpToIfBlockInst = initInstr3(
+      INST_JUMPIFEQ,
+      ifBlockLabel,
+      ifCondition,
+      initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
+  addInstruction(jumpToIfBlockInst);
+
+  bool hasElseBlock = node->right != NULL;
+  if (hasElseBlock)
+  {
+    // Generate instructions for else block
+    ASTNode *elseBlockStatement = node->next;
+    while (elseBlockStatement != NULL)
+    {
+      generateStatement(elseBlockStatement);
+      elseBlockStatement = elseBlockStatement->next;
+    }
+    // Skip instructions from other blocks
+    Instruction endConditionLabelInst = initInstr1(INST_JUMP, endConditionLabel);
+    addInstruction(endConditionLabelInst);
+  }
+
+  // Generate a body of if () { ... }
+  Instruction ifBlockLabelInst = initInstr1(INST_LABEL, ifBlockLabel);
+  addInstruction(ifBlockLabelInst);
+
+  ASTNode *ifBlockStatement = node->right;
+  while (ifBlockStatement != NULL)
+  {
+    generateStatement(ifBlockStatement);
+    ifBlockStatement = ifBlockStatement->next;
+  }
+
+  Instruction conditionEndingLabel = initInstr1(INST_LABEL, endConditionLabel);
+  addInstruction(conditionEndingLabel);
+}
+
+void generateWhileStatement(ASTNode *node)
+{
+  inspectAstNode(node);
 }
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
@@ -621,6 +676,9 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 
 void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
+  loginfo("Generating function call: %s", node->value.string);
+  inspectAstNode(node);
+
   assert(node->nodeType == FuncCall);
 
   // Create TF for parameters
@@ -628,11 +686,18 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   addInstruction(createFrameInst);
 
   // Add parameters
-  generateFunctionCallParameters(node->left);
+  ASTNode *paramNode = node->left;
+  while (paramNode != NULL)
+  {
+    generateFunctionCallParameter(paramNode);
+    paramNode = paramNode->next;
+  }
 
   // Push frame
   Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
   addInstruction(pushFrameInst);
+
+  loginfo("Calling function: %s", node->value.string);
 
   // Call function
   char *funcNameLabel = IdIndexer_GetOrCreate(labelIndexer, node->value.string);
@@ -644,8 +709,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   addInstruction(popFrameInst);
 
   // If function returns a value, put it into outVar
-  assert(node->right->nodeType == ReturnType);
-  bool returnsVoid = strcmp(node->right->value.string, "void") == 0;
+  bool returnsVoid = node->valType == NONETYPE;
   if (!returnsVoid)
   {
     char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
@@ -655,26 +719,21 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   }
 }
 
-void generateFunctionCallParameters(ASTNode *node)
+void generateFunctionCallParameter(ASTNode *node)
 {
-  inspectAstNode(node);
+  loginfo("Generating function call parameter: %s", nodeTypeToString(node->nodeType));
+  return;
 
-  // TODO: Some loop to go through all parameters, define and assign them
+  // TODO: From local frame move to temporary frame with a name defined in the function declaration.
 
-  Operand param = initVarOperand(OP_VAR, FRAME_TF, "called_func_param_name");
+  // TODO: Find the parameter name from the function's declaration
+  Operand funcParamName = initVarOperand(OP_VAR, FRAME_TF, "called_func_param_name");
 
-  Operand var;
-  bool param_is_variable = true;
-  if (param_is_variable)
-  {
-    var = initVarOperand(OP_VAR, FRAME_LF, "called_func_param_name");
-  }
-  else
-  {
-    // TODO: Get a value depending on the type of the parameter
-    var = initOperand(OP_CONST_NIL, (OperandAttribute){});
-  }
+  // Get the value to set to the parameter
+  Operand valueToSetTo;
+  generateExpression(node, &valueToSetTo);
 
-  Instruction instr = initInstr2(INST_MOVE, param, var);
+  // Set the function parameter
+  Instruction instr = initInstr2(INST_MOVE, funcParamName, valueToSetTo);
   addInstruction(instr);
 }
