@@ -204,7 +204,7 @@ void generateFunction(ASTNode *node)
     statementNode = statementNode->next;
   }
 
-  // Print every instruction accumulated for the 
+  // Print every instruction accumulated for the
   // current scope(function) after statement generation
   loginfo("Generating function body");
   while (!TFC_IsEmpty(funcScope))
@@ -361,8 +361,8 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case Identifier:
-    char *idName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
-    *outVar = initVarOperand(OP_VAR, FRAME_LF, idName);
+    char *identifierName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
+    *outVar = initVarOperand(OP_VAR, FRAME_LF, identifierName);
     break;
 
   case IntLiteral:
@@ -392,65 +392,44 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   InstType instType = binaryNodeToInstructionType(node);
   bool negate = negateBinaryInstruction(node);
 
-  bool inlineLeft = isVarOrConstant(node->left);
-  bool inlineRight = isVarOrConstant(node->right);
+  bool leftCanBeInline = node->left->nodeType == Identifier || isConstant(node->left);
+  bool rightCanBeInline = node->right->nodeType == Identifier || isConstant(node->right);
+
+  Operand leftOp;
+  if (node->left->nodeType == Identifier)
+    leftOp = initVarOperand(OP_VAR, FRAME_LF, node->left->value.string);
+  else if (isConstant(node->left))
+    leftOp = initConstantOperand(node->left);
+  else if (rightCanBeInline) {
+    // Left operand is not inline but right operand is. 
+    // Evaluate left at the place of outVar & then use it to set the final value to outVar.
+    generateExpression(node->left, outVar);
+    leftOp = *outVar;
+  } else {
+    // Both operands can't be inlined. Set left's value to outVar.
+    generateExpression(node->left, outVar);
+  }
+
+  Operand rightOp;
+  if (node->right->nodeType == Identifier)
+    rightOp = initVarOperand(OP_VAR, FRAME_LF, node->right->value.string);
+  else if (isConstant(node->right))
+    rightOp = initConstantOperand(node->right);
+  else if (leftCanBeInline) {
+    // Same as for left, but for right operand.
+    generateExpression(node->right, outVar);
+    rightOp = *outVar;
+  } else {
+    // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
+    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+    rightOp = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+    addVarDefinition(&rightOp.attr.var);
+
+    generateExpression(node->right, &rightOp);
+  }
 
   Instruction inst;
-  if (inlineLeft && inlineRight)
-  {
-    // outVar = leftInline <op> rightInline
-    inst = initInstr3(
-        instType,
-        *outVar,
-        initVarOperand(OP_VAR, FRAME_LF, node->left->value.string),
-        initVarOperand(OP_VAR, FRAME_LF, node->right->value.string));
-  }
-  else if (inlineLeft && !inlineRight)
-  {
-    // outVar = evaluate(right)
-    generateExpression(node->right, outVar);
-
-    // outVar = leftInline <op> outVar
-    Operand inlineLeftOperand = initConstantOperand(node->left);
-    inst = initInstr3(
-        instType,
-        *outVar,
-        inlineLeftOperand,
-        *outVar);
-  }
-  else if (!inlineLeft && inlineRight)
-  {
-    // outVar = evaluate(left)
-    generateExpression(node->left, outVar);
-
-    // outVar = outVar <op> rightInline
-    Operand inlineRightOperand = initConstantOperand(node->right);
-    inst = initInstr3(
-        instType,
-        *outVar,
-        *outVar,
-        inlineRightOperand);
-  }
-  else
-  {
-    // outVar = evaluate(left)
-    generateExpression(node->left, outVar);
-
-    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    Operand defVar = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
-    addVarDefinition(&defVar.attr.var);
-
-    // defVar = evaluate(right)
-    generateExpression(node->right, &defVar);
-
-    // outVar = outVar <op> defVar
-    inst = initInstr3(
-        instType,
-        *outVar,
-        *outVar,
-        defVar);
-  }
-
+  inst = initInstr3(instType, *outVar, leftOp, rightOp);
   addInstruction(inst);
 }
 
