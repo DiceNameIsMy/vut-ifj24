@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #include "logging.h"
+
 #include "structs/ast.h"
 
 #include "target_gen/id_indexer.h"
@@ -14,7 +15,6 @@
 #include "target_gen/target_func_context.h"
 
 FILE *outputStream;
-SymTable *symbolTable;
 
 TargetFuncContext *funcScope = NULL;
 IdIndexer *funcVarsIndexer = NULL;
@@ -76,7 +76,7 @@ bool isVarOrConstant(ASTNode *node);
 ///             If an unexpected AST is passed, the function might exit the program.
 /// @return -1 if parameters are invalid, 0 otherwise.
 ///         exit() function is called if target generation fails for other reasons.
-int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
+int generateTargetCode(ASTNode *root, FILE *output)
 {
   loginfo("Generating target code");
 
@@ -84,12 +84,7 @@ int generateTargetCode(ASTNode *root, SymTable *symTable, FILE *output)
   {
     return -1;
   }
-  if (symTable == NULL)
-  {
-    return -1;
-  }
   outputStream = output;
-  symbolTable = symTable;
   labelIndexer = malloc(sizeof(IdIndexer));
   if (labelIndexer == NULL)
   {
