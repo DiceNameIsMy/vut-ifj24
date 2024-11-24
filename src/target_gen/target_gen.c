@@ -211,7 +211,6 @@ void generateFunction(ASTNode *node)
 
   // TODO: Add return statement if it's implicit
   loginfo("Function %s returns %i", node->value.string, node->right->valType);
-  inspectAstNode(node->right);
   if (strcmp(node->right->value.string, "void") == 0)
   {
     Instruction returnInst = initInstr0(INST_RETURN);
@@ -316,13 +315,13 @@ void generateDeclaration(ASTNode *node)
   addVarDefinition(&varOperand.attr.var);
 
   // Make an assignment
-  generateExpression(node->right, &varOperand);
+  Operand value;
+  generateExpression(node->right, &value);
+  addInstruction(initInstr2(INST_MOVE, varOperand, value));
 }
 
 void generateAssignment(ASTNode *node)
 {
-  inspectAstNode(node);
-
   assert(node->nodeType == Assignment);
 
   // If variable name is _, generate a temporary variable name
@@ -676,8 +675,6 @@ void generateIfStatement(ASTNode *node)
 
 void generateWhileStatement(ASTNode *node)
 {
-  inspectAstNode(node);
-
   // Create a label for the beginning of the while loop
   char *whileIterLabelName = IdIndexer_CreateOneTime(labelIndexer, "while_iteration");
   Operand whileIterLabel = initStringOperand(OP_LABEL, whileIterLabelName);
@@ -768,7 +765,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating function call: %s", node->value.string);
-  inspectAstNode(node);
 
   assert(node->nodeType == FuncCall);
 
