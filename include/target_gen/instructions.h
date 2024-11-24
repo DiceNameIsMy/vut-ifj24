@@ -148,8 +148,8 @@ typedef struct
 } Instruction;
 
 
-OperandAttribute initVarAttr(VarFrameType frame, char *name);
-OperandAttribute Instr_initStringAttribute(char *string);
+OperandAttribute initOperandVarAttr(VarFrameType frame, char *name);
+OperandAttribute initOperandStringAttr(char *string);
 
 Operand initOperand(OperandType type, OperandAttribute attr);
 Operand initVarOperand(OperandType type, VarFrameType frame, char *name);

@@ -38,7 +38,7 @@ void printOperand(Operand *op, FILE *stream);
 /* Public Functions Definitions */
 /**********************************************************/
 
-OperandAttribute initVarAttr(VarFrameType frame, char *name)
+OperandAttribute initOperandVarAttr(VarFrameType frame, char *name)
 {
     if (name == NULL)
     {
@@ -58,7 +58,7 @@ OperandAttribute initVarAttr(VarFrameType frame, char *name)
 }
 
 
-OperandAttribute Instr_initStringAttribute(char *string)
+OperandAttribute initOperandStringAttr(char *string)
 {
     if (string == NULL)
     {
@@ -87,11 +87,11 @@ Operand initOperand(OperandType type, OperandAttribute attr)
 
 Operand initVarOperand(OperandType type, VarFrameType frame, char *name)
 {
-    return initOperand(type, initVarAttr(frame, name));
+    return initOperand(type, initOperandVarAttr(frame, name));
 }
 Operand initStringOperand(OperandType type, char *string)
 {
-    return initOperand(type, Instr_initStringAttribute(string));
+    return initOperand(type, initOperandStringAttr(string));
 }
 
 Operand initEmptyOperand()
