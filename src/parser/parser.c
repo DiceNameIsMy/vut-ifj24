@@ -226,7 +226,7 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_RIGHT_CURLY_BRACKET);
 
     if(type_to_return != type_returned) {
-        exit(-1); //WRONG RETURN TYPE OR NO RETURN STATEMENT
+        exit(4); //WRONG RETURN TYPE OR NO RETURN STATEMENT
     }
 
     SymTable_UpperScope(sym_Table); //quit the scope
@@ -489,7 +489,7 @@ ASTNode* parseConstDeclaration() {
     }
     symbol.type = exprNode->valType;
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        exit(-1); //exit with error (redefinition!!!!)
+        exit(5); //exit with error (redefinition!!!!)
     }
     SymTable_AddSymbol(sym_Table, &symbol);
     // Create the AST node for the const declaration
@@ -651,7 +651,7 @@ ASTNode* parseFactor() {
             match(TOKEN_ID);
 
             if(SymTable_Search(sym_Table, functionName) == NULL || SymTable_GetType(sym_Table, functionName) != FUNCTION) {
-                exit(-1); //NOT DECLARED OR NOT A FUNCTION
+                exit(3); //NOT DECLARED OR NOT A FUNCTION
             }
             
             // Parse function call parameters
@@ -673,7 +673,7 @@ ASTNode* parseFactor() {
         else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             
             if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
-                exit(-1); //NOT DECLARED OR NOT A FUNCTION 
+                exit(3); //NOT DECLARED OR NOT A FUNCTION 
             }
             
             factorNode = createASTNode(FuncCall, identifier);
@@ -682,7 +682,7 @@ ASTNode* parseFactor() {
         } else {
             
             if(SymTable_Search(sym_Table, identifier) == NULL) {
-                exit(-1); //NOT DECLARED
+                exit(3); //NOT DECLARED
             }
 
             factorNode = createASTNode(Identifier, identifier);  // Variable reference
@@ -809,7 +809,7 @@ ASTNode* parseVarDeclaration() {
     }
     symbol.type = exprNode->valType;
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        exit(-1); //REDEFINITION!
+        exit(5); //REDEFINITION!
     }
     SymTable_AddSymbol(sym_Table, &symbol);
     // Create AST node for variable declaration
@@ -847,7 +847,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         }
         
         if(SymTable_Search(sym_Table, functionName) == NULL) {
-            exit(-1); //DOESN'T EXIST
+            exit(3); //DOESN'T EXIST
         }
         
         match(TOKEN_ID);
@@ -877,7 +877,8 @@ ASTNode* parseAssignmentOrFunctionCall() {
         match(TOKEN_ASSIGNMENT);  // Match '='
 
         if(SymTable_Search(sym_Table, identifier) == NULL || !SymTable_GetMut(sym_Table, identifier)) {
-            exit(-1); //DOESNT EXIST OR A CONST ASSIGNMENT
+            exit(3); //DOESNT EXIST OR A CONST ASSIGNMENT
+            //+exit 5 - SEPARATE TWO CASES
         }
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
@@ -893,7 +894,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
     } else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
         // Handle function call
         if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
-            exit(-1); //DOESN'T EXIST OR NOT A FUNCTION
+            exit(3); //DOESN'T EXIST OR NOT A FUNCTION
         }
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
         if(SymTable_GetRetType(sym_Table, identifier) != NONETYPE) {
@@ -946,7 +947,7 @@ ASTNode* parseIfStatement() {
                 symbol.type = U8_ARRAY;
                 break;
             default:
-                exit(-1);//INVALID CONDITION TYPE
+                exit(7);//INVALID CONDITION TYPE
         }
         
         symbol.mut = true;
@@ -1026,7 +1027,7 @@ ASTNode* parseWhileStatement() {
                     symbol.type = U8_ARRAY;
                     break;
                 default:
-                    exit(-1);//INVALID CONDITION TYPE
+                    exit(7);//INVALID CONDITION TYPE
             }
             symbol.mut = true;
             symbol.init = false;
@@ -1072,7 +1073,7 @@ ASTNode* parseReturnStatement() {
     ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
     returnNode->valType = (exprNode == NULL) ? NONETYPE : exprNode->valType;
     if(returnNode->valType != type_to_return) {
-        exit(-1); //WRONG RETURN TYPE
+        exit(4); //WRONG RETURN TYPE
     }
     returnNode->left = exprNode;  // Attach the expression as the left child (if present)
 
