@@ -43,7 +43,7 @@ void generateExpression(ASTNode *node, Operand *outVar);
 void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
 void generateConditionalStatement(ASTNode *node);
-void unrollIfStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
+void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
 void generateWhileStatement(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
@@ -572,14 +572,14 @@ void generateConditionalStatement(ASTNode *node)
 {
   // TODO: null binding
   inspectAstNode(node);
-  Operand endLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "end_conditional"));
+  Operand endLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "end_if"));
 
-  unrollIfStatements(node, endLabel, true);
+  unrollConditionalStatements(node, endLabel, true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
 }
 
-void unrollIfStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
+void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
   assert(node->nodeType == IfStatement);
 
@@ -628,7 +628,7 @@ void unrollIfStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
     addInstruction(jumpToBlockInst);
 
     // Unroll next evaluation.
-    unrollIfStatements(node->next, endLabel, false);
+    unrollConditionalStatements(node->next, endLabel, false);
 
     // Generate body
     ASTNode *ifBlockStatement = node->right;
