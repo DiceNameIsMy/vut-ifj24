@@ -637,9 +637,13 @@ void unrollIfStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
       generateStatement(ifBlockStatement);
       ifBlockStatement = ifBlockStatement->next;
     }
-    // Instructions for first if check are located at the bottom.
-    // There is no need to jump since the next instruction is the endLabel itself.
-    if (!firstEvaluation)
+
+    if (firstEvaluation)
+    {
+      // Instructions for first if check are located at the bottom.
+      // There is no need to jump since the next instruction is the endLabel itself.
+    }
+    else
     {
       Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
       addInstruction(jumpToEnd);
