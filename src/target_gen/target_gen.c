@@ -595,6 +595,7 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
   assert(node->nodeType == BuiltInFunctionCall);
 
+  // TODO: Add outVar to the function variables list if its used.
   if (strcmp(node->value.string, "ifj.readstr") == 0)
   {
     Instruction readInst = initInstr2(
@@ -605,35 +606,89 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   }
   else if (strcmp(node->value.string, "ifj.readi32") == 0)
   {
-    // TODO: Implement readi32
+    Instruction readInst = initInstr2(
+        INST_READ,
+        *outVar,
+        initStringOperand(OP_TYPE, "i64"));
+    addInstruction(readInst);
   }
   else if (strcmp(node->value.string, "ifj.readf64") == 0)
   {
-    // TODO: Implement readf64
+    Instruction readInst = initInstr2(
+        INST_READ,
+        *outVar,
+        initStringOperand(OP_TYPE, "f64"));
+    addInstruction(readInst);
+  }
+  else if (strcmp(node->value.string, "ifj.write") == 0)
+  {
+    Operand writeOperand;
+    generateExpression(node->left, &writeOperand);
+    Instruction writeInst = initInstr1(INST_WRITE, writeOperand);
+    addInstruction(writeInst);
   }
   else if (strcmp(node->value.string, "ifj.i2f") == 0)
   {
-    // TODO: Implement i2f
+    Operand convertOperand;
+    generateExpression(node->left, &convertOperand);
+    Instruction convertInst = initInstr2(
+        INST_INT2FLOAT,
+        *outVar,
+        convertOperand);
+    addInstruction(convertInst);
   }
   else if (strcmp(node->value.string, "ifj.f2i") == 0)
   {
-    // TODO: Implement f2i
+    Operand convertOperand;
+    generateExpression(node->left, &convertOperand);
+    Instruction convertInst = initInstr2(
+        INST_FLOAT2INT,
+        *outVar,
+        convertOperand);
+    addInstruction(convertInst);
   }
   else if (strcmp(node->value.string, "ifj.string") == 0)
   {
-    // TODO: Implement string
+    assert(node->left->nodeType == StringLiteral);
+    Operand convertOperand = initStringOperand(OP_CONST_STRING, node->left->value.string);
+    Instruction toStringInst = initInstr2(
+        INST_MOVE,
+        *outVar,
+        convertOperand);
+    addInstruction(toStringInst);
   }
   else if (strcmp(node->value.string, "ifj.length") == 0)
   {
-    // TODO: Implement length
+    Operand strlenOperand;
+    generateExpression(node->left, &strlenOperand);
+    Instruction toStringInst = initInstr2(INST_STRLEN, *outVar, strlenOperand);
+    addInstruction(toStringInst);
   }
   else if (strcmp(node->value.string, "ifj.concat") == 0)
   {
-    // TODO: Implement concat
+    // TODO: Read parameters from a function call properly
+    Operand firstOperand;
+    generateExpression(node->left, &firstOperand);
+    Operand secondOperand;
+    generateExpression(node->left->left, &secondOperand);
+
+    Instruction concatInst = initInstr3(INST_CONCAT, *outVar, firstOperand, secondOperand);
   }
   else if (strcmp(node->value.string, "ifj.substring") == 0)
   {
     // TODO: Implement substring
+  }
+  else if (strcmp(node->value.string, "ifj.strcmp") == 0)
+  {
+    // TODO: Implement strcmp
+  }
+  else if (strcmp(node->value.string, "ifj.ord") == 0)
+  {
+    // TODO: Implement ord
+  }
+  else if (strcmp(node->value.string, "ifj.chr") == 0)
+  {
+    // TODO: Implement chr
   }
   else
   {
