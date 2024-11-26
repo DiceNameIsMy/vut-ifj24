@@ -10,6 +10,8 @@
 /* Private Function Declarations */
 /**********************************************************/
 
+int copyOperand(Operand *dest, Operand *src);
+
 int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird);
 
@@ -38,7 +40,7 @@ void printOperand(Operand *op, FILE *stream);
 /* Public Functions Definitions */
 /**********************************************************/
 
-OperandAttribute initVarAttr(VarFrameType frame, char *name)
+OperandAttribute initOperandVarAttr(VarFrameType frame, char *name)
 {
     if (name == NULL)
     {
@@ -58,7 +60,7 @@ OperandAttribute initVarAttr(VarFrameType frame, char *name)
 }
 
 
-OperandAttribute Instr_initStringAttribute(char *string)
+OperandAttribute initOperandStringAttr(char *string)
 {
     if (string == NULL)
     {
@@ -87,11 +89,11 @@ Operand initOperand(OperandType type, OperandAttribute attr)
 
 Operand initVarOperand(OperandType type, VarFrameType frame, char *name)
 {
-    return initOperand(type, initVarAttr(frame, name));
+    return initOperand(type, initOperandVarAttr(frame, name));
 }
 Operand initStringOperand(OperandType type, char *string)
 {
-    return initOperand(type, Instr_initStringAttribute(string));
+    return initOperand(type, initOperandStringAttr(string));
 }
 
 Operand initEmptyOperand()
@@ -225,31 +227,49 @@ void printInstruction(Instruction *inst, FILE *stream)
     }
 
     printInstructionKeyword(inst, stream);
-
-    if (hasNoOperands(inst->type))
-    {
-    }
-    else if (hasOneOperand(inst->type))
-    {
-        printOperand(&inst->opFirst, stream);
-    }
-    else if (hasTwoOperands(inst->type))
-    {
-        printOperand(&inst->opFirst, stream);
-        printOperand(&inst->opSecond, stream);
-    }
-    else if (hasThreeOperands(inst->type))
-    {
-        printOperand(&inst->opFirst, stream);
-        printOperand(&inst->opSecond, stream);
-        printOperand(&inst->opThird, stream);
-    }
+    printOperand(&inst->opFirst, stream);
+    printOperand(&inst->opSecond, stream);
+    printOperand(&inst->opThird, stream);
     fprintf(stream, "\n");
 }
 
 /**********************************************************/
 /* Function Definitions */
 /**********************************************************/
+
+int copyOperand(Operand *dest, Operand *src)
+{
+    if (dest == NULL || src == NULL)
+    {
+        loginfo("Operand pointers are NULL");
+        return -1;
+    }
+
+    dest->type = src->type;
+    if (src->type == OP_VAR)
+    {
+        dest->attr.var.frame = src->attr.var.frame;
+        dest->attr.var.name = strdup(src->attr.var.name);
+        if (dest->attr.var.name == NULL)
+        {
+            loginfo("Failed to allocate memory for variable name");
+            return -1;
+        }
+    }
+    else if (src->type == OP_CONST_STRING || src->type == OP_LABEL || src->type == OP_TYPE)
+    {
+        dest->attr.string = strdup(src->attr.string);
+        if (dest->attr.string == NULL)
+        {
+            loginfo("Failed to allocate memory for string");
+            return -1;
+        }
+    } else {
+        dest->attr = src->attr;
+    }
+
+    return 0;
+}
 
 int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird)
@@ -261,9 +281,9 @@ int initInstruction(Instruction *inst, InstType type,
     }
 
     inst->type = type;
-    inst->opFirst = opFirst;
-    inst->opSecond = opSecond;
-    inst->opThird = opThird;
+    copyOperand(&inst->opFirst, &opFirst);
+    copyOperand(&inst->opSecond, &opSecond);
+    copyOperand(&inst->opThird, &opThird);
 
     return 0;
 }
@@ -479,6 +499,8 @@ bool hasTwoOperands(InstType type)
     case INST_INT2FLOATS:
     case INST_FLOAT2INTS:
     case INST_INT2CHARS:
+    case INST_NOT:
+    case INST_NOTS:
     case INST_READ:
     case INST_STRLEN:
     case INST_TYPE:
@@ -510,10 +532,8 @@ bool hasThreeOperands(InstType type)
     case INST_EQS:
     case INST_AND:
     case INST_OR:
-    case INST_NOT:
     case INST_ANDS:
     case INST_ORS:
-    case INST_NOTS:
     case INST_STRI2INT:
     case INST_STRI2INTS:
     case INST_CONCAT:
@@ -527,8 +547,6 @@ bool hasThreeOperands(InstType type)
     }
 }
 
-// TODO Require operations to be on the same type
-
 bool isFirstOperandValid(InstType type, Operand op)
 {
     switch (type)
@@ -538,26 +556,25 @@ bool isFirstOperandValid(InstType type, Operand op)
     case INST_EXIT:
         if (isSymbolOperand(&op))
             return true;
-        else
-            loginfo("Invalid instruction %s. Expected symbol as 1st operand, got %d", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected symbol as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     case INST_CALL: // Only allows label
     case INST_LABEL:
     case INST_JUMP:
+    case INST_JUMPIFEQ:
+    case INST_JUMPIFNEQ:
     case INST_JUMPIFEQS:
     case INST_JUMPIFNEQS:
         if (op.type == OP_LABEL)
             return true;
-        else
-            loginfo("Invalid instruction %s. Expected label as 1st operand, got %d", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected label as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
 
     default: // Every other instruction only allows var
         if (op.type == OP_VAR)
             return true;
-        else
-            loginfo("Invalid instruction %s. Expected var as 1st operand, got %d", getInstructionKeyword(type), op.type);
+        loginfo("Invalid instruction %s. Expected var as 1st operand, got %d", getInstructionKeyword(type), op.type);
         break;
     }
     return false;

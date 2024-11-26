@@ -93,7 +93,7 @@ typedef enum
 
 typedef enum
 {
-    // None is set for operands of instructions that need less that 2 operands.
+    // None is set for operands of instructions that need less than 2 operands.
     //
     // For example, DEVFAR <var>, where .opSecond's and .opThird's 
     // operands type would be set to OP_NONE.
@@ -148,8 +148,8 @@ typedef struct
 } Instruction;
 
 
-OperandAttribute initVarAttr(VarFrameType frame, char *name);
-OperandAttribute Instr_initStringAttribute(char *string);
+OperandAttribute initOperandVarAttr(VarFrameType frame, char *name);
+OperandAttribute initOperandStringAttr(char *string);
 
 Operand initOperand(OperandType type, OperandAttribute attr);
 Operand initVarOperand(OperandType type, VarFrameType frame, char *name);

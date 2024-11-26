@@ -4,7 +4,7 @@ set(SOURCE_FILES
     id_indexer.c
     instructions.c
     target_gen.c
-    target_func_scope.c
+    target_func_context.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})

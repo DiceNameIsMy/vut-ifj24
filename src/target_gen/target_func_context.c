@@ -4,9 +4,9 @@
 
 #include "structs/queue.h"
 
-#include "target_gen/target_func_scope.h"
+#include "target_gen/target_func_context.h"
 
-void TargetFS_Init(TargetFuncScope *scope)
+void TFC_Init(TargetFuncContext *scope)
 {
     if (scope == NULL)
     {
@@ -31,9 +31,9 @@ void TargetFS_Init(TargetFuncScope *scope)
     Queue_Init(scope->otherInstructionsQueue);
 }
 
-void TargetFS_Destroy(TargetFuncScope *scope)
+void TFC_Destroy(TargetFuncContext *scope)
 {
-    if (!TargetFS_IsEmpty(scope))
+    if (!TFC_IsEmpty(scope))
     {
         loginfo("Function scope is not empty when trying to destroy it.");
         exit(99);
@@ -56,7 +56,7 @@ void TargetFS_Destroy(TargetFuncScope *scope)
     free(scope->otherInstructionsQueue);
 }
 
-void TargetFS_SetFuncLabel(TargetFuncScope *scope, char *label)
+void TFC_SetFuncLabel(TargetFuncContext *scope, char *label)
 {
     if (scope->labelInstr != NULL)
     {
@@ -73,7 +73,7 @@ void TargetFS_SetFuncLabel(TargetFuncScope *scope, char *label)
     *scope->labelInstr = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, label));
 }
 
-void TargetFS_AddVar(TargetFuncScope *scope, Variable var)
+void TFC_AddVar(TargetFuncContext *scope, Variable var)
 {
     Instruction *instPtr = malloc(sizeof(Instruction));
     if (instPtr == NULL)
@@ -85,7 +85,7 @@ void TargetFS_AddVar(TargetFuncScope *scope, Variable var)
 
     Queue_Enqueue(scope->varDeclarationsQueue, instPtr);
 }
-void TargetFS_AddInst(TargetFuncScope *scope, Instruction inst)
+void TFC_AddInst(TargetFuncContext *scope, Instruction inst)
 {
     Instruction *instPtr = malloc(sizeof(Instruction));
     if (instPtr == NULL)
@@ -98,12 +98,12 @@ void TargetFS_AddInst(TargetFuncScope *scope, Instruction inst)
     Queue_Enqueue(scope->otherInstructionsQueue, instPtr);
 }
 
-bool TargetFS_IsEmpty(TargetFuncScope *scope)
+bool TFC_IsEmpty(TargetFuncContext *scope)
 {
     return Queue_IsEmpty(scope->varDeclarationsQueue) && Queue_IsEmpty(scope->otherInstructionsQueue);
 }
 
-Instruction TargetFS_PopNext(TargetFuncScope *scope)
+Instruction TFC_PopNext(TargetFuncContext *scope)
 {
     Instruction *instPtr = NULL;
 
