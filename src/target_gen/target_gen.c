@@ -212,8 +212,6 @@ void generateFunction(ASTNode *node)
     statementNode = statementNode->next;
   }
 
-  // TODO: Add return statement if it's implicit
-  loginfo("Function %s returns %i", node->value.string, node->right->valType);
   if (strcmp(node->right->value.string, "void") == 0)
   {
     Instruction returnInst = initInstr0(INST_RETURN);
@@ -609,7 +607,18 @@ void generateWhileStatement(ASTNode *node)
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
-  // TODO: Add outVar to the function variables list if its used.
+  if (strcmp(node->value.string, "ifj.write") == 0)
+  {
+    Operand writeOperand;
+    generateExpression(node->left, &writeOperand);
+    Instruction writeInst = initInstr1(INST_WRITE, writeOperand);
+    addInstruction(writeInst);
+    return;
+  }
+
+  *outVar = initVarOperand(OP_VAR, FRAME_LF, IdIndexer_CreateOneTime(funcVarsIndexer, "tmp"));
+  addVarDefinition(&outVar->attr.var);
+
   if (strcmp(node->value.string, "ifj.readstr") == 0)
   {
     Instruction readInst = initInstr2(
@@ -714,10 +723,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating function call: %s", node->value.string);
-  if (outVar != NULL)
-  {
-    *outVar = initOperand(OP_CONST_NIL, (OperandAttribute){});
-  }
 
   if (strncmp(node->value.string, "ifj.", 4) == 0)
   {
