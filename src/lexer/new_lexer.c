@@ -5,8 +5,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
-#include <regex.h>
 
 #include "lexer/lexer.h"
 #include "lexer/token.h"
@@ -20,11 +20,46 @@ DynBuffer buff;
 int current_char_index = 0;
 
 // Array of keywords
+// No need for ?i32, ?f64, ?[]u8 as they are nullable types
 const char *keywords[] = {
     "const", "var", "if", "else", "while", "fn", "pub",
-    "null", "return", "void", "@import",
-    "i32", "?i32", "f64", "?f64", "u8", "[]u8", "?[]u8"
+    "null", "return", "void", "@import", "i32", "f64", "u8"
 };
+
+bool tryGetKeyword(const char *str, TokenType *keywordType) {
+    if (strcmp(str, "const") == 0) {
+        *keywordType = TOKEN_KEYWORD_CONST;
+    } else if (strcmp(str, "var") == 0) {
+        *keywordType = TOKEN_KEYWORD_VAR;
+    } else if (strcmp(str, "if") == 0) {
+        *keywordType = TOKEN_KEYWORD_IF;
+    } else if (strcmp(str, "else") == 0) {
+        *keywordType = TOKEN_KEYWORD_ELSE;
+    } else if (strcmp(str, "while") == 0) {
+        *keywordType = TOKEN_KEYWORD_WHILE;
+    } else if (strcmp(str, "fn") == 0) {
+        *keywordType = TOKEN_KEYWORD_FN;
+    } else if (strcmp(str, "pub") == 0) {
+        *keywordType = TOKEN_KEYWORD_PUB;
+    } else if (strcmp(str, "null") == 0) {
+        *keywordType = TOKEN_KEYWORD_NULL;
+    } else if (strcmp(str, "return") == 0) {
+        *keywordType = TOKEN_KEYWORD_RETURN;
+    } else if (strcmp(str, "void") == 0) {
+        *keywordType = TOKEN_KEYWORD_VOID;
+    } else if (strcmp(str, "@import") == 0) {
+        *keywordType = TOKEN_KEYWORD_IMPORT;
+    } else if (strcmp(str, "i32") == 0) {
+        *keywordType = TOKEN_KEYWORD_I32;
+    } else if (strcmp(str, "f64") == 0) {
+        *keywordType = TOKEN_KEYWORD_F64;
+    } else if (strcmp(str, "u8") == 0) {
+        *keywordType = TOKEN_KEYWORD_U8;
+    } else {
+        return false;
+    }
+    return true;
+}
 
 // Error handler
 __attribute__((weak)) void endWithCode(int code) {
@@ -71,7 +106,162 @@ bool isSpecialSymbol(char c) {
 }
 
 bool inIdTemplate(char c) {
-    return isalnum(c) || c == '_'; // TODO: can it use _ at the beginning?
+    return '_' == c || isalnum(c); // numbers, letters and _ are allowed
+}
+
+void parse_ID_TEMPLATE(){
+    while (sourceCode[current_char_index] != '\0') {
+        const char c = sourceCode[current_char_index];
+        current_char_index++;
+        if (inIdTemplate(c)) {
+            // continue reading the same ID
+            appendDynBuffer(&buff, c);
+        } else if (strcmp(buff.data, "ifj") == 0) { // ID ended and it is "ifj"
+            // ifj state is a special case
+
+            // Skip spaces until the first dot
+            while (isspace(sourceCode[current_char_index])) {
+                current_char_index++;
+            }
+
+            // Expecting a dot next
+            if (sourceCode[current_char_index] == '.') {
+                appendDynBuffer(&buff, sourceCode[current_char_index]);
+                current_char_index++;
+            } else {
+                // ifj word and no dot after it
+                // TODO: can make this a function for error tokens
+                const Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Expected '.' after 'ifj'");
+                addToken(tokenArr, errorToken);
+                emptyDynBuffer(&buff);
+                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+            }
+
+            // Skip spaces until the next word
+            while (isspace(sourceCode[current_char_index])) {
+                current_char_index++;
+            }
+
+            int check_i = current_char_index;
+            // Read the next word into the buffer
+            while (isIdTemplate(sourceCode[current_char_index])) {
+                appendDynBuffer(&buff, sourceCode[current_char_index]);
+                current_char_index++;
+            }
+
+            if (check_i == current_char_index) {
+                // If the buffer is empty, handle as an error or unexpected token
+                const Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Error: Expected [function] after 'ifj.'");
+                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+                break;
+            }
+
+            // Process the word as a token
+            TokenAttribute attribute;
+            // printf("IFJ: %s\n", buff.data);
+            initStringAttribute(&attribute, buff.data);
+            const Token token = createToken(TOKEN_ID, attribute);
+            addToken(tokenArr, token);
+            emptyDynBuffer(&buff);
+            // added ifj.'functionName' as a token
+            // return to the common state
+            return;
+        } else {
+            // end of the identifier
+            TokenType tokenType;
+
+            // check if it is a keyword
+            if (tryGetKeyword(buff.data, &tokenType)) {
+                // if the identifier is a keyword
+                // add it as a keyword token
+                const Token keywordToken = {.type = tokenType};
+                initStringAttribute(&keywordToken.attribute, buff.data);
+                addToken(tokenArr, keywordToken);
+            } else {
+                // if the identifier is not a keyword
+                // add it as an identifier token
+                const Token idToken = {.type = TOKEN_ID};
+                initStringAttribute(&idToken.attribute, buff.data);
+                addToken(tokenArr, idToken);
+            }
+            emptyDynBuffer(&buff);
+            current_char_index--; // return to the last character so it can be processed in the common state
+            return;
+        }
+    }
+}
+
+void parse_ARRAY(){
+    // []u8 case
+    Token arrayToken;
+    arrayToken.attribute.str = NULL;
+    arrayToken.type = NULL; // for the beginning making it a flag
+
+    if (strlen(sourceCode) < current_char_index + 4) {
+        ;
+    } else if (strncmp(&sourceCode[current_char_index], "[]u8", 4) == 0) {
+        arrayToken.type = TOKEN_KEYWORD_U8_ARRAY;
+        current_char_index += 4; // Move the current index
+    }
+
+    // If the token was not set, generate an error
+    if (arrayToken.type == NULL) {
+        arrayToken.type = TOKEN_ERROR;
+        initStringAttribute(&arrayToken.attribute, "Expected array type");
+        addToken(tokenArr, arrayToken);
+        emptyDynBuffer(&buff);
+        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+    }
+
+    addToken(tokenArr, arrayToken);
+    emptyDynBuffer(&buff);
+    // Return to the common state
+    return;
+}
+
+void parse_NULLABLE() {
+        Token nullableToken;
+        nullableToken.attribute.str = NULL;
+        nullableToken.type = NULL; // Изначально делаем флагом
+        
+        // Возможные значения и их типы
+        const char *nullableKeywords[] = {
+            "?i32", "?f64", "?[]u8"
+        };
+        const int nullableTypes[] = {
+            TOKEN_KEYWORD_I32_NULLABLE, TOKEN_KEYWORD_F64_NULLABLE, 
+            TOKEN_KEYWORD_U8_ARRAY_NULLABLE
+        };
+        const int keywordsCount = sizeof(nullableKeywords) / sizeof(nullableKeywords[0]);
+
+    // Проверяем каждый ключевой токен
+    for (int i = 0; i < keywordsCount; i++) {
+        size_t keywordLength = strlen(nullableKeywords[i]);
+        if (strlen(sourceCode) < current_char_index + keywordLength) {
+            continue; // Пропускаем, если не хватает символов
+        }
+        if (strncmp(&sourceCode[current_char_index], nullableKeywords[i], keywordLength) == 0) {
+            nullableToken.type = nullableTypes[i];
+            current_char_index += keywordLength; // Смещаем текущий индекс
+            break;
+        }
+    }
+
+    // Если токен не был установлен, генерируем ошибку
+    if (nullableToken.type == NULL) {
+        nullableToken.type = TOKEN_ERROR;
+        initStringAttribute(&nullableToken.attribute, "Expected nullable type");
+        addToken(tokenArr, nullableToken);
+        emptyDynBuffer(&buff);
+        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+    }
+
+    addToken(tokenArr, nullableToken);
+    emptyDynBuffer(&buff);
+    // Возвращаемся к общему состоянию
+    return;
 }
 
 void parse_SPECIAL_SYMBOL(){
@@ -205,6 +395,84 @@ void parse_COMMENT() {
     return;
 }
 
+void parse_NUMBER() {
+    Token numberToken;
+    numberToken.attribute.str = NULL;
+
+    // Проверка на начальный 0 (не плавающее число)
+    if (buff.data[0] == '0' && sourceCode[current_char_index] != '.' && sourceCode[current_char_index] != 'e' && sourceCode[current_char_index] != 'E') {
+        Token errorToken = {.type = TOKEN_ERROR};
+        initStringAttribute(&errorToken.attribute, "Number can't start with 0");
+        addToken(tokenArr, errorToken);
+        emptyDynBuffer(&buff);
+        endWithCode(1); // ERROR - invalid number
+    }
+
+    int isFloat = 0; // Флаг для определения числа с плавающей запятой
+    int hasExponent = 0; // Флаг для показателя степени
+
+    while (sourceCode[current_char_index] != '\0') {
+        const char c = sourceCode[current_char_index];
+
+        if (c >= '0' && c <= '9') {
+            // Число, добавляем к буферу
+            appendDynBuffer(&buff, c);
+        } else if (c == '.' && !isFloat) {
+            // Если встречается точка, число становится float
+            isFloat = 1;
+            appendDynBuffer(&buff, c);
+        } else if ((c == 'e' || c == 'E') && !hasExponent) {
+            // Если встречается 'e' или 'E', переходим к обработке степени
+            hasExponent = 1;
+            isFloat = 1; // Показатель степени делает число float
+            appendDynBuffer(&buff, c);
+
+            // Следующий символ должен быть либо знаком, либо числом
+            current_char_index++;
+            char next = sourceCode[current_char_index];
+            if (next == '+' || next == '-') {
+                appendDynBuffer(&buff, next);
+            } else if (next < '0' || next > '9') {
+                // Ошибка: ожидается число после 'e'/'E'
+                Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Invalid exponent format");
+                addToken(tokenArr, errorToken);
+                emptyDynBuffer(&buff);
+                endWithCode(1); // ERROR - invalid exponent
+            }
+        } else {
+            // Конец числа
+            break;
+        }
+        current_char_index++;
+    }
+
+    // Проверка на валидность буфера (недопустимо пустое число)
+    if (buff.nextIdx == 0 || (isFloat && buff.data[buff.nextIdx - 1] == '.')) {
+        Token errorToken = {.type = TOKEN_ERROR};
+        initStringAttribute(&errorToken.attribute, "Invalid number format");
+        addToken(tokenArr, errorToken);
+        emptyDynBuffer(&buff);
+        endWithCode(1); // ERROR - invalid number format
+    }
+
+    // Определяем тип токена
+    if (isFloat) {
+        double fValue = strtod(buff.data, NULL);
+        numberToken.attribute.real = fValue;
+        numberToken.type = TOKEN_F64_LITERAL;
+    } else {
+        int iValue = strtol(buff.data, NULL, 10);
+        numberToken.attribute.integer = iValue;
+        numberToken.type = TOKEN_I32_LITERAL;
+    }
+
+    addToken(tokenArr, numberToken);
+    emptyDynBuffer(&buff);
+    return;
+}
+
+
 void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
     while (sourceCode[current_char_index] != '\0') {
         const char c = sourceCode[current_char_index];
@@ -237,7 +505,7 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
             initStringAttribute(&stringToken.attribute, buff.data);
             addToken(tokenArr, stringToken);
             emptyDynBuffer(&buff);
-
+            
             current_char_index--; // return to the last character so it can be processed in the common state
             // continue with parsing common line
             return;
@@ -436,16 +704,18 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
                 // TODO: division token?
                 endWithCode(1); 
             }
-        } else if (inIdTemplate(c)){
+        } else if (isalnum(c) || c == '_' || c == '@') {
+            // TODO: exception for @import, because it starts as a special symbol
+            // but in fact it is a keyword
             appendDynBuffer(&buff, c);
             parse_ID_TEMPLATE();
         } else if (c == '"') { 
             parse_STRING();
         } else if (c == '['){ // []u8
-            appendDynBuffer(&buff, c);
+            // appendDynBuffer(&buff, c);
             parse_ARRAY();
         } else if (c == '?'){ // ?u8 / ?[]u8
-            appendDynBuffer(&buff, c);
+            // appendDynBuffer(&buff, c);
             parse_NULLABLE();
         }else if (c >= '0' && c <= '9'){ // TODO: check conditions for numbers
             appendDynBuffer(&buff, c);
