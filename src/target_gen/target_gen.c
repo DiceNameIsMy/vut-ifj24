@@ -64,18 +64,6 @@ bool isConstant(ASTNode *node);
 
 // TODO: Proper error handling
 
-// TODO: For each symbol (function id, variable), in a symtable assign an ID to it.
-//       Use this ID when generating code.
-
-// TODO: When temporary variables are needed, generate a unique name for them in a format
-//       "tmp_<scope_id>_<id>", where id is a unique number for each temporary variable.
-
-// TODO: For ALL variables in a function, define them at the beginning of the function
-
-// TODO: When generating code, we might want to insert instructions between other instructions.
-//   if that will be the case, instead of just outputting on the fly, we might need to store the
-//   instructions in a list first, and output at the end.
-
 /// @brief
 /// @param root It's assumed that AST has a correct structure.
 ///             If an unexpected AST is passed, the function might exit the program.
