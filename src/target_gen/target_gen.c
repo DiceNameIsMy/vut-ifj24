@@ -43,8 +43,7 @@ void generateExpression(ASTNode *node, Operand *outVar);
 void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
 void generateConditionalStatement(ASTNode *node);
-void generateIfElseStatement(ASTNode *node);
-void generateIfStatement(ASTNode *node);
+void unrollIfStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
 void generateWhileStatement(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
@@ -571,110 +570,81 @@ bool isVarOrConstant(ASTNode *node)
 
 void generateConditionalStatement(ASTNode *node)
 {
-  // TODO: In IfStatement, else if and else block go one by one through the node->next.
-  //       Adapt to that.
-  if (node->right == NULL)
+  // TODO: null binding
+  inspectAstNode(node);
+  Operand endLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "end_conditional"));
+
+  unrollIfStatements(node, endLabel, true);
+
+  addInstruction(initInstr1(INST_LABEL, endLabel));
+}
+
+void unrollIfStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
+{
+  assert(node->nodeType == IfStatement);
+
+  // Evaluate condition
+  Operand ifCondition;
+  generateExpression(node->left, &ifCondition);
+  loginfo("Generated if condition that's stored in %s", ifCondition.attr.var.name);
+
+  bool isLastEvaluation = node->next->nodeType != IfStatement;
+  if (isLastEvaluation)
   {
-    loginfo("Generating if statement");
-    generateIfStatement(node);
+    // If last evaluation, JUMP to end on negative condition
+    Instruction jumpToEndOnNegativeCondition = initInstr3(
+        INST_JUMPIFEQ,
+        endLabel,
+        ifCondition,
+        initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
+    addInstruction(jumpToEndOnNegativeCondition);
+
+    // Generate body
+    ASTNode *ifBlockStatement = node->right;
+    while (ifBlockStatement != NULL)
+    {
+      generateStatement(ifBlockStatement);
+      ifBlockStatement = ifBlockStatement->next;
+    }
+
+    if (firstEvaluation)
+    {
+      // It's a first and last evaluation, no need to jump.
+    }
+    else
+    {
+      Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+      addInstruction(jumpToEnd);
+    }
   }
   else
   {
-    loginfo("Generating if-else statement");
-    generateIfElseStatement(node);
+    // If not last evaluation, JUMP on positive condition
+    Instruction jumpToBlockInst = initInstr3(
+        INST_JUMPIFEQ,
+        endLabel,
+        ifCondition,
+        initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
+    addInstruction(jumpToBlockInst);
+
+    // Unroll next evaluation.
+    unrollIfStatements(node->next, endLabel, false);
+
+    // Generate body
+    ASTNode *ifBlockStatement = node->right;
+    while (ifBlockStatement != NULL)
+    {
+      generateStatement(ifBlockStatement);
+      ifBlockStatement = ifBlockStatement->next;
+    }
+    // Instructions for first if check are located at the bottom.
+    // There is no need to jump since the next instruction is the endLabel itself.
+    if (!firstEvaluation)
+    {
+      Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+      addInstruction(jumpToEnd);
+    }
   }
-}
-
-void generateIfElseStatement(ASTNode *node)
-{
-  assert(node->nodeType == IfStatement);
-  assert(node->right != NULL);
-
-  // Evaluate if (...)
-  Operand ifCondition;
-  generateExpression(node->left, &ifCondition);
-  loginfo("Generated if condition that's stored in %s", ifCondition.attr.var.name);
-
-  // Create a label for when if (...) is true
-  char *ifBlockLabelName = IdIndexer_CreateOneTime(labelIndexer, "if_block");
-  Operand ifBlockLabel = initStringOperand(OP_LABEL, ifBlockLabelName);
-
-  // Create a label that ends the conditional statement
-  char *endIfLabelName = IdIndexer_CreateOneTime(labelIndexer, "end_conditional");
-  Operand endConditionLabel = initStringOperand(OP_LABEL, endIfLabelName);
-
-  // Make a conditional jump to block within if condition
-  Instruction jumpToIfBlockInst = initInstr3(
-      INST_JUMPIFEQ,
-      ifBlockLabel,
-      ifCondition,
-      initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
-  addInstruction(jumpToIfBlockInst);
-
-  // TODO: Generate else if conditional jumps
-
-  // Generate instructions for else block
-  ASTNode *elseBlockStatement = node->next;
-  while (elseBlockStatement != NULL)
-  {
-    generateStatement(elseBlockStatement);
-    elseBlockStatement = elseBlockStatement->next;
-  }
-  // Skip instructions from other blocks
-  addInstruction(initInstr1(INST_JUMP, endConditionLabel));
-
-  // TODO: Generate else if blocks
-
-  // Add label for the block within if condition
-  addInstruction(initInstr1(INST_LABEL, ifBlockLabel));
-
-  // Generate a body of if () { ... }
-  ASTNode *ifBlockStatement = node->right;
-  while (ifBlockStatement != NULL)
-  {
-    generateStatement(ifBlockStatement);
-    ifBlockStatement = ifBlockStatement->next;
-  }
-
-  loginfo("Adding label for the end of the conditional statement");
-
-  // Add label for the end of the conditional statement
-  addInstruction(initInstr1(INST_LABEL, endConditionLabel));
-}
-
-void generateIfStatement(ASTNode *node)
-{
-  assert(node->nodeType == IfStatement);
-  assert(node->right == NULL);
-
-  // Evaluate if (...)
-  Operand ifCondition;
-  generateExpression(node->left, &ifCondition);
-  loginfo("Generated if condition that's stored in %s", ifCondition.attr.var.name);
-
-  // Create a label that ends the conditional statement
-  char *endIfLabelName = IdIndexer_CreateOneTime(labelIndexer, "end_if");
-  Operand endConditionLabel = initStringOperand(OP_LABEL, endIfLabelName);
-
-  // Make a conditional jump skip statements within if block
-  Instruction jumpToIfBlockInst = initInstr3(
-      INST_JUMPIFEQ,
-      endConditionLabel,
-      ifCondition,
-      initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
-  addInstruction(jumpToIfBlockInst);
-
-  // Generate a body of if () { ... }
-  ASTNode *ifBlockStatement = node->right;
-  while (ifBlockStatement != NULL)
-  {
-    generateStatement(ifBlockStatement);
-    ifBlockStatement = ifBlockStatement->next;
-  }
-
-  // Add label for the end of the conditional statement
-  Instruction conditionEndingLabel = initInstr1(INST_LABEL, endConditionLabel);
-  addInstruction(conditionEndingLabel);
 }
 
 void generateWhileStatement(ASTNode *node)
