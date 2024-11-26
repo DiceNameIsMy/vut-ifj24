@@ -925,7 +925,21 @@ ASTNode* parseIfStatement() {
         char* bindingVar = strdup(token.attribute.str);
         Symbol symbol;
         symbol.name = token.attribute.str;
-        symbol.type = NONETYPE; //UNNULLABLE...
+
+        switch (conditionNode->valType) {
+            case I32_NULLABLE:
+                symbol.type = I32;
+                break;
+            case F64_NULLABLE:
+                symbol.type = F64;
+                break;
+            case U8_ARRAY_NULLABLE:
+                symbol.type = U8_ARRAY;
+                break;
+            default:
+                exit(-1);//INVALID CONDITION TYPE
+        }
+        
         symbol.mut = true;
         symbol.init = false;
         symbol.retType = NONETYPE;
@@ -992,7 +1006,19 @@ ASTNode* parseWhileStatement() {
             if_malloc_error(bindingVar);
             Symbol symbol;
             symbol.name = token.attribute.str;
-            symbol.type = NONETYPE; //UNNULLABLE...
+            switch (conditionNode->valType) {
+                case I32_NULLABLE:
+                    symbol.type = I32;
+                    break;
+                case F64_NULLABLE:
+                    symbol.type = F64;
+                    break;
+                case U8_ARRAY_NULLABLE:
+                    symbol.type = U8_ARRAY;
+                    break;
+                default:
+                    exit(-1);//INVALID CONDITION TYPE
+            }
             symbol.mut = true;
             symbol.init = false;
             symbol.retType = NONETYPE;
