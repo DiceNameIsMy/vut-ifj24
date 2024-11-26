@@ -671,7 +671,7 @@ void printConst(Operand *op, FILE *stream)
         fprintf(stream, " int@%" PRId64, op->attr.i64);
         break;
     case OP_CONST_FLOAT64:
-        fprintf(stream, " float@%.14gp+0", op->attr.f64);
+        fprintf(stream, " float@0x%.14gp+0", op->attr.f64);
         break;
     case OP_CONST_STRING:
         fprintf(stream, " string@%s", op->attr.string);
