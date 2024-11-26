@@ -44,16 +44,19 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
 void generateConditionalStatement(ASTNode *node);
 void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
+
 void generateWhileStatement(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCallParameter(ASTNode *node);
+void generateReturn(ASTNode *node);
+
+Operand initConstantOperand(ASTNode *node);
 
 InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
-Operand initConstantOperand(ASTNode *node);
+
 bool isConstant(ASTNode *node);
-bool isVarOrConstant(ASTNode *node);
 
 /**********************************************************/
 /* Public Functions Definitions */
@@ -260,43 +263,7 @@ void generateStatement(ASTNode *node)
     generateWhileStatement(node);
     break;
   case ReturnStatement:
-
-    if (node->valType == NONETYPE) // Return void
-    {
-      Instruction returnInst = initInstr0(INST_RETURN);
-      addInstruction(returnInst);
-    }
-    else
-    {
-      ASTNode *returnNode = node->left;
-      Operand returnOperand;
-
-      bool generateInline = isVarOrConstant(returnNode);
-      if (node->left->nodeType == Identifier)
-      {
-        // Identifiers can be inlined.
-        char *idName = IdIndexer_GetOrCreate(funcVarsIndexer, returnNode->value.string);
-        returnOperand = initVarOperand(OP_VAR, FRAME_LF, idName);
-      }
-      else if (isConstant(returnNode))
-      {
-        // Constants can be inlined.
-        returnOperand = initConstantOperand(returnNode);
-      }
-      else
-      {
-        // Other expressions must be evaluated with extra instructions.
-        char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-        returnOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
-
-        // Generate an expression that assigns the result to the returnOperand
-        generateExpression(node->left, &returnOperand);
-      }
-
-      // Push the return value to the stack
-      Instruction pushInst = initInstr1(INST_PUSHS, returnOperand);
-      addInstruction(pushInst);
-    }
+    generateReturn(node);
     break;
 
   default:
@@ -473,101 +440,6 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   }
 }
 
-InstType binaryNodeToInstructionType(ASTNode *node)
-{
-  switch (node->nodeType)
-  {
-  case AddOperation:
-    return INST_ADD;
-  case SubOperation:
-    return INST_SUB;
-  case MulOperation:
-    return INST_MUL;
-  case DivOperation:
-    if (node->valType == I32 || node->valType == I32_NULLABLE)
-    {
-      return INST_IDIV;
-    }
-    else if (node->valType == F64 || node->valType == F64_NULLABLE)
-    {
-      return INST_DIV;
-    }
-    loginfo("Unexpected division of type: %s", nodeTypeToString(node->nodeType));
-    exit(99);
-  case LessOperation:
-    return INST_LT;
-  case EqualOperation:
-    return INST_EQ;
-  case GreaterOperation:
-    return INST_GT;
-  case NotEqualOperation:
-    // For NotEqualOperation operation there is no 1to1 mapping to target.
-    // There is though 1to2:
-    //  - EQ t <a> <b>
-    //  - NOT t t
-    return INST_EQ;
-  case LessEqOperation:
-    return INST_GT;
-  case GreaterEqOperation:
-    return INST_LT;
-  default:
-    loginfo("Unexpected binary operation type: %s", nodeTypeToString(node->nodeType));
-    exit(99);
-  }
-}
-
-bool negateBinaryInstruction(ASTNode *node)
-{
-  switch (node->nodeType)
-  {
-  case AddOperation:
-  case SubOperation:
-  case MulOperation:
-  case DivOperation:
-  case LessOperation:
-  case GreaterOperation:
-  case EqualOperation:
-    return false;
-  case NotEqualOperation:
-  case LessEqOperation:
-  case GreaterEqOperation:
-    // These relational binary instructions do not have a 1 to 1 mapping to target.
-    // They can only to acheived by negating the result of their counterpart.
-    return true;
-  default:
-    loginfo("Unexpected binary instruction type: %s", nodeTypeToString(node->nodeType));
-    exit(99);
-  }
-}
-
-Operand initConstantOperand(ASTNode *node)
-{
-  switch (node->nodeType)
-  {
-  case IntLiteral:
-    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
-  case FloatLiteral:
-    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
-  case StringLiteral:
-    return initStringOperand(OP_CONST_STRING, node->value.string);
-  case NullLiteral:
-    return initOperand(OP_CONST_NIL, (OperandAttribute){});
-  default:
-    loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
-    exit(99);
-  }
-}
-
-bool isConstant(ASTNode *node)
-{
-  return node->nodeType == IntLiteral || node->nodeType == FloatLiteral || node->nodeType == StringLiteral || node->nodeType == NullLiteral;
-}
-
-bool isVarOrConstant(ASTNode *node)
-{
-  return node->nodeType == Identifier || isConstant(node);
-}
-
 void generateConditionalStatement(ASTNode *node)
 {
   // TODO: null binding
@@ -654,6 +526,7 @@ void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEval
 void generateWhileStatement(ASTNode *node)
 {
   inspectAstNode(node);
+
   // Create a label for the beginning of the while loop
   char *whileIterLabelName = IdIndexer_CreateOneTime(labelIndexer, "while_iteration");
   Operand whileIterLabel = initStringOperand(OP_LABEL, whileIterLabelName);
@@ -802,4 +675,133 @@ void generateFunctionCallParameter(ASTNode *node)
   // Set the function parameter
   Instruction instr = initInstr2(INST_MOVE, funcParamName, valueToSetTo);
   addInstruction(instr);
+}
+
+void generateReturn(ASTNode *node)
+{
+  if (node->valType == NONETYPE) // Return void
+  {
+    Instruction returnInst = initInstr0(INST_RETURN);
+    addInstruction(returnInst);
+    return;
+  }
+
+  ASTNode *returnValueNode = node->left;
+
+  Operand returnOperand;
+
+  if (node->left->nodeType == Identifier)
+  {
+    // Identifiers can be inlined.
+    char *idName = IdIndexer_GetOrCreate(funcVarsIndexer, returnValueNode->value.string);
+    returnOperand = initVarOperand(OP_VAR, FRAME_LF, idName);
+  }
+  else if (isConstant(returnValueNode))
+  {
+    // Constants can be inlined.
+    returnOperand = initConstantOperand(returnValueNode);
+  }
+  else
+  {
+    // Other expressions must be evaluated with extra instructions.
+    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+    returnOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+
+    // Generate an expression that assigns the result to the returnOperand
+    generateExpression(node->left, &returnOperand);
+  }
+
+  // Push the return value to the stack
+  Instruction pushInst = initInstr1(INST_PUSHS, returnOperand);
+  addInstruction(pushInst);
+}
+
+Operand initConstantOperand(ASTNode *node)
+{
+  switch (node->nodeType)
+  {
+  case IntLiteral:
+    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
+  case FloatLiteral:
+    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
+  case StringLiteral:
+    return initStringOperand(OP_CONST_STRING, node->value.string);
+  case NullLiteral:
+    return initOperand(OP_CONST_NIL, (OperandAttribute){});
+  default:
+    loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+}
+
+InstType binaryNodeToInstructionType(ASTNode *node)
+{
+  switch (node->nodeType)
+  {
+  case AddOperation:
+    return INST_ADD;
+  case SubOperation:
+    return INST_SUB;
+  case MulOperation:
+    return INST_MUL;
+  case DivOperation:
+    if (node->valType == I32 || node->valType == I32_NULLABLE)
+    {
+      return INST_IDIV;
+    }
+    else if (node->valType == F64 || node->valType == F64_NULLABLE)
+    {
+      return INST_DIV;
+    }
+    loginfo("Unexpected division of type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  case LessOperation:
+    return INST_LT;
+  case EqualOperation:
+    return INST_EQ;
+  case GreaterOperation:
+    return INST_GT;
+  case NotEqualOperation:
+    // For NotEqualOperation operation there is no 1to1 mapping to target.
+    // There is though 1to2:
+    //  - EQ t <a> <b>
+    //  - NOT t t
+    return INST_EQ;
+  case LessEqOperation:
+    return INST_GT;
+  case GreaterEqOperation:
+    return INST_LT;
+  default:
+    loginfo("Unexpected binary operation type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+}
+
+bool negateBinaryInstruction(ASTNode *node)
+{
+  switch (node->nodeType)
+  {
+  case AddOperation:
+  case SubOperation:
+  case MulOperation:
+  case DivOperation:
+  case LessOperation:
+  case GreaterOperation:
+  case EqualOperation:
+    return false;
+  case NotEqualOperation:
+  case LessEqOperation:
+  case GreaterEqOperation:
+    // These relational binary instructions do not have a 1 to 1 mapping to target.
+    // They can only to acheived by negating the result of their counterpart.
+    return true;
+  default:
+    loginfo("Unexpected binary instruction type: %s", nodeTypeToString(node->nodeType));
+    exit(99);
+  }
+}
+
+bool isConstant(ASTNode *node)
+{
+  return node->nodeType == IntLiteral || node->nodeType == FloatLiteral || node->nodeType == StringLiteral || node->nodeType == NullLiteral;
 }
