@@ -47,16 +47,20 @@ void IdIndexer_Destroy(IdIndexer *indexer)
     indexer->counter = 0;
 }
 
-char *IdIndexer_GetOrCreate(IdIndexer *indexer, char *name)
+bool IdIndexer_GetOrCreate(IdIndexer *indexer, char *name, char **out)
 {
+    bool created = false;
     char *label = BVS_Search(indexer->identifiers, name);
     if (label == NULL)
     {
         // Func label is not found. Construct it's name and insert it
         label = IdIndexer_CreateOneTime(indexer, name);
         BVS_Insert(indexer->identifiers, name, label, strlen(label) + 1);
+        created = true;
     }
-    return label;
+    *out = label;
+
+    return created;
 }
 
 char *IdIndexer_CreateOneTime(IdIndexer *indexer, char *name)
