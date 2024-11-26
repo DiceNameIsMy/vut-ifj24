@@ -13,6 +13,8 @@ TokenArray *tokenArr;
 SymTable *sym_Table;
 unsigned int stat_index = 0;
 bool falseStatement = false;
+type_t type_to_return; //semantic return checks
+type_t type_returned; //semantic return checks
 
 
 type_t idType(Token token) {
@@ -204,6 +206,9 @@ ASTNode* parseFunctionDef() {
     }
     match(TOKEN_ID);
 
+    type_to_return = SymTable_GetRetType(sym_Table, functionName);
+    type_returned = NONETYPE;
+
     // Create an AST node for the function definition
     ASTNode* funcNode = createASTNode(FunctionDef, functionName);
 
@@ -219,6 +224,10 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_LEFT_CURLY_BRACKET);
     funcNode->next = parseStatementList();  // Attach the function body statements
     match(TOKEN_RIGHT_CURLY_BRACKET);
+
+    if(type_to_return != type_returned) {
+        exit(-1); //WRONG RETURN TYPE OR NO RETURN STATEMENT
+    }
 
     SymTable_UpperScope(sym_Table); //quit the scope
 
@@ -1062,6 +1071,9 @@ ASTNode* parseReturnStatement() {
     // Create the AST node for the return statement
     ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
     returnNode->valType = (exprNode == NULL) ? NONETYPE : exprNode->valType;
+    if(returnNode->valType != type_to_return) {
+        exit(-1); //WRONG RETURN TYPE
+    }
     returnNode->left = exprNode;  // Attach the expression as the left child (if present)
 
     match(TOKEN_SEMICOLON);  // Match ';'
