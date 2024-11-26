@@ -16,6 +16,8 @@
 
 FILE *outputStream;
 
+SymTable *symTable = NULL;
+
 TargetFuncContext *funcScope = NULL;
 IdIndexer *funcVarsIndexer = NULL;
 
@@ -70,15 +72,18 @@ bool isConstant(ASTNode *node);
 ///             If an unexpected AST is passed, the function might exit the program.
 /// @return -1 if parameters are invalid, 0 otherwise.
 ///         exit() function is called if target generation fails for other reasons.
-int generateTargetCode(ASTNode *root, FILE *output)
+void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
 {
   loginfo("Generating target code");
 
-  if (output == NULL)
+  if (root == NULL || symbolTable == NULL || output == NULL)
   {
-    return -1;
+    loginfo("Invalid parameters passed to generateTargetCode");
+    exit(99);
   }
+
   outputStream = output;
+  symTable = symbolTable;
 
   // Initialize label indexer
   labelIndexer = malloc(sizeof(IdIndexer));
@@ -132,8 +137,6 @@ int generateTargetCode(ASTNode *root, FILE *output)
   labelIndexer = NULL;
 
   loginfo("Target code generation finished");
-
-  return 0;
 }
 
 /**********************************************************/
@@ -166,6 +169,7 @@ void addVarDefinition(Variable *var)
 void generateFunction(ASTNode *node)
 {
   loginfo("Generating function %s", node->value.string);
+  inspectAstNode(node);
 
   // Initialize a function scope
   assert(funcScope == NULL);
