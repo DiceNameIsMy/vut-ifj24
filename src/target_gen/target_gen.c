@@ -171,7 +171,6 @@ void addVarDefinition(Variable *var)
 void generateFunction(ASTNode *node)
 {
   loginfo("Generating function %s", node->value.string);
-  inspectAstNode(node);
 
   // Initialize a function scope
   assert(funcScope == NULL);
@@ -241,10 +240,11 @@ void generateFunction(ASTNode *node)
 
 void generateFunctionParametersInitialization(Param *param)
 {
-  while (param != NULL) {
-
+  while (param != NULL)
+  {
+    loginfo("Generating function parameter: %s", param->name);
     // Add variable definition
-    char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, "param");
+    char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, param->name);
     Operand var = initVarOperand(OP_VAR, FRAME_LF, varName);
     addVarDefinition(&var.attr.var);
 
@@ -254,7 +254,6 @@ void generateFunctionParametersInitialization(Param *param)
 
     param = param->next;
   }
-
 }
 
 void generateStatement(ASTNode *node)
@@ -285,7 +284,6 @@ void generateStatement(ASTNode *node)
   case FuncCall:
     generateFunctionCall(node, NULL);
     break;
-
   default:
     loginfo("Unexpected statement type: %s", nodeTypeToString(node->nodeType));
     inspectAstNode(node);
@@ -465,7 +463,6 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 void generateConditionalStatement(ASTNode *node)
 {
   // TODO: null binding
-  inspectAstNode(node);
   Operand endLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "end_if"));
 
   loginfo("Generating conditional statement");
@@ -533,7 +530,6 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
 
     // Unroll the else block.
     ASTNode *elseBlockStatement = node->next;
-    inspectAstNode(elseBlockStatement);
     while (elseBlockStatement != NULL)
     {
       generateStatement(elseBlockStatement);
@@ -622,8 +618,6 @@ void generateWhileStatement(ASTNode *node)
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
-  assert(node->nodeType == BuiltInFunctionCall);
-
   // TODO: Add outVar to the function variables list if its used.
   if (strcmp(node->value.string, "ifj.readstr") == 0)
   {
@@ -733,15 +727,19 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   {
     *outVar = initOperand(OP_CONST_NIL, (OperandAttribute){});
   }
-  return;
 
-  assert(node->nodeType == FuncCall);
+  if (strncmp(node->value.string, "ifj.", 4) == 0)
+  {
+    generateBuiltInFunctionCall(node, outVar);
+    return;
+  }
 
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
   addInstruction(createFrameInst);
 
   // Add parameters
+  inspectAstNode(node);
   ASTNode *paramNode = node->left;
   while (paramNode != NULL)
   {
@@ -778,20 +776,15 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
 void generateFunctionCallParameter(ASTNode *node)
 {
   loginfo("Generating function call parameter: %s", nodeTypeToString(node->nodeType));
-  return;
+  inspectAstNode(node);
 
-  // TODO: From local frame move to temporary frame with a name defined in the function declaration.
+  // Get operand
+  Operand paramOperand;
+  generateExpression(node, &paramOperand);
 
-  // TODO: Find the parameter name from the function's declaration
-  Operand funcParamName = initVarOperand(OP_VAR, FRAME_TF, "called_func_param_name");
-
-  // Get the value to set to the parameter
-  Operand valueToSetTo;
-  generateExpression(node, &valueToSetTo);
-
-  // Set the function parameter
-  Instruction instr = initInstr2(INST_MOVE, funcParamName, valueToSetTo);
-  addInstruction(instr);
+  // Push operand to stack
+  Instruction pushInst = initInstr1(INST_PUSHS, paramOperand);
+  addInstruction(pushInst);
 }
 
 void generateReturn(ASTNode *node)
