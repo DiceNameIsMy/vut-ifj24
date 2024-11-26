@@ -26,6 +26,7 @@ ASTNode* createASTNode(NodeType nodeType, char* value) {
         exit(99);
     }
     // Initialize child pointers to NULL
+    newNode->valType = NONETYPE;
     newNode->left = NULL;
     newNode->right = NULL;
     newNode->next = NULL;
@@ -45,6 +46,7 @@ ASTNode* createASTNodeInteger(NodeType nodeType, int value) {
     newNode->nodeType = nodeType;
     // Allocate and copy the value (if provided)
     newNode->value.integer = value;
+    newNode->valType = I32;
     // Initialize child pointers to NULL
     newNode->left = NULL;
     newNode->right = NULL;
@@ -69,6 +71,7 @@ ASTNode* createASTNodeReal(NodeType nodeType, double value) {
 
     // Allocate and copy the value (if provided)
     newNode->value.real = value;
+    newNode->valType = F64;
     // Initialize child pointers to NULL
     newNode->left = NULL;
     newNode->right = NULL;
@@ -88,6 +91,7 @@ ASTNode* createBinaryASTNode(NodeType operator, ASTNode* left, ASTNode* right) {
 
     // Allocate and copy the operator as the node type
     newNode->nodeType = operator;
+    newNode->valType = NONETYPE;
 
     // Allocate and copy the operator as the value
 
