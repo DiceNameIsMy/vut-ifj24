@@ -8,13 +8,18 @@ POPFRAME # Get rid of the frame
 
 JUMP endProgram # Finish the program execution
 
-# Expects:
-# - LF@number
-# - LF@string
+# Expects on stack: number, string
 # Returns: 
 #   A return value is pushed on the stack. 
 #   If return value is not scpeficied, nothing is pushed.
 LABEL func
+    # Load local variables
+    DEFVAR LF@number
+    POPS LF@number
+
+    DEFVAR LF@string
+    POPS LF@string
+
     # Define local variables
     DEFVAR LF@v1
 

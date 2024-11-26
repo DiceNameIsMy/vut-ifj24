@@ -35,6 +35,8 @@ void addInstruction(Instruction inst);
 void addVarDefinition(Variable *var);
 
 void generateFunction(ASTNode *node);
+void generateFunctionParametersInitialization(Param *param);
+
 void generateStatement(ASTNode *node);
 void generateDeclaration(ASTNode *node);
 void generateAssignment(ASTNode *node);
@@ -196,6 +198,10 @@ void generateFunction(ASTNode *node)
   Instruction inst = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, funcLabel));
   TFC_SetFuncLabel(funcScope, funcLabel);
 
+  // Load function parameters from stack
+  Param *param = SymTable_GetParamList(symTable, node->value.string);
+  generateFunctionParametersInitialization(param);
+
   // Generate function body
   ASTNode *statementNode = node->next;
   while (statementNode != NULL)
@@ -231,6 +237,24 @@ void generateFunction(ASTNode *node)
   IdIndexer_Destroy(funcVarsIndexer);
   free(funcVarsIndexer);
   funcVarsIndexer = NULL;
+}
+
+void generateFunctionParametersInitialization(Param *param)
+{
+  while (param != NULL) {
+
+    // Add variable definition
+    char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, "param");
+    Operand var = initVarOperand(OP_VAR, FRAME_LF, varName);
+    addVarDefinition(&var.attr.var);
+
+    // Load variable from stack
+    Instruction inst = initInstr1(INST_POPS, var);
+    addInstruction(inst);
+
+    param = param->next;
+  }
+
 }
 
 void generateStatement(ASTNode *node)
@@ -508,7 +532,8 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
     addInstruction(jumpToBlockInst);
 
     // Unroll the else block.
-    ASTNode *elseBlockStatement = node->next->right;
+    ASTNode *elseBlockStatement = node->next;
+    inspectAstNode(elseBlockStatement);
     while (elseBlockStatement != NULL)
     {
       generateStatement(elseBlockStatement);
