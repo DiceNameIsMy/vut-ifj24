@@ -86,7 +86,7 @@ ENDTEST
 
 TEST(parse_stdlib_funcs_program)
     char *source_code;
-    if (read_source_code("tests/input/syntax/stdlib_funcs.ifj24.zig", &source_code)) {
+    if (read_source_code("/home/gladiator/Projects/IFJ/vut-ifj24/tests/input/syntax/stdlib_funcs.ifj24.zig", &source_code)) {
         return;
     }
     freeTokenArray(&tokenArray);

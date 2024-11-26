@@ -38,14 +38,14 @@ type_t idType(Token token) {
 
 void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     Symbol funWrite = {"ifj.write", FUNCTION, false, true, NONETYPE, NULL};
-    Symbol funReadi32 = {"ifj.readi32", FUNCTION, false, true, I32, NULL};
+    Symbol funReadi32 = {"ifj.readi32", FUNCTION, false, true, I32_NULLABLE, NULL};
     Symbol funf2i = {"ifj.f2i", FUNCTION, false, true, I32, NULL};
     Symbol funi2f = {"ifj.i2f", FUNCTION, false, true, F64, NULL};
     SymTable_AddSymbol(table, &funWrite);
     SymTable_AddSymbol(table, &funReadi32);
     SymTable_AddSymbol(table, &funf2i);
     SymTable_AddSymbol(table, &funi2f);
-    SymTable_PushFuncParam(table, "ifj.write", U8_ARRAY);
+    SymTable_PushFuncParam(table, "ifj.write", NONETYPE);
     SymTable_PushFuncParam(table, "ifj.f2i", F64);
     SymTable_PushFuncParam(table, "ifj.i2f", I32);
     
@@ -207,6 +207,7 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_ID);
 
     type_to_return = SymTable_GetRetType(sym_Table, functionName);
+    //fprintf(stderr, "For function %s we need ret.type %d", functionName, (int)type_to_return);
     type_returned = NONETYPE;
 
     // Create an AST node for the function definition
@@ -226,6 +227,8 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_RIGHT_CURLY_BRACKET);
 
     if(type_to_return != type_returned) {
+        //fprintf(stderr, "...but got %d", (int)type_returned);
+        fprintf(stderr, "Error: wrong type returned in function %s", functionName);
         exit(4); //WRONG RETURN TYPE OR NO RETURN STATEMENT
     }
 
@@ -737,7 +740,7 @@ ASTNode* parseFunctionCall(char *funcName) {
         currentArg = argsHead;
 
         
-        if(param == NULL || (currentArg->valType != param->paramType)) { //incorrect count or type
+        if(param == NULL || !isConv(param->paramType, currentArg->valType)) { //incorrect count or type
             fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
             exit(4);
         }
@@ -752,7 +755,7 @@ ASTNode* parseFunctionCall(char *funcName) {
             currentArg = nextArg;
 
             param = param->next;
-            if(param == NULL || currentArg->valType != param->paramType) {
+            if(param == NULL || !isConv(param->paramType, currentArg->valType)) {
             fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
                 exit(4);
             }
@@ -918,13 +921,7 @@ ASTNode* parseIfStatement() {
     match(TOKEN_LEFT_ROUND_BRACKET);   // Match '('
 
     // Parse the condition expression
-    ASTNode* conditionNode = parseExpression();
-
-    if(conditionNode->valType != BOOL && conditionNode->valType != I32) { //PERHAPS
-        fprintf(stderr, "Error: Cannot evaluate a condition\n");
-        exit(7);
-    }
-    
+    ASTNode* conditionNode = parseExpression();    
     match(TOKEN_RIGHT_ROUND_BRACKET);  // Match ')'
 
     // Handle nullable binding if present
@@ -960,6 +957,11 @@ ASTNode* parseIfStatement() {
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
+    }
+    
+    if(bindingNode == NULL && conditionNode->valType != BOOL) { //PERHAPS
+        fprintf(stderr, "Error: Cannot evaluate a condition\n");
+        exit(7);
     }
 
     match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
@@ -1000,10 +1002,6 @@ ASTNode* parseWhileStatement() {
 
     // Parse the condition expression
     ASTNode* conditionNode = parseExpression();
-    if(conditionNode->valType != BOOL && conditionNode->valType != I32) {
-        fprintf(stderr, "Error: Cannot evaluate a condition\n");
-        exit(7);
-    }
     match(TOKEN_RIGHT_ROUND_BRACKET);   // Match ')'
 
     // Handle nullable binding if present
@@ -1046,6 +1044,11 @@ ASTNode* parseWhileStatement() {
         bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
     }
+    
+    if(bindingNode == NULL && conditionNode->valType != BOOL) {
+        fprintf(stderr, "Error: Cannot evaluate a condition\n");
+        exit(7);
+    }
 
     match(TOKEN_LEFT_CURLY_BRACKET);    // Match '{'
     ASTNode* bodyNode = parseStatementList();  // Parse the loop body
@@ -1074,7 +1077,9 @@ ASTNode* parseReturnStatement() {
     // Create the AST node for the return statement
     ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
     returnNode->valType = (exprNode == NULL) ? NONETYPE : exprNode->valType;
+    type_returned = returnNode->valType;
     if(returnNode->valType != type_to_return) {
+        fprintf(stderr, "Error: tried to return a value of a wrong type in a function\n");
         exit(4); //WRONG RETURN TYPE
     }
     returnNode->left = exprNode;  // Attach the expression as the left child (if present)

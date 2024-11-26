@@ -106,7 +106,7 @@ void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType) {
   currentParam->next = (Param *)malloc(sizeof(Param));
   currentParam->next->paramType = paramType;
   currentParam->next->next = NULL;
-  fprintf(stderr, "Param pushed for %s", name);
+  //fprintf(stderr, "Param pushed for %s\n", name);
   return;
 }
 
