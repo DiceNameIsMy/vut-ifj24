@@ -327,7 +327,7 @@ void generateAssignment(ASTNode *node)
 
   // If variable name is _, generate a temporary variable name
   Operand dest;
-  if (strcmp(node->left->value.string, "_") == 0)
+  if (strcmp(node->value.string, "_") == 0)
   {
     // TODO: A value is assigned but would never be used. Can it be done in some better way?
     dest = createTmpVar("tmp", FRAME_LF);
@@ -366,7 +366,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case Identifier:
-    *outVar = initVarOperand(OP_VAR, FRAME_LF, node->value.string);
+    *outVar = getOrCreateVar(node->value.string, FRAME_LF);
     break;
 
   case IntLiteral:
@@ -507,7 +507,7 @@ void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEval
 
 void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
-  loginfo("Generating a last `if` evaluation");
+  loginfo("Generating last `if` evaluation");
 
   // Evaluate condition
   Operand ifCondition;
@@ -516,10 +516,12 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
   bool hasTrailingElse = node->next != NULL && node->next->nodeType != IfStatement;
   if (hasTrailingElse)
   {
+    Operand ifTrueLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "if_true"));
+    loginfo("Final condition has a trailing else block");
     // Jump to the code to execute if the condition is true.
     Instruction jumpToBlockInst = initInstr3(
         INST_JUMPIFEQ,
-        endLabel,
+        ifTrueLabel,
         ifCondition,
         initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
     addInstruction(jumpToBlockInst);
@@ -535,6 +537,8 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
     Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
     addInstruction(jumpToEnd);
 
+    addInstruction(initInstr1(INST_LABEL, ifTrueLabel));
+
     // Generate body on true condition
     ASTNode *ifBlockStatement = node->right;
     while (ifBlockStatement != NULL)
@@ -545,6 +549,7 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
   }
   else
   {
+      loginfo("Final condition does not have a trailing else block");
     // Optimization: If it's a last evaluation, jump to end on negative condition. Put the code right after.
     Instruction jumpToEndOnNegativeCondition = initInstr3(
         INST_JUMPIFEQ,
@@ -815,8 +820,7 @@ void generateReturn(ASTNode *node)
   else
   {
     // Other expressions must be evaluated with extra instructions.
-    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    returnOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+    returnOperand = createTmpVar("tmp", FRAME_LF);
 
     // Generate an expression that assigns the result to the returnOperand
     generateExpression(node->left, &returnOperand);
@@ -837,7 +841,6 @@ Operand initConstantOperand(ASTNode *node)
     return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
   case StringLiteral:
     char *literalString = convertToCompatibleStringLiteral(node->value.string);
-    loginfo("Converted string literal: %s -> %s", node->value.string, literalString);
     return initStringOperand(OP_CONST_STRING, literalString);
   case NullLiteral:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
