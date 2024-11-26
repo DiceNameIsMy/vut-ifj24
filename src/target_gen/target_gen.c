@@ -7,6 +7,7 @@
 
 #include "logging.h"
 
+#include "structs/dynBuffer.h"
 #include "structs/ast.h"
 
 #include "target_gen/id_indexer.h"
@@ -30,9 +31,8 @@ IdIndexer *labelIndexer = NULL;
 /// @brief If there is scope defined, add it there. Otherwise, print it to the output stream.
 void addInstruction(Instruction inst);
 
-/// @brief Call this function if a new variable must be defined for a
-///        function that is being generated.
-void addVarDefinition(Variable *var);
+Operand getOrCreateVar(char *name, VarFrameType frame);
+Operand createTmpVar(char *name, VarFrameType frame);
 
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
@@ -62,6 +62,8 @@ InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
 
 bool isConstant(ASTNode *node);
+
+char *convertToCompatibleStringLiteral(char *stringLiteral);
 
 /**********************************************************/
 /* Public Functions Definitions */
@@ -106,7 +108,8 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(pushFrameInst);
 
   // Call main function
-  char *mainLabel = IdIndexer_GetOrCreate(labelIndexer, "main");
+  char *mainLabel;
+  IdIndexer_GetOrCreate(labelIndexer, "main", &mainLabel);
   Operand mainFunc = initStringOperand(OP_LABEL, mainLabel);
   Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
   addInstruction(callMainInst);
@@ -116,7 +119,8 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(popFrameInst);
 
   // Jump to the end of the generated file
-  char *endProgramLabelName = IdIndexer_GetOrCreate(labelIndexer, "end_program");
+  char *endProgramLabelName;
+  IdIndexer_GetOrCreate(labelIndexer, "end_program", &endProgramLabelName);
   Operand endProgramLabel = initStringOperand(OP_LABEL, endProgramLabelName);
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   addInstruction(jumpToEndInst);
@@ -158,14 +162,29 @@ void addInstruction(Instruction inst)
   }
 }
 
-void addVarDefinition(Variable *var)
+Operand getOrCreateVar(char *name, VarFrameType frame)
 {
-  if (funcScope == NULL)
+  char *varName;
+  bool created = IdIndexer_GetOrCreate(funcVarsIndexer, name, &varName);
+
+  Operand var = initVarOperand(OP_VAR, frame, varName);
+
+  assert(funcScope != NULL);
+  if (created)
   {
-    loginfo("Attemted to add var definition outside of a function scope");
-    exit(99);
+    TFC_AddVar(funcScope, var.attr.var);
   }
-  TFC_AddVar(funcScope, *var);
+  return var;
+}
+
+Operand createTmpVar(char *name, VarFrameType frame)
+{
+  char *varName = IdIndexer_CreateOneTime(funcVarsIndexer, name);
+  Operand var = initVarOperand(OP_VAR, frame, varName);
+
+  assert(funcScope != NULL);
+  TFC_AddVar(funcScope, var.attr.var);
+  return var;
 }
 
 void generateFunction(ASTNode *node)
@@ -193,7 +212,9 @@ void generateFunction(ASTNode *node)
   IdIndexer_Init(funcVarsIndexer);
 
   // Add label for function name
-  char *funcLabel = IdIndexer_GetOrCreate(labelIndexer, node->value.string);
+  char *funcLabel;
+  IdIndexer_GetOrCreate(labelIndexer, node->value.string, &funcLabel);
+
   Instruction inst = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, funcLabel));
   TFC_SetFuncLabel(funcScope, funcLabel);
 
@@ -209,8 +230,6 @@ void generateFunction(ASTNode *node)
     statementNode = statementNode->next;
   }
 
-  // TODO: Add return statement if it's implicit
-  loginfo("Function %s returns %i", node->value.string, node->right->valType);
   if (strcmp(node->right->value.string, "void") == 0)
   {
     Instruction returnInst = initInstr0(INST_RETURN);
@@ -244,9 +263,7 @@ void generateFunctionParametersInitialization(Param *param)
   {
     loginfo("Generating function parameter: %s", param->name);
     // Add variable definition
-    char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, param->name);
-    Operand var = initVarOperand(OP_VAR, FRAME_LF, varName);
-    addVarDefinition(&var.attr.var);
+    Operand var = getOrCreateVar(param->name, FRAME_LF);
 
     // Load variable from stack
     Instruction inst = initInstr1(INST_POPS, var);
@@ -294,11 +311,9 @@ void generateStatement(ASTNode *node)
 void generateDeclaration(ASTNode *node)
 {
   // Get var unique name
-  char *varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
-  Operand varOperand = initVarOperand(OP_VAR, FRAME_LF, varName);
+  Operand varOperand = getOrCreateVar(node->value.string, FRAME_LF);
 
   // Add to declarations
-  addVarDefinition(&varOperand.attr.var);
 
   // Make an assignment
   Operand value;
@@ -311,19 +326,16 @@ void generateAssignment(ASTNode *node)
   assert(node->nodeType == Assignment);
 
   // If variable name is _, generate a temporary variable name
-  char *varName;
-  if (strcmp(node->left->value.string, "_") == 0)
+  Operand dest;
+  if (strcmp(node->value.string, "_") == 0)
   {
     // TODO: A value is assigned but would never be used. Can it be done in some better way?
-    varName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
+    dest = createTmpVar("tmp", FRAME_LF);
   }
   else
   {
-    varName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
+    dest = getOrCreateVar(node->value.string, FRAME_LF);
   }
-
-  Operand dest;
-  dest = initVarOperand(OP_VAR, FRAME_LF, varName);
 
   // Generate assigment evaluation
   generateExpression(node->left, &dest);
@@ -349,32 +361,19 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case FuncCall:
+  case BuiltInFunctionCall: // TODO: Delete this enum value
     generateFunctionCall(node, outVar);
     break;
 
-  case BuiltInFunctionCall:
-    generateBuiltInFunctionCall(node, outVar);
-    break;
-
   case Identifier:
-    char *identifierName = IdIndexer_GetOrCreate(funcVarsIndexer, node->value.string);
-    *outVar = initVarOperand(OP_VAR, FRAME_LF, identifierName);
+    *outVar = getOrCreateVar(node->value.string, FRAME_LF);
     break;
 
   case IntLiteral:
-    *outVar = initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
-    break;
-
   case FloatLiteral:
-    *outVar = initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
-    break;
-
   case StringLiteral:
-    *outVar = initStringOperand(OP_CONST_STRING, node->value.string);
-    break;
-
   case NullLiteral:
-    *outVar = initOperand(OP_CONST_NIL, (OperandAttribute){});
+    *outVar = initConstantOperand(node);
     break;
 
   default:
@@ -400,7 +399,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 
   Operand leftOperand;
   if (leftIsVar)
-    leftOperand = initVarOperand(OP_VAR, FRAME_LF, IdIndexer_GetOrCreate(funcVarsIndexer, node->left->value.string));
+    leftOperand = getOrCreateVar(node->left->value.string, FRAME_LF);
   else if (leftIsConstant)
     leftOperand = initConstantOperand(node->left);
   else if (rightCanBeInline)
@@ -421,7 +420,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 
   Operand rightOperand;
   if (rightIsVar)
-    rightOperand = initVarOperand(OP_VAR, FRAME_LF, IdIndexer_GetOrCreate(funcVarsIndexer, node->right->value.string));
+    rightOperand = getOrCreateVar(node->right->value.string, FRAME_LF);
   else if (rightIsConstant)
     rightOperand = initConstantOperand(node->right);
   else if (leftCanBeInline)
@@ -435,17 +434,14 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   {
     // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
     char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    rightOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
-    addVarDefinition(&rightOperand.attr.var);
+    rightOperand = getOrCreateVar(tmpVarName, FRAME_LF);
 
     generateExpression(node->right, &rightOperand);
   }
 
   if (!outVarInitialized)
   {
-    char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
-    addVarDefinition(&outVar->attr.var);
+    *outVar = createTmpVar("tmp", FRAME_LF);
   }
 
   Instruction inst;
@@ -511,7 +507,7 @@ void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEval
 
 void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
-  loginfo("Generating a last `if` evaluation");
+  loginfo("Generating last `if` evaluation");
 
   // Evaluate condition
   Operand ifCondition;
@@ -520,10 +516,12 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
   bool hasTrailingElse = node->next != NULL && node->next->nodeType != IfStatement;
   if (hasTrailingElse)
   {
+    Operand ifTrueLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "if_true"));
+    loginfo("Final condition has a trailing else block");
     // Jump to the code to execute if the condition is true.
     Instruction jumpToBlockInst = initInstr3(
         INST_JUMPIFEQ,
-        endLabel,
+        ifTrueLabel,
         ifCondition,
         initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
     addInstruction(jumpToBlockInst);
@@ -539,6 +537,8 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
     Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
     addInstruction(jumpToEnd);
 
+    addInstruction(initInstr1(INST_LABEL, ifTrueLabel));
+
     // Generate body on true condition
     ASTNode *ifBlockStatement = node->right;
     while (ifBlockStatement != NULL)
@@ -549,6 +549,7 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
   }
   else
   {
+      loginfo("Final condition does not have a trailing else block");
     // Optimization: If it's a last evaluation, jump to end on negative condition. Put the code right after.
     Instruction jumpToEndOnNegativeCondition = initInstr3(
         INST_JUMPIFEQ,
@@ -618,7 +619,17 @@ void generateWhileStatement(ASTNode *node)
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
-  // TODO: Add outVar to the function variables list if its used.
+  if (strcmp(node->value.string, "ifj.write") == 0)
+  {
+    Operand writeOperand;
+    generateExpression(node->left, &writeOperand);
+    Instruction writeInst = initInstr1(INST_WRITE, writeOperand);
+    addInstruction(writeInst);
+    return;
+  }
+
+  *outVar = createTmpVar("tmp", FRAME_LF);
+
   if (strcmp(node->value.string, "ifj.readstr") == 0)
   {
     Instruction readInst = initInstr2(
@@ -723,10 +734,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating function call: %s", node->value.string);
-  if (outVar != NULL)
-  {
-    *outVar = initOperand(OP_CONST_NIL, (OperandAttribute){});
-  }
 
   if (strncmp(node->value.string, "ifj.", 4) == 0)
   {
@@ -754,7 +761,9 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   loginfo("Calling function: %s", node->value.string);
 
   // Call function
-  char *funcNameLabel = IdIndexer_GetOrCreate(labelIndexer, node->value.string);
+  char *funcNameLabel;
+  IdIndexer_GetOrCreate(labelIndexer, node->value.string, &funcNameLabel);
+
   Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, funcNameLabel));
   addInstruction(callInst);
 
@@ -766,9 +775,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   bool returnsVoid = node->valType == NONETYPE;
   if (!returnsVoid)
   {
-    char *outVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    *outVar = initVarOperand(OP_VAR, FRAME_LF, outVarName);
-    addVarDefinition(&outVar->attr.var);
+    *outVar = createTmpVar("tmp", FRAME_LF);
     addInstruction(initInstr1(INST_POPS, *outVar));
   }
 }
@@ -803,8 +810,7 @@ void generateReturn(ASTNode *node)
   if (node->left->nodeType == Identifier)
   {
     // Identifiers can be inlined.
-    char *idName = IdIndexer_GetOrCreate(funcVarsIndexer, returnValueNode->value.string);
-    returnOperand = initVarOperand(OP_VAR, FRAME_LF, idName);
+    returnOperand = getOrCreateVar(returnValueNode->value.string, FRAME_LF);
   }
   else if (isConstant(returnValueNode))
   {
@@ -814,8 +820,7 @@ void generateReturn(ASTNode *node)
   else
   {
     // Other expressions must be evaluated with extra instructions.
-    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    returnOperand = initVarOperand(OP_VAR, FRAME_LF, tmpVarName);
+    returnOperand = createTmpVar("tmp", FRAME_LF);
 
     // Generate an expression that assigns the result to the returnOperand
     generateExpression(node->left, &returnOperand);
@@ -835,13 +840,48 @@ Operand initConstantOperand(ASTNode *node)
   case FloatLiteral:
     return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
   case StringLiteral:
-    return initStringOperand(OP_CONST_STRING, node->value.string);
+    char *literalString = convertToCompatibleStringLiteral(node->value.string);
+    return initStringOperand(OP_CONST_STRING, literalString);
   case NullLiteral:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
   default:
     loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
     exit(99);
   }
+}
+
+char *convertToCompatibleStringLiteral(char *stringLiteral)
+{
+  DynBuffer buffer;
+  if (initDynBuffer(&buffer, -1) != 0)
+  {
+    loginfo("Failed to initialize dynamic buffer");
+    exit(99);
+  }
+
+  for (int i = 0; i < strlen(stringLiteral); i++)
+  {
+    char c = stringLiteral[i];
+    if (c <= 32 || c == '#' || c == '\\')
+    {
+      // Reformat special characters to \xxx
+      appendStringDynBuffer(&buffer, "\\___");
+      sprintf(&buffer.data[buffer.nextIdx - 3], "%03d", c);
+    }
+    else
+    {
+      appendDynBuffer(&buffer, c);
+    }
+  }
+  char *result;
+  if (copyFromDynBuffer(&buffer, &result) != 0)
+  {
+    loginfo("Failed to copy from dynamic buffer");
+    exit(99);
+  }
+  freeDynBuffer(&buffer);
+
+  return result;
 }
 
 InstType binaryNodeToInstructionType(ASTNode *node)

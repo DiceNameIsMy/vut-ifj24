@@ -19,7 +19,7 @@ void IdIndexer_Init(IdIndexer *indexer);
 void IdIndexer_Destroy(IdIndexer *indexer);
 
 /// @brief Find or create a unique name.
-char *IdIndexer_GetOrCreate(IdIndexer *indexer, char *name);
+bool IdIndexer_GetOrCreate(IdIndexer *indexer, char *name, char **out);
 
 /// @brief Create a unique name for the given identifier. 
 ///        It is not stored, but the counter is incremented nonetheless.
