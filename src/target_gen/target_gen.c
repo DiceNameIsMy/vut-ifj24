@@ -7,6 +7,7 @@
 
 #include "logging.h"
 
+#include "structs/dynBuffer.h"
 #include "structs/ast.h"
 
 #include "target_gen/id_indexer.h"
@@ -62,6 +63,8 @@ InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
 
 bool isConstant(ASTNode *node);
+
+char *convertToCompatibleStringLiteral(char *stringLiteral);
 
 /**********************************************************/
 /* Public Functions Definitions */
@@ -349,11 +352,8 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case FuncCall:
+  case BuiltInFunctionCall: // TODO: Delete this enum value
     generateFunctionCall(node, outVar);
-    break;
-
-  case BuiltInFunctionCall:
-    generateBuiltInFunctionCall(node, outVar);
     break;
 
   case Identifier:
@@ -362,19 +362,10 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case IntLiteral:
-    *outVar = initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
-    break;
-
   case FloatLiteral:
-    *outVar = initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
-    break;
-
   case StringLiteral:
-    *outVar = initStringOperand(OP_CONST_STRING, node->value.string);
-    break;
-
   case NullLiteral:
-    *outVar = initOperand(OP_CONST_NIL, (OperandAttribute){});
+    *outVar = initConstantOperand(node);
     break;
 
   default:
@@ -835,13 +826,44 @@ Operand initConstantOperand(ASTNode *node)
   case FloatLiteral:
     return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
   case StringLiteral:
-    return initStringOperand(OP_CONST_STRING, node->value.string);
+    char *literalString = convertToCompatibleStringLiteral(node->value.string);
+    loginfo("Converted string literal: %s -> %s", node->value.string, literalString);
+    return initStringOperand(OP_CONST_STRING, literalString);
   case NullLiteral:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
   default:
     loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
     exit(99);
   }
+}
+
+char *convertToCompatibleStringLiteral(char *stringLiteral)
+{
+  DynBuffer buffer;
+  if (initDynBuffer(&buffer, -1) != 0)  {
+    loginfo("Failed to initialize dynamic buffer");
+    exit(99);
+  }
+
+  for (int i = 0; i < strlen(stringLiteral); i++)
+  {
+    char c = stringLiteral[i];
+    if (c <= 32 || c == '#' || c == '\\') {
+      // Reformat special characters to \xxx
+      appendStringDynBuffer(&buffer, "\\___");
+      sprintf(&buffer.data[buffer.nextIdx-3], "%03d", c);
+    } else {
+      appendDynBuffer(&buffer, c);
+    }
+  }
+  char *result;
+  if (copyFromDynBuffer(&buffer, &result) != 0) {
+    loginfo("Failed to copy from dynamic buffer");
+    exit(99);
+  }
+  freeDynBuffer(&buffer);
+
+  return result;
 }
 
 InstType binaryNodeToInstructionType(ASTNode *node)
