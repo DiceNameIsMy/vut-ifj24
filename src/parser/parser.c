@@ -654,6 +654,7 @@ ASTNode* parseFactor() {
             match(TOKEN_ID);
 
             if(SymTable_Search(sym_Table, functionName) == NULL || SymTable_GetType(sym_Table, functionName) != FUNCTION) {
+                fprintf(stderr, "Error: Function %s not declared\n", functionName);
                 exit(3); //NOT DECLARED OR NOT A FUNCTION
             }
             
@@ -676,6 +677,7 @@ ASTNode* parseFactor() {
         else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             
             if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
+                fprintf(stderr, "Error: Function %s not declared\n", identifier);
                 exit(3); //NOT DECLARED OR NOT A FUNCTION 
             }
             
@@ -685,6 +687,7 @@ ASTNode* parseFactor() {
         } else {
             
             if(SymTable_Search(sym_Table, identifier) == NULL) {
+                fprintf(stderr, "Error: variable %s not declared\n", identifier);
                 exit(3); //NOT DECLARED
             }
 
@@ -756,7 +759,7 @@ ASTNode* parseFunctionCall(char *funcName) {
 
             param = param->next;
             if(param == NULL || !isConv(param->paramType, currentArg->valType)) {
-            fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
+                fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
                 exit(4);
             }
         }
@@ -802,7 +805,6 @@ ASTNode* parseVarDeclaration() {
         symbol.type = typeNode->valType;
     }
 
-
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
 
@@ -812,6 +814,7 @@ ASTNode* parseVarDeclaration() {
     }
     symbol.type = exprNode->valType;
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
+        fprintf(stderr, "Error: Redefinition of a variable: %s", symbol.name);
         exit(5); //REDEFINITION!
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -850,6 +853,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         }
         
         if(SymTable_Search(sym_Table, functionName) == NULL) {
+            fprintf(stderr, "Error: Function %s not defined\n", functionName);
             exit(3); //DOESN'T EXIST
         }
         
@@ -879,9 +883,14 @@ ASTNode* parseAssignmentOrFunctionCall() {
         // Handle assignment
         match(TOKEN_ASSIGNMENT);  // Match '='
 
-        if(SymTable_Search(sym_Table, identifier) == NULL || !SymTable_GetMut(sym_Table, identifier)) {
+        if(SymTable_Search(sym_Table, identifier) == NULL) { 
+            fprintf(stderr, "Error: variable %s not defined\n", identifier);
             exit(3); //DOESNT EXIST OR A CONST ASSIGNMENT
-            //+exit 5 - SEPARATE TWO CASES
+        }
+        
+        if(!SymTable_GetMut(sym_Table, identifier)) {
+            fprintf(stderr, "Error: invalid assignment to a constant: %s\n", identifier);
+            exit(5);
         }
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
@@ -894,9 +903,10 @@ ASTNode* parseAssignmentOrFunctionCall() {
 
         match(TOKEN_SEMICOLON);  // Match ';'
         return assignNode;
-    } else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
+    } else if(token.type == TOKEN_LEFT_ROUND_BRACKET) {
         // Handle function call
         if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
+            fprintf(stderr, "Error: function %s not defined\n", identifier);
             exit(3); //DOESN'T EXIST OR NOT A FUNCTION
         }
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
