@@ -45,9 +45,9 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_AddSymbol(table, &funReadi32);
     SymTable_AddSymbol(table, &funf2i);
     SymTable_AddSymbol(table, &funi2f);
-    SymTable_PushFuncParam(table, "ifj.write", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.f2i", F64);
-    SymTable_PushFuncParam(table, "ifj.i2f", I32);
+    SymTable_PushFuncParam(table, "ifj.write", U8_ARRAY, NULL);
+    SymTable_PushFuncParam(table, "ifj.f2i", F64, NULL);
+    SymTable_PushFuncParam(table, "ifj.i2f", I32, NULL);
     
     
     int token_no = 0;
@@ -69,6 +69,8 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
                 if(token_no >= array->size || array->tokens[token_no].type != TOKEN_ID) {
                     exit(2);
                 }
+                char *paramName = array->tokens[token_no].attribute.str;
+
                 token_no++;
                 if(token_no >= array->size || array->tokens[token_no].type != TOKEN_COLON) {
                     exit(2);
@@ -77,9 +79,9 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
                 if(token_no >= array->size || idType(array->tokens[token_no]) == NONETYPE) {
                     exit(2);
                 }
-                
-                SymTable_PushFuncParam(table, funName.name, idType(array->tokens[token_no]));
-                
+
+                SymTable_PushFuncParam(table, funName.name, idType(array->tokens[token_no]), paramName);
+
                 token_no++;
                 if(token_no >= array->size || 
                    (array->tokens[token_no].type != TOKEN_COMMA && array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET)) {

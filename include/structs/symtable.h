@@ -31,6 +31,7 @@ typedef struct {
 
 typedef struct param_t {
   type_t paramType;
+  char *name;
   struct param_t *next;
 } Param;
 
@@ -39,7 +40,13 @@ Symbol *SymTable_Search(SymTable *table, char *name);
 void SymTable_SetType(SymTable *table, char *name, type_t type);
 void SymTable_SetMut(SymTable *table, char *name, bool isMutable);
 void SymTable_SetInit(SymTable *table, char *name, bool isInit);
-void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType);
+
+/// @brief 
+/// @param table 
+/// @param name 
+/// @param paramType 
+/// @param paramName Can be set to NULL if pushing a built-in function parameter.
+void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType, char *paramName);
 void SymTable_SetRetType(SymTable *table, char *name, type_t retType);
 
 type_t SymTable_GetType(SymTable *table, char *name);
