@@ -947,6 +947,7 @@ ASTNode* parseIfStatement() {
                 symbol.type = U8_ARRAY;
                 break;
             default:
+                fprintf(stderr, "Error: Nullable binding with non-nullable value.\n");
                 exit(7);//INVALID CONDITION TYPE
         }
         
@@ -1027,6 +1028,7 @@ ASTNode* parseWhileStatement() {
                     symbol.type = U8_ARRAY;
                     break;
                 default:
+                    fprintf(stderr, "Error: Nullable binding with non-nullable value.\n");
                     exit(7);//INVALID CONDITION TYPE
             }
             symbol.mut = true;
