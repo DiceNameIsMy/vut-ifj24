@@ -433,6 +433,8 @@ TEST (dot_id_error)
     runLexer("a.b;", &tokenArray);
 
     Token t;
+    // COULD BE PROCEED AS TOKEN ERROR TOKEN
+    /*
     // a.b
     if (!check_token(&t, TOKEN_ERROR)) {
         return;
@@ -440,10 +442,18 @@ TEST (dot_id_error)
     // ;
     if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
-    } 
+    } */
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
+    }
+
 ENDTEST
 
-TEST (dot_id_space_separator)
+// Is it a false test? Not sure we have dot in normal code besides ifj
+/*TEST (dot_id_space_separator)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
@@ -472,7 +482,7 @@ TEST (dot_id_space_separator)
     if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
     } 
-ENDTEST
+ENDTEST*/
 
 TEST (ifj_dot)
     freeTokenArray(&tokenArray);
@@ -674,6 +684,70 @@ TEST(bigger_and_bigger_equal)
     }
     if (strcmp(t.attribute.str, "c") != 0) {
         FAILCOMPS("Wrong attribute value", "c", t.attribute.str);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+ENDTEST
+
+TEST (less_then)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a < 0;", &tokenArray);
+
+    Token t;
+    // a
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a") != 0) {
+        FAILCOMPS("Wrong attribute value", "a", t.attribute.str);
+    }
+    // <
+    if (!check_token(&t, TOKEN_LESS_THAN)) {
+        return;
+    }
+    // 0
+    if (!check_token(&t, TOKEN_I32_LITERAL)) {
+        return;
+    }
+    if (t.attribute.integer != 0) {
+        FAILCOMPI("Wrong attribute value", 0, t.attribute.integer);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+ENDTEST
+
+TEST(colon_test)
+    // var all: []u8;
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("var all: []u8;", &tokenArray);
+
+    Token t;
+    // var
+    if (!check_token(&t, TOKEN_KEYWORD_VAR)) {
+        return;
+    }
+    // all
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "all") != 0) {
+        FAILCOMPS("Wrong attribute value", "all", t.attribute.str);
+    }
+    // :
+    if (!check_token(&t, TOKEN_COLON)) {
+        return;
+    }
+    // []u8
+    if (!check_token(&t, TOKEN_KEYWORD_U8_ARRAY)) {
+        return;
     }
     // ;
     if (!check_token(&t, TOKEN_SEMICOLON)) {

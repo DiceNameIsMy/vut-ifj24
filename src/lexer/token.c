@@ -30,11 +30,13 @@ int addToken(TokenArray *array, const Token token) {
         array->capacity *= 2;
         Token *reallocated = realloc(array->tokens, array->capacity * sizeof(Token));
         if (reallocated == NULL) {
+            // TODO: ERROR 99
             loginfo("Allocating expended memory ERROR\n");
             return -1;
         }
         array->tokens = reallocated;
     }
+    printf("Added token %s\n", getTokenTypeName(token.type));
 
     // Add new token
     array->tokens[array->size] = token;
@@ -132,6 +134,7 @@ const char *getTokenTypeName(const TokenType token) {
         case TOKEN_COMMA: return "TOKEN_COMMA";
         case TOKEN_DOT: return "TOKEN_DOT";
         case TOKEN_COLON: return "TOKEN_COLON";
+        case TOKEN_EOF: return "TOKEN_EOF";
         case TOKEN_ERROR: return "TOKEN_ERROR";
         default: return "UNKNOWN_TOKEN";
     }

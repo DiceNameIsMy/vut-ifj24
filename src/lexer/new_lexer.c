@@ -14,8 +14,11 @@
 #include "structs/bvs.h"
 #include "structs/symtable.h"
 #include "logging.h"
-char* sourceCode;
-TokenArray *tokenArr;
+
+void parse_MULTILINE_STRING();
+
+const char* sourceCode;
+TokenArray *lexer_tokenArr;
 DynBuffer buff;
 int current_char_index = 0;
 
@@ -118,6 +121,8 @@ void parse_ID_TEMPLATE(){
             appendDynBuffer(&buff, c);
         } else if (strcmp(buff.data, "ifj") == 0) { // ID ended and it is "ifj"
             // ifj state is a special case
+            
+            current_char_index--; // start searching dot right after "ifj"
 
             // Skip spaces until the first dot
             while (isspace(sourceCode[current_char_index])) {
@@ -130,12 +135,13 @@ void parse_ID_TEMPLATE(){
                 current_char_index++;
             } else {
                 // ifj word and no dot after it
-                // TODO: can make this a function for error tokens
-                const Token errorToken = {.type = TOKEN_ERROR};
-                initStringAttribute(&errorToken.attribute, "Expected '.' after 'ifj'");
-                addToken(tokenArr, errorToken);
+                // simple ID
+                Token idToken = {.type = TOKEN_ID};
+                initStringAttribute(&idToken.attribute, buff.data);
+                addToken(lexer_tokenArr, idToken);
                 emptyDynBuffer(&buff);
-                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+                current_char_index--; // return to the last character so it can be processed in the common state
+                return;
             }
 
             // Skip spaces until the next word
@@ -145,14 +151,14 @@ void parse_ID_TEMPLATE(){
 
             int check_i = current_char_index;
             // Read the next word into the buffer
-            while (isIdTemplate(sourceCode[current_char_index])) {
+            while (inIdTemplate(sourceCode[current_char_index])) {
                 appendDynBuffer(&buff, sourceCode[current_char_index]);
                 current_char_index++;
             }
 
             if (check_i == current_char_index) {
                 // If the buffer is empty, handle as an error or unexpected token
-                const Token errorToken = {.type = TOKEN_ERROR};
+                Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "Error: Expected [function] after 'ifj.'");
                 endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
                 break;
@@ -163,7 +169,7 @@ void parse_ID_TEMPLATE(){
             // printf("IFJ: %s\n", buff.data);
             initStringAttribute(&attribute, buff.data);
             const Token token = createToken(TOKEN_ID, attribute);
-            addToken(tokenArr, token);
+            addToken(lexer_tokenArr, token);
             emptyDynBuffer(&buff);
             // added ifj.'functionName' as a token
             // return to the common state
@@ -176,46 +182,64 @@ void parse_ID_TEMPLATE(){
             if (tryGetKeyword(buff.data, &tokenType)) {
                 // if the identifier is a keyword
                 // add it as a keyword token
-                const Token keywordToken = {.type = tokenType};
+                Token keywordToken = {.type = tokenType};
                 initStringAttribute(&keywordToken.attribute, buff.data);
-                addToken(tokenArr, keywordToken);
+                addToken(lexer_tokenArr, keywordToken);
             } else {
                 // if the identifier is not a keyword
                 // add it as an identifier token
-                const Token idToken = {.type = TOKEN_ID};
+                Token idToken = {.type = TOKEN_ID};
                 initStringAttribute(&idToken.attribute, buff.data);
-                addToken(tokenArr, idToken);
+                addToken(lexer_tokenArr, idToken);
             }
             emptyDynBuffer(&buff);
             current_char_index--; // return to the last character so it can be processed in the common state
             return;
         }
     }
+    // end of the identifier and the source code
+    TokenType tokenType;
+    // check if it is a keyword
+    if (tryGetKeyword(buff.data, &tokenType)) {
+        // if the identifier is a keyword
+        // add it as a keyword token
+        Token keywordToken = {.type = tokenType};
+        initStringAttribute(&keywordToken.attribute, buff.data);
+        
+        addToken(lexer_tokenArr, keywordToken);
+    } else {
+        // if the identifier is not a keyword
+        // add it as an identifier token
+        Token idToken = {.type = TOKEN_ID};
+        initStringAttribute(&idToken.attribute, buff.data);
+        addToken(lexer_tokenArr, idToken);
+    }
+    emptyDynBuffer(&buff);
+    return;
 }
 
 void parse_ARRAY(){
     // []u8 case
     Token arrayToken;
     arrayToken.attribute.str = NULL;
-    arrayToken.type = NULL; // for the beginning making it a flag
-
+    arrayToken.type = TOKEN_ERROR; // for the beginning making it a flag
     if (strlen(sourceCode) < current_char_index + 4) {
         ;
-    } else if (strncmp(&sourceCode[current_char_index], "[]u8", 4) == 0) {
+    } else if (strncmp(&sourceCode[current_char_index-1], "[]u8", 4) == 0) {
         arrayToken.type = TOKEN_KEYWORD_U8_ARRAY;
-        current_char_index += 4; // Move the current index
+        current_char_index += 3; // Move the current index
     }
 
     // If the token was not set, generate an error
-    if (arrayToken.type == NULL) {
+    if (arrayToken.type == TOKEN_ERROR) {
         arrayToken.type = TOKEN_ERROR;
         initStringAttribute(&arrayToken.attribute, "Expected array type");
-        addToken(tokenArr, arrayToken);
+        addToken(lexer_tokenArr, arrayToken);
         emptyDynBuffer(&buff);
         endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
     }
 
-    addToken(tokenArr, arrayToken);
+    addToken(lexer_tokenArr, arrayToken);
     emptyDynBuffer(&buff);
     // Return to the common state
     return;
@@ -224,7 +248,7 @@ void parse_ARRAY(){
 void parse_NULLABLE() {
         Token nullableToken;
         nullableToken.attribute.str = NULL;
-        nullableToken.type = NULL; // Изначально делаем флагом
+        nullableToken.type = TOKEN_ERROR; // Изначально делаем флагом
         
         // Возможные значения и их типы
         const char *nullableKeywords[] = {
@@ -242,23 +266,22 @@ void parse_NULLABLE() {
         if (strlen(sourceCode) < current_char_index + keywordLength) {
             continue; // Пропускаем, если не хватает символов
         }
-        if (strncmp(&sourceCode[current_char_index], nullableKeywords[i], keywordLength) == 0) {
+        if (strncmp(&sourceCode[current_char_index - 1], nullableKeywords[i], keywordLength) == 0) {
             nullableToken.type = nullableTypes[i];
-            current_char_index += keywordLength; // Смещаем текущий индекс
+            current_char_index += keywordLength-1; // Смещаем текущий индекс
             break;
         }
     }
 
     // Если токен не был установлен, генерируем ошибку
-    if (nullableToken.type == NULL) {
-        nullableToken.type = TOKEN_ERROR;
+    if (nullableToken.type == TOKEN_ERROR) {
         initStringAttribute(&nullableToken.attribute, "Expected nullable type");
-        addToken(tokenArr, nullableToken);
+        addToken(lexer_tokenArr, nullableToken);
         emptyDynBuffer(&buff);
         endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
     }
 
-    addToken(tokenArr, nullableToken);
+    addToken(lexer_tokenArr, nullableToken);
     emptyDynBuffer(&buff);
     // Возвращаемся к общему состоянию
     return;
@@ -266,10 +289,11 @@ void parse_NULLABLE() {
 
 void parse_SPECIAL_SYMBOL(){
     const char c = sourceCode[current_char_index];
+    
     current_char_index++;
     Token specialSymbolToken;
     specialSymbolToken.attribute.str = NULL;
-    specialSymbolToken.type = NULL; // for the beginning making it a flag
+    specialSymbolToken.type = TOKEN_ERROR; // for the beginning making it a flag
 
     if (c == '=') {
         if (sourceCode[current_char_index] == '=') {
@@ -311,7 +335,7 @@ void parse_SPECIAL_SYMBOL(){
             // ! can be used only as a part of !=
             specialSymbolToken.type = TOKEN_ERROR;
             initStringAttribute(&specialSymbolToken.attribute, "Expected = after !");
-            addToken(tokenArr, specialSymbolToken);
+            addToken(lexer_tokenArr, specialSymbolToken);
             emptyDynBuffer(&buff);
             endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
         }
@@ -369,14 +393,13 @@ void parse_SPECIAL_SYMBOL(){
     }
     
     // if after that special symbol token is still NULL, it means that it is an error
-    if (specialSymbolToken.type == NULL){
-        specialSymbolToken.type = TOKEN_ERROR;
+    if (specialSymbolToken.type == TOKEN_ERROR){
         initStringAttribute(&specialSymbolToken.attribute, "Unrecognized special symbol");
-        addToken(tokenArr, specialSymbolToken);
+        addToken(lexer_tokenArr, specialSymbolToken);
         emptyDynBuffer(&buff);
         endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
     }
-    addToken(tokenArr, specialSymbolToken);
+    addToken(lexer_tokenArr, specialSymbolToken);
     emptyDynBuffer(&buff);
     // return to the common state
     return;
@@ -400,10 +423,13 @@ void parse_NUMBER() {
     numberToken.attribute.str = NULL;
 
     // Проверка на начальный 0 (не плавающее число)
-    if (buff.data[0] == '0' && sourceCode[current_char_index] != '.' && sourceCode[current_char_index] != 'e' && sourceCode[current_char_index] != 'E') {
+    // TODO: do we care about e/E in the beginning?
+    if (buff.data[0] == '0' && sourceCode[current_char_index] != '.' && 
+        sourceCode[current_char_index] != 'e' && sourceCode[current_char_index] != 'E' &&
+        isdigit(sourceCode[current_char_index])) {
         Token errorToken = {.type = TOKEN_ERROR};
         initStringAttribute(&errorToken.attribute, "Number can't start with 0");
-        addToken(tokenArr, errorToken);
+        addToken(lexer_tokenArr, errorToken);
         emptyDynBuffer(&buff);
         endWithCode(1); // ERROR - invalid number
     }
@@ -436,9 +462,12 @@ void parse_NUMBER() {
                 // Ошибка: ожидается число после 'e'/'E'
                 Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "Invalid exponent format");
-                addToken(tokenArr, errorToken);
+                addToken(lexer_tokenArr, errorToken);
                 emptyDynBuffer(&buff);
                 endWithCode(1); // ERROR - invalid exponent
+            } else{
+                // digit after e/E
+                appendDynBuffer(&buff, next);
             }
         } else {
             // Конец числа
@@ -448,10 +477,10 @@ void parse_NUMBER() {
     }
 
     // Проверка на валидность буфера (недопустимо пустое число)
-    if (buff.nextIdx == 0 || (isFloat && buff.data[buff.nextIdx - 1] == '.')) {
+    if (isFloat && buff.data[buff.nextIdx - 1] == '.') {
         Token errorToken = {.type = TOKEN_ERROR};
         initStringAttribute(&errorToken.attribute, "Invalid number format");
-        addToken(tokenArr, errorToken);
+        addToken(lexer_tokenArr, errorToken);
         emptyDynBuffer(&buff);
         endWithCode(1); // ERROR - invalid number format
     }
@@ -466,8 +495,9 @@ void parse_NUMBER() {
         numberToken.attribute.integer = iValue;
         numberToken.type = TOKEN_I32_LITERAL;
     }
+    
 
-    addToken(tokenArr, numberToken);
+    addToken(lexer_tokenArr, numberToken);
     emptyDynBuffer(&buff);
     return;
 }
@@ -488,7 +518,7 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
                 // Multiline string continues -> a newline for that must be added
                 appendDynBuffer(&buff, '\n');
                 // continue with parsing multiline string
-                parse_MULTILINE_STRIMG();
+                parse_MULTILINE_STRING();
                 // return to the common state
                 return;
             } else {
@@ -496,14 +526,14 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
                 // (because nothing can be done with something that starts with \ in common state)
                 Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "After multiline strange character was found");
-                addToken(tokenArr, errorToken);
+                addToken(lexer_tokenArr, errorToken);
                 endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
             }
         } else {
             // next line is not a part of multiline and must be processed as a common line
             Token stringToken = {.type = TOKEN_STRING_LITERAL};
             initStringAttribute(&stringToken.attribute, buff.data);
-            addToken(tokenArr, stringToken);
+            addToken(lexer_tokenArr, stringToken);
             emptyDynBuffer(&buff);
             
             current_char_index--; // return to the last character so it can be processed in the common state
@@ -515,7 +545,7 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
     // so it is not an error, string must be ended
     Token stringToken = {.type = TOKEN_STRING_LITERAL};
     initStringAttribute(&stringToken.attribute, buff.data);
-    addToken(tokenArr, stringToken);
+    addToken(lexer_tokenArr, stringToken);
     emptyDynBuffer(&buff);
     return;
 }
@@ -559,7 +589,7 @@ void parse_MULTILINE_STRING() {
                 if (!isxdigit(firstHex) || !isxdigit(secondHex)){
                     Token errorToken = {.type = TOKEN_ERROR};
                     initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a multiline string");
-                    addToken(tokenArr, errorToken);
+                    addToken(lexer_tokenArr, errorToken);
                     emptyDynBuffer(&buff);
                     endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
                 } else {
@@ -573,7 +603,7 @@ void parse_MULTILINE_STRING() {
                 // Error if not a valid escape sequence
                 Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a multiline string");
-                addToken(tokenArr, errorToken);
+                addToken(lexer_tokenArr, errorToken);
                 emptyDynBuffer(&buff);
                 endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
             }
@@ -584,7 +614,7 @@ void parse_MULTILINE_STRING() {
             // Put an error since double quote strings can't contain non-printable characters
             Token errorToken = {.type = TOKEN_ERROR};
             initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a multiline string");
-            addToken(tokenArr, errorToken);
+            addToken(lexer_tokenArr, errorToken);
             emptyDynBuffer(&buff);
             endWithCode(1); // ERROR - non-printable character found TODO: clean up used memory
         }
@@ -604,11 +634,12 @@ void parse_STRING() {
             // loginfo("String: \"%s\"\n", buff->data);
             Token stringToken = {.type = TOKEN_STRING_LITERAL};
             initStringAttribute(&stringToken.attribute, buff.data);
-            addToken(tokenArr, stringToken);
+            addToken(lexer_tokenArr, stringToken);
             emptyDynBuffer(&buff);
             return;
         } else if (c == '\\') {
             char nextChar = sourceCode[current_char_index];
+            current_char_index++;
             switch (nextChar){
                 case 'n':
                     appendDynBuffer(&buff, '\n');
@@ -634,7 +665,7 @@ void parse_STRING() {
                     if (!isxdigit(firstHex) || !isxdigit(secondHex)){
                         Token errorToken = {.type = TOKEN_ERROR};
                         initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a multiline string");
-                        addToken(tokenArr, errorToken);
+                        addToken(lexer_tokenArr, errorToken);
                         emptyDynBuffer(&buff);
                         endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
                     } else {
@@ -648,7 +679,7 @@ void parse_STRING() {
                     // Error if not a valid escape sequence
                     Token errorToken = {.type = TOKEN_ERROR};
                     initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a multiline string");
-                    addToken(tokenArr, errorToken);
+                    addToken(lexer_tokenArr, errorToken);
                     emptyDynBuffer(&buff);
                     endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
             }
@@ -659,7 +690,7 @@ void parse_STRING() {
             // Put an error since double quote strings can't contain non-printable characters
             Token errorToken = {.type = TOKEN_ERROR};
             initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a double quote string");
-            addToken(tokenArr, errorToken);
+            addToken(lexer_tokenArr, errorToken);
             emptyDynBuffer(&buff);
             endWithCode(1); // ERROR - non-printable character TODO: clean up used memory
         }
@@ -667,7 +698,7 @@ void parse_STRING() {
     // Error - string was not ended properly
     Token errorToken = {.type = TOKEN_ERROR};
     initStringAttribute(&errorToken.attribute, "End of file was reached while parsing a string");
-    addToken(tokenArr, errorToken);
+    addToken(lexer_tokenArr, errorToken);
     emptyDynBuffer(&buff);
     endWithCode(1);
 }
@@ -677,9 +708,12 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
 
     // Initialize the buffer with default size (-1 triggers default size)
     initDynBuffer(&buff, -1);
+    // Initialize the token array
+    lexer_tokenArr = tokenArray;
 
     // make local global variable
     sourceCode = source_code;
+    current_char_index = 0;
 
     while (sourceCode[current_char_index] != '\0'){
         const char c = sourceCode[current_char_index];
@@ -704,7 +738,7 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
                 // TODO: division token?
                 endWithCode(1); 
             }
-        } else if (isalnum(c) || c == '_' || c == '@') {
+        } else if (isalpha(c) || c == '_' || c == '@') {
             // TODO: exception for @import, because it starts as a special symbol
             // but in fact it is a keyword
             appendDynBuffer(&buff, c);
@@ -717,12 +751,17 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
         } else if (c == '?'){ // ?u8 / ?[]u8
             // appendDynBuffer(&buff, c);
             parse_NULLABLE();
-        }else if (c >= '0' && c <= '9'){ // TODO: check conditions for numbers
+        } else if (c >= '0' && c <= '9'){ // TODO: check conditions for numbers
             appendDynBuffer(&buff, c);
+            parse_NUMBER();
+        } else if (c == '.'){ // In case of dot, it can be a part of a number
+            appendDynBuffer(&buff, '0');
+            current_char_index--;
             parse_NUMBER();
         } else if (isSpecialSymbol(c)){
             // No need to memorize letters (type tells content) 
             // appendDynBuffer(&buff, c);
+            current_char_index--;
             parse_SPECIAL_SYMBOL();
         }  else { // TODO: Do we need check for other conditions?
             //there is no token for this character
@@ -730,9 +769,8 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
         }
     }
 
-    // Free the buffer
-    freeDynBuffer(&buff);
-    
     // Adding EOF token to the end of the token array
     addToken(tokenArray, createToken(TOKEN_EOF, (TokenAttribute) {}));
+    // Free the buffer
+    freeDynBuffer(&buff);
 }
