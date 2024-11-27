@@ -436,7 +436,7 @@ TEST (dot_id_error)
 
     Token t;
     // COULD BE PROCEED AS TOKEN ERROR TOKEN
-    /*
+    
     // a.b
     if (!check_token(&t, TOKEN_ERROR)) {
         return;
@@ -444,7 +444,7 @@ TEST (dot_id_error)
     // ;
     if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
-    } */
+    } 
     if (!check_token(&t, TOKEN_ID)) {
         return;
     }
@@ -452,8 +452,8 @@ TEST (dot_id_error)
         return;
     }
 
-ENDTEST*/
-
+ENDTEST 
+*/
 // Is it a false test? Not sure we have dot in normal code besides ifj
 /*TEST (dot_id_space_separator)
     freeTokenArray(&tokenArray);
