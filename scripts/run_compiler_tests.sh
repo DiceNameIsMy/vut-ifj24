@@ -4,7 +4,7 @@
 if [ ! -d "venv" ]; then
 
     # Create a virtual environment
-    if ! $"python -m venv venv"; then
+    if ! python -m venv venv; then
         echo "Failed to create virtual environment"
         exit 1
     fi
@@ -16,6 +16,9 @@ if [ $? -ne 0 ]; then
     echo "Failed to activate virtual environment"
     exit 1
 fi
+
+# Install dependencies
+pip install pytest
 
 # Run pytest
 pytest
