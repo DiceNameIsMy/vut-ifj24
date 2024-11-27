@@ -18,10 +18,13 @@ jobs:
           build-dir: build
 
       - name: Allow script execution
-        run: chmod +x ./scripts/run_tests.sh
+        run: chmod +x ./scripts/run_tests.sh ./scripts/run_compiler_tests.sh
 
-      - name: Run your script with debugging
+      - name: Run components tests
         run: |
           set -x   # Enable debugging output
           find . -type f -wholename "./build/tests/test_*" -executable | ./scripts/run_tests.sh
           echo "Script exited with status: $?"
+
+      - name: Run compiler tests
+        run: ./scripts/run_compiler_tests.sh
