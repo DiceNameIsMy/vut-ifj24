@@ -68,7 +68,7 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
 __attribute__((weak)) void endWithCode(int code) {
     ;
     // TODO: uncomment when time comes
-    // exit(code);
+    exit(code);
 }
 
 int streamToString(FILE *stream, char **str) {
