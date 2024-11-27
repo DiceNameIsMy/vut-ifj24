@@ -9,6 +9,6 @@
 #include "structs/ast.h"
 #include "structs/symtable.h"
 
-int generateTargetCode(ASTNode* root, SymTable *symTable, FILE *output);
+void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output);
 
 #endif //TARGET_GEN_H

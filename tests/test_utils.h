@@ -65,7 +65,7 @@ for (int i = 0; i < test_count; i++) {                                     \
 
 #define SUMMARIZE()                                                        \
 if (failure_count == 0) {                                                  \
-    printf("\033[32m\nAll tests have suceeded\033[0m\n");                  \
+    printf("\033[32m\nTests cases have suceeded\033[0m\n");                \
     return 0;                                                              \
 } else {                                                                   \
     printf("\033[0;31m\n(%i/%i) Tests have failed\033[0m\n",               \
