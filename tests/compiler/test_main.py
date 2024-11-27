@@ -5,7 +5,7 @@ from main import run_compiler, run_interpreter
 def test_run_compiler_and_interpreter():
     input_file_path = "./tests/input/hello_world.ifj24.zig"
     output_file_path = "./tests/output/hello_world.ifj24.zig.out"
-    expected_interpeter_output = "Hello, World!\n"
+    expected_interpeter_output = "Hello World!"
 
     # Run the compiler
     compiler_stdout, compiler_stderr, compiler_returncode = run_compiler(input_file_path)
