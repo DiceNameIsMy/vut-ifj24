@@ -584,7 +584,7 @@ bool isSecondOperandValid(InstType type, Operand op)
 {
     switch (type)
     {
-    case INST_TYPE: // Only allows type
+    case INST_READ: // Only allows type
         if (op.type == OP_TYPE)
             return true;
         else
@@ -635,7 +635,7 @@ void printOperand(Operand *op, FILE *stream)
         fprintf(stream, " %s", op->attr.string);
         break;
     case OP_TYPE:
-        fprintf(stream, " type@%s", op->attr.string);
+        fprintf(stream, " %s", op->attr.string);
         break;
     case OP_NONE:
         break;

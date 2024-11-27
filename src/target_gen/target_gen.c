@@ -31,13 +31,18 @@ IdIndexer *labelIndexer = NULL;
 /// @brief If there is scope defined, add it there. Otherwise, print it to the output stream.
 void addInstruction(Instruction inst);
 
+Operand getOrCreateLabel(char *name);
+Operand createTmpLabel(char *name);
 Operand getOrCreateVar(char *name, VarFrameType frame);
 Operand createTmpVar(char *name, VarFrameType frame);
 
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
 
-void generateStatement(ASTNode *node);
+/// @brief
+/// @param node
+/// @return Returns a pointer to a next node to process.
+ASTNode *generateStatement(ASTNode *node);
 void generateDeclaration(ASTNode *node);
 void generateAssignment(ASTNode *node);
 
@@ -46,9 +51,12 @@ void generateAssignment(ASTNode *node);
 void generateExpression(ASTNode *node, Operand *outVar);
 void generateBinaryExpression(ASTNode *node, Operand *outVar);
 
-void generateConditionalStatement(ASTNode *node);
-void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
-void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation);
+void generateNullBindingCheck(ASTNode *node, Operand *outVar);
+void generateNullBindingAssignment(ASTNode *node);
+
+ASTNode *generateConditionalStatement(ASTNode *node);
+ASTNode *unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
+ASTNode *unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation);
 
 void generateWhileStatement(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
@@ -108,10 +116,8 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(pushFrameInst);
 
   // Call main function
-  char *mainLabel;
-  IdIndexer_GetOrCreate(labelIndexer, "main", &mainLabel);
-  Operand mainFunc = initStringOperand(OP_LABEL, mainLabel);
-  Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
+  Operand mainFuncLabel = getOrCreateLabel("main");
+  Instruction callMainInst = initInstr1(INST_CALL, mainFuncLabel);
   addInstruction(callMainInst);
 
   // Pop the frame since its no longer needed
@@ -119,9 +125,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(popFrameInst);
 
   // Jump to the end of the generated file
-  char *endProgramLabelName;
-  IdIndexer_GetOrCreate(labelIndexer, "end_program", &endProgramLabelName);
-  Operand endProgramLabel = initStringOperand(OP_LABEL, endProgramLabelName);
+  Operand endProgramLabel = getOrCreateLabel("end_program");
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   addInstruction(jumpToEndInst);
 
@@ -135,11 +139,12 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initStringOperand(OP_LABEL, endProgramLabelName);
+  Operand var = initStringOperand(OP_LABEL, endProgramLabel.attr.string);
   Instruction inst = initInstr1(INST_LABEL, var);
   addInstruction(inst);
 
   IdIndexer_Destroy(labelIndexer);
+  free(labelIndexer);
   labelIndexer = NULL;
 
   loginfo("Target code generation finished");
@@ -160,6 +165,22 @@ void addInstruction(Instruction inst)
     printInstruction(&inst, outputStream);
     destroyInstruction(&inst);
   }
+}
+
+Operand getOrCreateLabel(char *name)
+{
+  char *labelName;
+  bool created = IdIndexer_GetOrCreate(labelIndexer, name, &labelName);
+
+  Operand var = initStringOperand(OP_LABEL, labelName);
+  return var;
+}
+
+Operand createTmpLabel(char *name)
+{
+  char *labelName = IdIndexer_CreateOneTime(labelIndexer, name);
+  Operand var = initStringOperand(OP_LABEL, labelName);
+  return var;
 }
 
 Operand getOrCreateVar(char *name, VarFrameType frame)
@@ -212,11 +233,9 @@ void generateFunction(ASTNode *node)
   IdIndexer_Init(funcVarsIndexer);
 
   // Add label for function name
-  char *funcLabel;
-  IdIndexer_GetOrCreate(labelIndexer, node->value.string, &funcLabel);
-
-  Instruction inst = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, funcLabel));
-  TFC_SetFuncLabel(funcScope, funcLabel);
+  Operand funcNameLabel = getOrCreateLabel(node->value.string);
+  Instruction inst = initInstr1(INST_LABEL, funcNameLabel);
+  TFC_SetFuncLabel(funcScope, funcNameLabel.attr.string);
 
   // Load function parameters from stack
   Param *param = SymTable_GetParamList(symTable, node->value.string);
@@ -226,10 +245,11 @@ void generateFunction(ASTNode *node)
   ASTNode *statementNode = node->next;
   while (statementNode != NULL)
   {
-    generateStatement(statementNode);
-    statementNode = statementNode->next;
+    statementNode = generateStatement(statementNode);
   }
 
+  loginfo("Generating function return: %s", node->right->value.string);
+  inspectAstNode(node->right);
   if (strcmp(node->right->value.string, "void") == 0)
   {
     Instruction returnInst = initInstr0(INST_RETURN);
@@ -273,9 +293,9 @@ void generateFunctionParametersInitialization(Param *param)
   }
 }
 
-void generateStatement(ASTNode *node)
+ASTNode *generateStatement(ASTNode *node)
 {
-  loginfo("Generating statement: %s", nodeTypeToString(node->nodeType));
+  // loginfo("Generating statement: %s", nodeTypeToString(node->nodeType));
 
   switch (node->nodeType)
   {
@@ -287,11 +307,9 @@ void generateStatement(ASTNode *node)
     generateAssignment(node);
     break;
   case BlockStatement:
-    generateStatement(node->left);
-    break;
+    return generateStatement(node->left);
   case IfStatement:
-    generateConditionalStatement(node);
-    break;
+    return generateConditionalStatement(node);
   case WhileStatement:
     generateWhileStatement(node);
     break;
@@ -306,14 +324,13 @@ void generateStatement(ASTNode *node)
     inspectAstNode(node);
     exit(99);
   }
+  return node->next;
 }
 
 void generateDeclaration(ASTNode *node)
 {
   // Get var unique name
   Operand varOperand = getOrCreateVar(node->value.string, FRAME_LF);
-
-  // Add to declarations
 
   // Make an assignment
   Operand value;
@@ -324,6 +341,7 @@ void generateDeclaration(ASTNode *node)
 void generateAssignment(ASTNode *node)
 {
   assert(node->nodeType == Assignment);
+  loginfo("Generating assignment to: %s", node->value.string);
 
   // If variable name is _, generate a temporary variable name
   Operand dest;
@@ -338,7 +356,9 @@ void generateAssignment(ASTNode *node)
   }
 
   // Generate assigment evaluation
-  generateExpression(node->left, &dest);
+  Operand src;
+  generateExpression(node->left, &src);
+  addInstruction(initInstr2(INST_MOVE, dest, src));
 }
 
 void generateExpression(ASTNode *node, Operand *outVar)
@@ -386,6 +406,7 @@ void generateExpression(ASTNode *node, Operand *outVar)
 void generateBinaryExpression(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating binary expression: %s", nodeTypeToString(node->nodeType));
+  inspectAstNode(node);
 
   bool leftIsVar = node->left->nodeType == Identifier;
   bool leftIsConstant = isConstant(node->left);
@@ -399,7 +420,10 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 
   Operand leftOperand;
   if (leftIsVar)
+  {
     leftOperand = getOrCreateVar(node->left->value.string, FRAME_LF);
+    loginfo("Left operand is a variable: %s", node->left->value.string);
+  }
   else if (leftIsConstant)
     leftOperand = initConstantOperand(node->left);
   else if (rightCanBeInline)
@@ -433,9 +457,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   else
   {
     // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
-    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    rightOperand = getOrCreateVar(tmpVarName, FRAME_LF);
-
+    rightOperand = createTmpVar("tmp", FRAME_LF);
     generateExpression(node->right, &rightOperand);
   }
 
@@ -444,8 +466,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     *outVar = createTmpVar("tmp", FRAME_LF);
   }
 
-  Instruction inst;
-  inst = initInstr3(binaryNodeToInstructionType(node), *outVar, leftOperand, rightOperand);
+  Instruction inst = initInstr3(binaryNodeToInstructionType(node), *outVar, leftOperand, rightOperand);
   addInstruction(inst);
 
   bool negate = negateBinaryInstruction(node);
@@ -454,33 +475,84 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
     addInstruction(negateInst);
   }
+
+  loginfo("Binary expression generated");
 }
 
-void generateConditionalStatement(ASTNode *node)
+void generateNullBindingCheck(ASTNode *node, Operand *outVar)
 {
-  // TODO: null binding
-  Operand endLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "end_if"));
+  *outVar = createTmpVar("not_null", FRAME_LF);
 
+  Operand isNullOperand = createTmpVar("is_null", FRAME_LF);
+  Instruction getTypeInstruction = initInstr2(
+      INST_TYPE,
+      isNullOperand,
+      getOrCreateVar(node->left->value.string, FRAME_LF));
+  addInstruction(getTypeInstruction);
+
+  // Put true if the value is not NULL
+  Instruction putIsNullCheck = initInstr3(
+      INST_EQ,
+      *outVar,
+      isNullOperand,
+      initStringOperand(OP_CONST_STRING, "nil"));
+  addInstruction(putIsNullCheck);
+
+  Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
+  addInstruction(negateInst);
+}
+
+void generateNullBindingAssignment(ASTNode *node)
+{
+  Operand nullBindingResult = getOrCreateVar(node->binding->value.string, FRAME_LF);
+  char *nullableVarName = node->left->value.string;
+  addInstruction(
+      initInstr2(
+          INST_MOVE,
+          nullBindingResult,
+          getOrCreateVar(nullableVarName, FRAME_LF)));
+}
+
+ASTNode *generateConditionalStatement(ASTNode *node)
+{
   loginfo("Generating conditional statement");
-  unrollConditionalStatements(node, endLabel, true);
+  inspectAstNode(node);
+
+  Operand endLabel = createTmpLabel("end_if");
+
+  ASTNode *nextStatementNode = unrollConditionalStatements(node, endLabel, true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
+
+  return nextStatementNode;
 }
 
-void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
+/// @brief Processes all nodes of the conditional statement.
+/// @param node
+/// @param endLabel
+/// @param firstEvaluation
+/// @return Pointer to a next node to process.
+ASTNode *unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
   assert(node->nodeType == IfStatement);
 
   bool isLastEvaluation = node->next == NULL || node->next->nodeType != IfStatement;
   if (isLastEvaluation)
   {
-    unrollLastConditionalStatement(node, endLabel, firstEvaluation);
-    return;
+    return unrollLastConditionalStatement(node, endLabel, firstEvaluation);
   }
 
   // Evaluate condition
   Operand ifCondition;
-  generateExpression(node->left, &ifCondition);
+  if (node->binding == NULL)
+  {
+    generateExpression(node->left, &ifCondition);
+  }
+  else
+  {
+    generateNullBindingCheck(node, &ifCondition);
+  }
+  loginfo("Generated condition for if statement");
 
   // If not last evaluation, JUMP on positive condition
   Instruction jumpToBlockInst = initInstr3(
@@ -491,32 +563,44 @@ void unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEval
   addInstruction(jumpToBlockInst);
 
   // Unroll next evaluation.
-  unrollConditionalStatements(node->next, endLabel, false);
+  ASTNode *nextStatementNode = unrollConditionalStatements(node->next, endLabel, false);
 
   // Generate body
+  if (node->binding != NULL)
+  {
+    generateNullBindingAssignment(node);
+  }
   ASTNode *ifBlockStatement = node->right;
   while (ifBlockStatement != NULL)
   {
-    generateStatement(ifBlockStatement);
-    ifBlockStatement = ifBlockStatement->next;
+    ifBlockStatement = generateStatement(ifBlockStatement);
   }
 
   Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
   addInstruction(jumpToEnd);
+
+  return nextStatementNode;
 }
 
-void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation)
+ASTNode *unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
   loginfo("Generating last `if` evaluation");
 
   // Evaluate condition
   Operand ifCondition;
-  generateExpression(node->left, &ifCondition);
+  if (node->binding == NULL)
+  {
+    generateExpression(node->left, &ifCondition);
+  }
+  else
+  {
+    generateNullBindingCheck(node, &ifCondition);
+  }
 
   bool hasTrailingElse = node->next != NULL && node->next->nodeType != IfStatement;
   if (hasTrailingElse)
   {
-    Operand ifTrueLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "if_true"));
+    Operand ifTrueLabel = createTmpLabel("if_true");
     loginfo("Final condition has a trailing else block");
     // Jump to the code to execute if the condition is true.
     Instruction jumpToBlockInst = initInstr3(
@@ -530,8 +614,8 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
     ASTNode *elseBlockStatement = node->next;
     while (elseBlockStatement != NULL)
     {
-      generateStatement(elseBlockStatement);
-      elseBlockStatement = elseBlockStatement->next;
+      loginfo("Generating else block statement of type %s", nodeTypeToString(elseBlockStatement->nodeType));
+      elseBlockStatement = generateStatement(elseBlockStatement);
     }
     // Jump to the end
     Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
@@ -540,16 +624,19 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
     addInstruction(initInstr1(INST_LABEL, ifTrueLabel));
 
     // Generate body on true condition
+    if (node->binding != NULL)
+    {
+      generateNullBindingAssignment(node);
+    }
     ASTNode *ifBlockStatement = node->right;
     while (ifBlockStatement != NULL)
     {
-      generateStatement(ifBlockStatement);
-      ifBlockStatement = ifBlockStatement->next;
+      ifBlockStatement = generateStatement(ifBlockStatement);
     }
   }
   else
   {
-      loginfo("Final condition does not have a trailing else block");
+    loginfo("Final condition does not have a trailing else block");
     // Optimization: If it's a last evaluation, jump to end on negative condition. Put the code right after.
     Instruction jumpToEndOnNegativeCondition = initInstr3(
         INST_JUMPIFEQ,
@@ -559,11 +646,14 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
     addInstruction(jumpToEndOnNegativeCondition);
 
     // Generate body
+    if (node->binding != NULL)
+    {
+      generateNullBindingAssignment(node);
+    }
     ASTNode *ifBlockStatement = node->right;
     while (ifBlockStatement != NULL)
     {
-      generateStatement(ifBlockStatement);
-      ifBlockStatement = ifBlockStatement->next;
+      ifBlockStatement = generateStatement(ifBlockStatement);
     }
   }
 
@@ -581,18 +671,25 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
 
 void generateWhileStatement(ASTNode *node)
 {
+  inspectAstNode(node);
+
   // Create a label for the beginning of the while loop
-  char *whileIterLabelName = IdIndexer_CreateOneTime(labelIndexer, "while_iteration");
-  Operand whileIterLabel = initStringOperand(OP_LABEL, whileIterLabelName);
+  Operand whileIterLabel = createTmpLabel("while_iteration");
   addInstruction(initInstr1(INST_LABEL, whileIterLabel));
 
   // Define a label name to jump to when the condition is false
-  char *endWhileLabelName = IdIndexer_CreateOneTime(labelIndexer, "end_while");
-  Operand endWhileLabel = initStringOperand(OP_LABEL, endWhileLabelName);
+  Operand endWhileLabel = createTmpLabel("end_while");
 
   // Evaluate while (...)
   Operand whileCondition;
-  generateExpression(node->left, &whileCondition);
+  if (node->binding == NULL)
+  {
+    generateExpression(node->left, &whileCondition);
+  }
+  else
+  {
+    generateNullBindingCheck(node, &whileCondition);
+  }
 
   // Jump to the end of the loop if the condition is false
   Instruction instrCondEndLoop = initInstr3(
@@ -603,11 +700,17 @@ void generateWhileStatement(ASTNode *node)
   addInstruction(instrCondEndLoop);
 
   // Generate a body of while () { ... }
+  loginfo("Generating while loop body");
+  if (node->binding != NULL)
+  {
+    generateNullBindingAssignment(node);
+  }
   ASTNode *bodyStatement = node->right;
   while (bodyStatement != NULL)
   {
-    generateStatement(bodyStatement);
-    bodyStatement = bodyStatement->next;
+    loginfo("Generating while loop body statement %s", nodeTypeToString(bodyStatement->nodeType));
+    inspectAstNode(bodyStatement);
+    bodyStatement = generateStatement(bodyStatement);
   }
 
   // Jump to the beginning of the loop
@@ -615,6 +718,8 @@ void generateWhileStatement(ASTNode *node)
 
   // Add label for the end of the while loop
   addInstruction(initInstr1(INST_LABEL, endWhileLabel));
+
+  loginfo("While loop generated");
 }
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
@@ -645,7 +750,7 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     Instruction readInst = initInstr2(
         INST_READ,
         *outVar,
-        initStringOperand(OP_TYPE, "i64"));
+        initStringOperand(OP_TYPE, "int"));
     addInstruction(readInst);
   }
   else if (strcmp(node->value.string, "ifj.readf64") == 0)
@@ -653,7 +758,7 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     Instruction readInst = initInstr2(
         INST_READ,
         *outVar,
-        initStringOperand(OP_TYPE, "f64"));
+        initStringOperand(OP_TYPE, "float"));
     addInstruction(readInst);
   }
   else if (strcmp(node->value.string, "ifj.i2f") == 0)
@@ -728,13 +833,12 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 
 void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
-  loginfo("Generating function call: %s", node->value.string);
-
   if (strncmp(node->value.string, "ifj.", 4) == 0)
   {
     generateBuiltInFunctionCall(node, outVar);
     return;
   }
+  loginfo("Generating function call: %s", node->value.string);
 
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
@@ -756,10 +860,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   loginfo("Calling function: %s", node->value.string);
 
   // Call function
-  char *funcNameLabel;
-  IdIndexer_GetOrCreate(labelIndexer, node->value.string, &funcNameLabel);
-
-  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, funcNameLabel));
+  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(node->value.string));
   addInstruction(callInst);
 
   // Pop frame
@@ -791,6 +892,9 @@ void generateFunctionCallParameter(ASTNode *node)
 
 void generateReturn(ASTNode *node)
 {
+  loginfo("Generating return statement");
+  inspectAstNode(node);
+
   if (node->valType == NONE) // Return void
   {
     Instruction returnInst = initInstr0(INST_RETURN);
@@ -801,29 +905,13 @@ void generateReturn(ASTNode *node)
   ASTNode *returnValueNode = node->left;
 
   Operand returnOperand;
-
-  if (node->left->nodeType == Identifier)
-  {
-    // Identifiers can be inlined.
-    returnOperand = getOrCreateVar(returnValueNode->value.string, FRAME_LF);
-  }
-  else if (isConstant(returnValueNode))
-  {
-    // Constants can be inlined.
-    returnOperand = initConstantOperand(returnValueNode);
-  }
-  else
-  {
-    // Other expressions must be evaluated with extra instructions.
-    returnOperand = createTmpVar("tmp", FRAME_LF);
-
-    // Generate an expression that assigns the result to the returnOperand
-    generateExpression(node->left, &returnOperand);
-  }
+  generateExpression(returnValueNode, &returnOperand);
 
   // Push the return value to the stack
   Instruction pushInst = initInstr1(INST_PUSHS, returnOperand);
   addInstruction(pushInst);
+
+  addInstruction(initInstr0(INST_RETURN));
 }
 
 Operand initConstantOperand(ASTNode *node)
