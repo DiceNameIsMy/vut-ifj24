@@ -619,6 +619,8 @@ void generateWhileStatement(ASTNode *node)
 
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
+  loginfo("Generating builtin function call: %s", node->value.string);
+
   if (strcmp(node->value.string, "ifj.write") == 0)
   {
     Operand writeOperand;
@@ -653,13 +655,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
         *outVar,
         initStringOperand(OP_TYPE, "f64"));
     addInstruction(readInst);
-  }
-  else if (strcmp(node->value.string, "ifj.write") == 0)
-  {
-    Operand writeOperand;
-    generateExpression(node->left, &writeOperand);
-    Instruction writeInst = initInstr1(INST_WRITE, writeOperand);
-    addInstruction(writeInst);
   }
   else if (strcmp(node->value.string, "ifj.i2f") == 0)
   {
