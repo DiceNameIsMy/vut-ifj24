@@ -26,5 +26,8 @@ jobs:
           find . -type f -wholename "./build/tests/test_*" -executable | ./scripts/run_tests.sh
           echo "Script exited with status: $?"
 
+      - name: Setup python
+        uses: actions/setup-python@v5
+
       - name: Run compiler tests
         run: ./scripts/run_compiler_tests.sh
