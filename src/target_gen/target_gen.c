@@ -31,6 +31,8 @@ IdIndexer *labelIndexer = NULL;
 /// @brief If there is scope defined, add it there. Otherwise, print it to the output stream.
 void addInstruction(Instruction inst);
 
+Operand getOrCreateLabel(char *name);
+Operand createTmpLabel(char *name);
 Operand getOrCreateVar(char *name, VarFrameType frame);
 Operand createTmpVar(char *name, VarFrameType frame);
 
@@ -108,10 +110,8 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(pushFrameInst);
 
   // Call main function
-  char *mainLabel;
-  IdIndexer_GetOrCreate(labelIndexer, "main", &mainLabel);
-  Operand mainFunc = initStringOperand(OP_LABEL, mainLabel);
-  Instruction callMainInst = initInstr1(INST_CALL, mainFunc);
+  Operand mainFuncLabel = getOrCreateLabel("main");
+  Instruction callMainInst = initInstr1(INST_CALL, mainFuncLabel);
   addInstruction(callMainInst);
 
   // Pop the frame since its no longer needed
@@ -119,9 +119,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(popFrameInst);
 
   // Jump to the end of the generated file
-  char *endProgramLabelName;
-  IdIndexer_GetOrCreate(labelIndexer, "end_program", &endProgramLabelName);
-  Operand endProgramLabel = initStringOperand(OP_LABEL, endProgramLabelName);
+  Operand endProgramLabel = getOrCreateLabel("end_program");
   Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
   addInstruction(jumpToEndInst);
 
@@ -135,11 +133,12 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initStringOperand(OP_LABEL, endProgramLabelName);
+  Operand var = initStringOperand(OP_LABEL, endProgramLabel.attr.string);
   Instruction inst = initInstr1(INST_LABEL, var);
   addInstruction(inst);
 
   IdIndexer_Destroy(labelIndexer);
+  free(labelIndexer);
   labelIndexer = NULL;
 
   loginfo("Target code generation finished");
@@ -160,6 +159,20 @@ void addInstruction(Instruction inst)
     printInstruction(&inst, outputStream);
     destroyInstruction(&inst);
   }
+}
+
+Operand getOrCreateLabel(char *name) {
+  char *labelName;
+  bool created = IdIndexer_GetOrCreate(labelIndexer, name, &labelName);
+
+  Operand var = initStringOperand(OP_LABEL, labelName);
+  return var;
+}
+
+Operand createTmpLabel(char *name) {
+  char *labelName = IdIndexer_CreateOneTime(labelIndexer, name);
+  Operand var = initStringOperand(OP_LABEL, labelName);
+  return var;
 }
 
 Operand getOrCreateVar(char *name, VarFrameType frame)
@@ -212,11 +225,9 @@ void generateFunction(ASTNode *node)
   IdIndexer_Init(funcVarsIndexer);
 
   // Add label for function name
-  char *funcLabel;
-  IdIndexer_GetOrCreate(labelIndexer, node->value.string, &funcLabel);
-
-  Instruction inst = initInstr1(INST_LABEL, initStringOperand(OP_LABEL, funcLabel));
-  TFC_SetFuncLabel(funcScope, funcLabel);
+  Operand funcNameLabel = getOrCreateLabel(node->value.string);
+  Instruction inst = initInstr1(INST_LABEL, funcNameLabel);
+  TFC_SetFuncLabel(funcScope, funcNameLabel.attr.string);
 
   // Load function parameters from stack
   Param *param = SymTable_GetParamList(symTable, node->value.string);
@@ -433,9 +444,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   else
   {
     // Both operands can't be inlined. Create a temporary variable to evaluate right operand.
-    char *tmpVarName = IdIndexer_CreateOneTime(funcVarsIndexer, "tmp");
-    rightOperand = getOrCreateVar(tmpVarName, FRAME_LF);
-
+    rightOperand = createTmpVar("tmp", FRAME_LF);
     generateExpression(node->right, &rightOperand);
   }
 
@@ -459,8 +468,8 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
 void generateConditionalStatement(ASTNode *node)
 {
   // TODO: null binding
-  Operand endLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "end_if"));
-
+  Operand endLabel = createTmpLabel("end_if");
+  
   loginfo("Generating conditional statement");
   unrollConditionalStatements(node, endLabel, true);
 
@@ -516,7 +525,7 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
   bool hasTrailingElse = node->next != NULL && node->next->nodeType != IfStatement;
   if (hasTrailingElse)
   {
-    Operand ifTrueLabel = initStringOperand(OP_LABEL, IdIndexer_CreateOneTime(labelIndexer, "if_true"));
+    Operand ifTrueLabel = createTmpLabel("if_true");
     loginfo("Final condition has a trailing else block");
     // Jump to the code to execute if the condition is true.
     Instruction jumpToBlockInst = initInstr3(
@@ -582,13 +591,11 @@ void unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstE
 void generateWhileStatement(ASTNode *node)
 {
   // Create a label for the beginning of the while loop
-  char *whileIterLabelName = IdIndexer_CreateOneTime(labelIndexer, "while_iteration");
-  Operand whileIterLabel = initStringOperand(OP_LABEL, whileIterLabelName);
+  Operand whileIterLabel = createTmpLabel("while_iteration");
   addInstruction(initInstr1(INST_LABEL, whileIterLabel));
 
   // Define a label name to jump to when the condition is false
-  char *endWhileLabelName = IdIndexer_CreateOneTime(labelIndexer, "end_while");
-  Operand endWhileLabel = initStringOperand(OP_LABEL, endWhileLabelName);
+  Operand endWhileLabel = createTmpLabel("end_while");
 
   // Evaluate while (...)
   Operand whileCondition;
@@ -756,10 +763,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   loginfo("Calling function: %s", node->value.string);
 
   // Call function
-  char *funcNameLabel;
-  IdIndexer_GetOrCreate(labelIndexer, node->value.string, &funcNameLabel);
-
-  Instruction callInst = initInstr1(INST_CALL, initStringOperand(OP_LABEL, funcNameLabel));
+  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(node->value.string));
   addInstruction(callInst);
 
   // Pop frame
