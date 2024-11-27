@@ -36,7 +36,7 @@ int addToken(TokenArray *array, const Token token) {
         }
         array->tokens = reallocated;
     }
-    printf("Added token %s\n", getTokenTypeName(token.type));
+    // printf("Added token %s\n", getTokenTypeName(token.type));
 
     // Add new token
     array->tokens[array->size] = token;
