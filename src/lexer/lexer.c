@@ -265,6 +265,7 @@ bool tryGetSymbol(const char *str, TokenType *tokenType) {
     } else if (strcmp(str, ":") == 0) {
         *tokenType = TOKEN_COLON;
     } else if (strcmp(str, "?") == 0) {
+        // TODO: This shouldn't be here, because ? can't be a solo symbol
         *tokenType = TOKEN_QUESTION_MARK;
     } else {
         return false;
@@ -319,6 +320,7 @@ void processToken(const char *buf_str, TokenArray *array) {
 
 bool isSeparator(char c) {
     // Checking all possible separators
+    // TODO: is ? a separator?
     if (strchr("+-*=()[]{}<>&|!,;:?", c) != NULL || isspace(c)) {
         return true;
     }
@@ -329,9 +331,10 @@ bool isPairedSymbol(char c, char c_next) {
     if ((c == '=' && c_next == '=') ||
         (c == '!' && c_next == '=') ||
         (c == '>' && c_next == '=') ||
-        (c == '<' && c_next == '=') ||
-        (c == '&' && c_next == '&') ||
-        (c == '|' && c_next == '|')) {
+        (c == '<' && c_next == '=')){
+        // (c == '&' && c_next == '&') || TODO: can't be a token
+        // (c == '|' && c_next == '|')) TODO: can't be a paired token
+        
         return true;
     }
     return false;
@@ -690,6 +693,7 @@ void runLexer(const char *sourceCode, TokenArray *tokenArray) {
                 if (isWhitespace) {
                     break;
                 }
+                // TODO: WHAT IS THIS????????
                 if (c == ';') {
                     Token stringToken = {.type = TOKEN_STRING_LITERAL};
                     initStringAttribute(&stringToken.attribute, buff.data);
