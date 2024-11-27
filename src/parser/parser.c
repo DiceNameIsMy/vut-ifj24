@@ -63,21 +63,21 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_AddSymbol(table, &funStrcmp);
     SymTable_AddSymbol(table, &funOrd);
     SymTable_AddSymbol(table, &funChr);
-    SymTable_PushFuncParam(table, "ifj.write", UNDEFINED);
-    SymTable_PushFuncParam(table, "ifj.f2i", F64);
-    SymTable_PushFuncParam(table, "ifj.i2f", I32);
-    SymTable_PushFuncParam(table, "ifj.string", STR_LITERAL);
-    SymTable_PushFuncParam(table, "ifj.length", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.concat", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.concat", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.substring", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.substring", I32);
-    SymTable_PushFuncParam(table, "ifj.substring", I32);
-    SymTable_PushFuncParam(table, "ifj.strcmp", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.strcmp", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.ord", U8_ARRAY);
-    SymTable_PushFuncParam(table, "ifj.ord", I32);
-    SymTable_PushFuncParam(table, "ifj.chr", I32);    
+    SymTable_PushFuncParam(table, "ifj.write", UNDEFINED, "format");
+    SymTable_PushFuncParam(table, "ifj.f2i", F64, "float");
+    SymTable_PushFuncParam(table, "ifj.i2f", I32, "int");
+    SymTable_PushFuncParam(table, "ifj.string", STR_LITERAL, "literal");
+    SymTable_PushFuncParam(table, "ifj.length", U8_ARRAY, "str");
+    SymTable_PushFuncParam(table, "ifj.concat", U8_ARRAY, "str1");
+    SymTable_PushFuncParam(table, "ifj.concat", U8_ARRAY, "str2");
+    SymTable_PushFuncParam(table, "ifj.substring", U8_ARRAY, "str");
+    SymTable_PushFuncParam(table, "ifj.substring", I32, "i");
+    SymTable_PushFuncParam(table, "ifj.substring", I32, "j");
+    SymTable_PushFuncParam(table, "ifj.strcmp", U8_ARRAY, "str1");
+    SymTable_PushFuncParam(table, "ifj.strcmp", U8_ARRAY, "str2");
+    SymTable_PushFuncParam(table, "ifj.ord", U8_ARRAY, "str");
+    SymTable_PushFuncParam(table, "ifj.ord", I32, "index");
+    SymTable_PushFuncParam(table, "ifj.chr", I32, "int");    
 
     
     int token_no = 0;
