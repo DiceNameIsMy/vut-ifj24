@@ -30,7 +30,7 @@ ASTNode *createASTNode(NodeType nodeType, char *value)
         exit(99);
     }
     // Initialize child pointers to NULL
-    newNode->valType = NONETYPE;
+    newNode->valType = NONE;
     newNode->left = NULL;
     newNode->right = NULL;
     newNode->next = NULL;
@@ -99,7 +99,7 @@ ASTNode *createBinaryASTNode(NodeType operator, ASTNode * left, ASTNode *right)
 
     // Allocate and copy the operator as the node type
     newNode->nodeType = operator;
-    newNode->valType = NONETYPE;
+    newNode->valType = NONE;
 
     // Allocate and copy the operator as the value
 

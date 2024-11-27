@@ -5,6 +5,7 @@ pub fn main() void {
     const str1 = ifj.string("Toto je text v programu jazyka IFJ24");
     var str2 = ifj.string(", ktery jeste trochu obohatime");
     str2 = ifj.concat(str1, str2);
+    str2();
     ifj. write(str1); ifj . write("\n");
     ifj .write(str2); ifj.write("\n");
     ifj.write("Zadejte serazenou posloupnost malych pismen a-h:\n");
@@ -18,7 +19,7 @@ pub fn main() void {
             ifj.write(all); // vypsat spojene nepodarene vstupy
 newInput = null; // misto break;
 } else {
-            ifj.write("Spatne zadana posloupnost, zkuste znovu:\n");
+            ifj.write(i, "Spatne zadana posloupnost, zkuste znovu:\n");
             all = ifj.concat(all, inpOK); // spojuji neplatne vstupy
 newInput = ifj.readstr();
         }

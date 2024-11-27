@@ -772,7 +772,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   addInstruction(popFrameInst);
 
   // If function returns a value, put it into outVar
-  bool returnsVoid = node->valType == NONETYPE;
+  bool returnsVoid = node->valType == NONE;
   if (!returnsVoid)
   {
     *outVar = createTmpVar("tmp", FRAME_LF);
@@ -796,7 +796,7 @@ void generateFunctionCallParameter(ASTNode *node)
 
 void generateReturn(ASTNode *node)
 {
-  if (node->valType == NONETYPE) // Return void
+  if (node->valType == NONE) // Return void
   {
     Instruction returnInst = initInstr0(INST_RETURN);
     addInstruction(returnInst);
