@@ -129,7 +129,7 @@ void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType, char 
 
   currentParam->next = newParam;
 
-  fprintf(stderr, "Param pushed for %s", name);
+  //fprintf(stderr, "Param pushed for %s", name);
   return;
 }
 
