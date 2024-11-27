@@ -66,7 +66,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_PushFuncParam(table, "ifj.write", UNDEFINED);
     SymTable_PushFuncParam(table, "ifj.f2i", F64);
     SymTable_PushFuncParam(table, "ifj.i2f", I32);
-    SymTable_PushFuncParam(table, "ifj.string", U8_ARRAY);//TODO: replace with literal later
+    SymTable_PushFuncParam(table, "ifj.string", STR_LITERAL);
     SymTable_PushFuncParam(table, "ifj.length", U8_ARRAY);
     SymTable_PushFuncParam(table, "ifj.concat", U8_ARRAY);
     SymTable_PushFuncParam(table, "ifj.concat", U8_ARRAY);
@@ -130,20 +130,35 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     return;
 }
 
-bool isConv(type_t type1, type_t type2) {
+type_t typeConv(type_t type1, type_t type2) {
+    if(type1 == type2) {
+        return type1;
+    }
+    if(type1 == NONE || type2 == NONE) {
+        return NONE;
+    }
+    if(type2 == NULL_LITERAL) {
+        if(type1 == I32_NULLABLE || type1 == F64_NULLABLE || type1 == U8_ARRAY_NULLABLE || type1 == UNDEFINED) {
+            return type1;
+        }
+        return NONE;
+    }
     if(type1 == UNDEFINED) {
-        return true;
+        return type2; //NULL_LITERAL OPTION INLUDED EARLIER
     }
-    if(type2 == NULL_LITERAL && (type1 == I32_NULLABLE || type1 == F64_NULLABLE || type1 == U8_ARRAY_NULLABLE)) {
-        return true;
+    if(type1 == I32_NULLABLE && type2 == I32) {
+        return I32_NULLABLE;
     }
-    if((type1 == type2) || (type1 == F64_NULLABLE && type2 == F64) || (type1 == I32_NULLABLE && type2 == I32) || (type1 == U8_ARRAY_NULLABLE && type2 == U8_ARRAY)) {
-        return true;  
+    if(type1 == F64_NULLABLE && type2 == F64) {
+        return F64_NULLABLE;
     }
-    if((type1 == F64 && type2 == I32) || (type1 == F64_NULLABLE && type2 == I32_NULLABLE) || (type1 == F64_NULLABLE && type2 == I32)) {
-        return true;
+    if(type1 == U8_ARRAY_NULLABLE && type2 == U8_ARRAY) {
+        return U8_ARRAY_NULLABLE;
     }
-    return false;
+    if(type1 == STR_LITERAL && type2 == U8_ARRAY) {
+        return U8_ARRAY;
+    }
+    return NONE;
 }
 
 ASTNode* parseInit(TokenArray* array, SymTable *table) {
@@ -231,7 +246,6 @@ ASTNode* parseFunctionDef() {
     match(TOKEN_KEYWORD_FN);       // Matches 'fn'
 
     SymTable_NewScope(sym_Table); //each function is a scope
-    
     // Capture the function name
     char* functionName;
     if(isMatch(TOKEN_ID)) {
@@ -246,7 +260,7 @@ ASTNode* parseFunctionDef() {
 
     type_to_return = SymTable_GetRetType(sym_Table, functionName);
     //fprintf(stderr, "For function %s we need ret.type %d", functionName, (int)type_to_return);
-    type_returned = NONE;
+    type_returned = UNDEFINED;
 
     // Create an AST node for the function definition
     ASTNode* funcNode = createASTNode(FunctionDef, functionName);
@@ -266,12 +280,6 @@ ASTNode* parseFunctionDef() {
     if(type_to_return != NONE && type_returned == UNDEFINED) {
         fprintf(stderr, "Error: no return statement was provided in function %s\n", functionName);
         exit(6);
-    }
-
-    if(type_to_return != type_returned) {
-        //fprintf(stderr, "...but got %d", (int)type_returned);
-        fprintf(stderr, "Error: wrong type returned in function %s", functionName);
-        exit(4); //WRONG RETURN TYPE OR NO RETURN STATEMENT
     }
 
     SymTable_UpperScope(sym_Table); //quit the scope
@@ -528,12 +536,17 @@ ASTNode* parseConstDeclaration() {
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
-    if(!isConv(symbol.type, exprNode->valType)) {
+    symbol.type = typeConv(symbol.type, exprNode->valType);
+    if(symbol.type == NONE) {
         fprintf(stderr, "Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
         exit(7);//I'll lookup the right code later or even write a special routine for this
     }
-    symbol.type = exprNode->valType;
+    if(symbol.type == UNDEFINED) {
+        fprintf(stderr, "Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
+        exit(8);
+    }
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
+        fprintf(stderr, "Error: redefinition of a const\n");
         exit(5); //exit with error (redefinition!!!!)
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -602,8 +615,12 @@ ASTNode* parseRelationalTail(ASTNode* left) {
         // Parse the right operand
         ASTNode* right = parseSimpleExpression();
 
-        if(!isConv(left->valType, right->valType)) {
-            fprintf(stderr, "Error: Cannot compare uncompatible types %d and %d\n", (int)left->valType, (int)right->valType);
+        bool canCmp = (typeConv(left->valType, right->valType) != NONE ||
+                      typeConv(right->valType, left->valType) != NONE ||
+                        right->nodeType == IntLiteral && (left->valType == F64 || left->valType == F64_NULLABLE) ||
+                        left->nodeType == IntLiteral && (right->valType == F64 || right->valType == F64_NULLABLE));
+        if(!canCmp) { //TODO: cmp logic
+            fprintf(stderr, "Error: Cannot compare uncompatible types\n");
             exit(7);
         }
         // Create an AST node for the relational operation
@@ -628,13 +645,13 @@ ASTNode* parseSimpleExpression() {
         // Parse the next term (right operand)
         ASTNode* right = parseTerm();
 
-        if(!isConv(left->valType, right->valType)) {
+        if((right->valType != I32 && right->valType != F64) || (left->valType != I32 && left->valType != F64)) {
             fprintf(stderr, "Error: cannot add/subtract uncompatible types\n");
             exit(7);
         }
         // Create a binary operation node
         left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
-        left->valType = left->left->valType;
+        left->valType = typeConv(right->valType, left->left->valType);
     }
 
     return left;  // Return the completed simple expression node
@@ -651,13 +668,13 @@ ASTNode* parseTerm() {
 
         // Parse the next factor (right operand)
         ASTNode* right = parseFactor();
-        if(!isConv(right->valType, left->valType)) {
+        if((right->valType != I32 && right->valType != F64) || (left->valType != I32 && left->valType != F64)) {
             fprintf(stderr, "Error: cannot multiply/divide uncompatible types\n");
             exit(7);
         }
         // Create a binary operation node
         left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
-        left->valType = left->left->valType;
+        left->valType = typeConv(right->valType, left->left->valType);
     }
 
     return left;  // Return the completed term node
@@ -750,7 +767,7 @@ ASTNode* parseFactor() {
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, token.attribute.str);  // Literal node
-                factorNode->valType = U8_ARRAY;
+                factorNode->valType = STR_LITERAL;
                 break;
             default:
                 literalValue = strdup("NULL");
@@ -785,7 +802,7 @@ ASTNode* parseFunctionCall(char *funcName) {
         currentArg = argsHead;
 
         
-        if(param == NULL || !isConv(param->paramType, currentArg->valType)) { //incorrect count or type
+        if(param == NULL || typeConv(param->paramType, currentArg->valType) == NONE) { //incorrect count or type
             fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
             exit(4);
         }
@@ -800,7 +817,7 @@ ASTNode* parseFunctionCall(char *funcName) {
             currentArg = nextArg;
 
             param = param->next;
-            if(param == NULL || !isConv(param->paramType, currentArg->valType)) {
+            if(param == NULL || typeConv(param->paramType, currentArg->valType) == NONE) {
                 fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
                 exit(4);
             }
@@ -850,11 +867,15 @@ ASTNode* parseVarDeclaration() {
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
 
-    if(!isConv(symbol.type, exprNode->valType)) {
+    symbol.type = typeConv(symbol.type, exprNode->valType);
+    if(symbol.type == NONE) {
         fprintf(stderr, "Error: Cannot assign a value to a variable of incompatible type : %s\n", symbol.name);
         exit(7);
     }
-    symbol.type = exprNode->valType;
+    if(symbol.type == UNDEFINED) {
+        fprintf(stderr, "Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
+        exit(8);
+    }
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
         fprintf(stderr, "Error: Redefinition of a variable: %s", symbol.name);
         exit(5); //REDEFINITION!
@@ -936,7 +957,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         }
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
-        if(!isConv(SymTable_GetType(sym_Table, identifier), exprNode->valType)) { //typecheck
+        if(typeConv(SymTable_GetType(sym_Table, identifier), exprNode->valType) == NONE) { //typecheck
             fprintf(stderr, "Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
             exit(7);
         }
@@ -1130,7 +1151,7 @@ ASTNode* parseReturnStatement() {
     ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
     returnNode->valType = (exprNode == NULL) ? NONE : exprNode->valType;
     type_returned = returnNode->valType;
-    if(returnNode->valType != type_to_return) {
+    if(type_to_return != type_returned && typeConv(type_to_return, returnNode->valType) == NONE) {
         fprintf(stderr, "Error: tried to return a value of a wrong type in a function\n");
         exit(4); //WRONG RETURN TYPE
     }

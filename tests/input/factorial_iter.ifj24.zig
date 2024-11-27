@@ -2,7 +2,7 @@
 const ifj = @import("ifj24.zig");
 
 // Hlavni telo programu - funkce main
-pub fn main() void {
+pub fn main( void {
     ifj.write("Zadejte cislo pro vypocet faktorialu\n");
     const a = ifj.readi32();
     if (a) |val| {
