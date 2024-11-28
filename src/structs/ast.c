@@ -183,10 +183,12 @@ const char *nodeTypeToString(NodeType nodeType)
         return "VarDeclaration";
     case NullBinding:
         return "NullBinding";
-    case IfStatement:
-        return "IfStatement";
-    case WhileStatement:
-        return "WhileStatement";
+    case ConditionalStatement:
+        return "ConditionalStatement";
+    case IfCondition:
+        return "IfCondition";
+    case WhileCondition:
+        return "WhileCondition";
     case ReturnStatement:
         return "ReturnStatement";
     case Assignment:

@@ -422,6 +422,10 @@ ASTNode* parseStatementList() {
     ASTNode* afterElse = NULL;
     while (token.type != TOKEN_RIGHT_CURLY_BRACKET) {  // Stop when '}' is encountered
         ASTNode* stmtNode = parseStatement();  // Parse each statement and get its AST node
+        // if (stmtNode->next != NULL) {
+        //     printf("Statement node has .next field not null. .next must not be used for parsing since it is used for linking statements in a sequence");
+        //     exit(99);
+        // }
 
         if (head == NULL) {
             head = stmtNode;  // The first statement becomes the head
@@ -469,10 +473,10 @@ ASTNode* parseStatement() {
             stmtNode = parseAssignmentOrFunctionCall();  // Parse assignment or function call
             break;
         case TOKEN_KEYWORD_IF:
-            stmtNode = parseIfStatement();  // Parse if statement
+            stmtNode = parseIfCondition();
             break;
         case TOKEN_KEYWORD_WHILE:
-            stmtNode = parseWhileStatement();  // Parse while statement
+            stmtNode = parseWhileCondition();  // Parse while statement
             break;
         case TOKEN_KEYWORD_RETURN:
             stmtNode = parseReturnStatement();  // Parse return statement
@@ -1003,7 +1007,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
 }
 
 
-ASTNode* parseIfStatement() {
+ASTNode* parseIfCondition() {
     match(TOKEN_KEYWORD_IF);           // Match 'if'
     match(TOKEN_LEFT_ROUND_BRACKET);   // Match '('
 
@@ -1064,7 +1068,7 @@ ASTNode* parseIfStatement() {
         falseStatement = true;
         match(TOKEN_KEYWORD_ELSE);// Match 'else'
         if (token.type == TOKEN_KEYWORD_IF){
-            falseBranch = parseIfStatement();
+            falseBranch = parseIfCondition();
         } else{
             SymTable_NewScope(sym_Table);
             match(TOKEN_LEFT_CURLY_BRACKET); // Match '{'
@@ -1077,17 +1081,19 @@ ASTNode* parseIfStatement() {
     }
 
     // Create the AST node for the if statement
-    ASTNode* ifNode = createASTNode(IfStatement, NULL);
+    ASTNode* ifNode = createASTNode(IfCondition, NULL);
     ifNode->left = conditionNode;   // Attach condition as the left child
     ifNode->right = trueBranch;     // Attach true branch as the right child
     ifNode->next = falseBranch;     // Attach false branch as the next node
     ifNode->binding = bindingNode;    // Attach nullable binding as an extra node if present
 
-    return ifNode;
+    ASTNode *conditionStatementNode = createASTNode(ConditionalStatement, NULL);
+    conditionStatementNode->left = ifNode;
+    return conditionStatementNode;
 }
 
 
-ASTNode* parseWhileStatement() {
+ASTNode* parseWhileCondition() {
     match(TOKEN_KEYWORD_WHILE);         // Match 'while'
     match(TOKEN_LEFT_ROUND_BRACKET);    // Match '('
 
@@ -1149,12 +1155,14 @@ ASTNode* parseWhileStatement() {
     match(TOKEN_RIGHT_CURLY_BRACKET);   // Match '}'
 
     // Create the AST node for the while statement
-    ASTNode* whileNode = createASTNode(WhileStatement, NULL);
+    ASTNode* whileNode = createASTNode(WhileCondition, NULL);
     whileNode->left = conditionNode;    // Attach condition as the left child
     whileNode->right = bodyNode;        // Attach the body as the right child
     whileNode->binding = bindingNode;   // Attach the nullable binding, if any
 
-    return whileNode;
+    ASTNode *conditionStatementNode = createASTNode(ConditionalStatement, NULL);
+    conditionStatementNode->left = whileNode;
+    return conditionStatementNode;
 }
 
 
