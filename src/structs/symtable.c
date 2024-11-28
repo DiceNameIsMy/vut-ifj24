@@ -35,10 +35,11 @@ void SymTable_NewScope(SymTable *table)
   return;
 }
 
-void SymTable_UpperScope(SymTable *table)
+int SymTable_UpperScope(SymTable *table)
 {
+  int unused = table->current->unused_cnt;
   table->current = table->current->parent;
-  return;
+  return unused; //how much unused
 }
 
 Symbol *SymTable_Search(SymTable *table, char *name)
@@ -76,7 +77,7 @@ void SymTable_SetMut(SymTable *table, char *name, bool isMutable)
   return;
 }
 
-void SymTable_SetInit(SymTable *table, char *name, bool isInit)
+void SymTable_SetUsed(SymTable *table, char *name, bool isUsed)
 {
   Scope *current = table->current;
   while (current != NULL && BVS_Search(current->tree, name) == NULL)
@@ -84,7 +85,10 @@ void SymTable_SetInit(SymTable *table, char *name, bool isInit)
   if (current == NULL) {
     return;
   }
-  ((Symbol *)(BVS_Search(current->tree, name)))->init = isInit;
+  if(!SymTable_GetUsed(table, name) && isUsed == true) {
+    current->unused_cnt--;
+  }
+  ((Symbol *)(BVS_Search(current->tree, name)))->used = isUsed;
   return;
 }
 
@@ -167,7 +171,7 @@ bool SymTable_GetMut(SymTable *table, char *name)
   return ((Symbol *)(BVS_Search(current->tree, name)))->mut;
 }
 
-bool SymTable_GetInit(SymTable *table, char *name)
+bool SymTable_GetUsed(SymTable *table, char *name)
 {
   Scope *current = table->current;
   while (BVS_Search(current->tree, name) == NULL)
@@ -175,7 +179,7 @@ bool SymTable_GetInit(SymTable *table, char *name)
   if (current == NULL) {
     exit(99);
   }
-  return ((Symbol *)(BVS_Search(current->tree, name)))->init;
+  return ((Symbol *)(BVS_Search(current->tree, name)))->used;
 }
 
 type_t SymTable_GetRetType(SymTable *table, char *name)
@@ -202,7 +206,10 @@ Param *SymTable_GetParamList(SymTable *table, char *name)
 
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol)
 {
-  symbol->name = strdup(symbol->name);
+  symbol->name = strdup(symbol->name);  
+  if(BVS_Search(table->current->tree, symbol->name) == NULL) {
+    table->current->unused_cnt++;
+  }
   BVS_Insert(table->current->tree, symbol->name, (void *)symbol, sizeof(Symbol));
   return;
 }
@@ -245,6 +252,7 @@ Scope *Scope_ChildScope(Scope *scope)
   Scope *newScope = (Scope *)malloc(sizeof(Scope));
   Scope_Init(newScope);
   newScope->parent = scope;
+  newScope->unused_cnt = 0; //count unused vars
   return newScope;
 }
 

@@ -85,7 +85,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
         if(array->tokens[token_no].type == TOKEN_KEYWORD_FN && token_no != array->size - 1 && array->tokens[token_no+1].type == TOKEN_ID) {
             Symbol funName;
             funName.name = array->tokens[token_no + 1].attribute.str;
-            funName.init = true;
+            funName.used = false;
             funName.mut = false;
             funName.type = FUNCTION;
             funName.paramList = NULL;
@@ -285,7 +285,9 @@ ASTNode* parseFunctionDef() {
         exit(6);
     }
 
-    SymTable_UpperScope(sym_Table); //quit the scope
+    if(SymTable_UpperScope(sym_Table) != 0) { //quit the scope
+        exit(9); //unused variables
+    }
 
     return funcNode;  // Return the completed function definition node
 }
@@ -307,7 +309,7 @@ ASTNode* parseParamList() {
         
         symbol.type = idType(token); //more symbol info
         symbol.mut = true;
-        symbol.init = true;
+        symbol.used = false;
         symbol.retType = NONE;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
@@ -345,7 +347,7 @@ ASTNode* parseParamListTail() {
         match(TOKEN_COLON);
         symbol.type = idType(token);
         symbol.mut = true;
-        symbol.init = true;
+        symbol.used = false;
         symbol.retType = NONE;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
@@ -496,7 +498,9 @@ ASTNode* parseBlockStatement() {
 
     match(TOKEN_RIGHT_CURLY_BRACKET);  // Match '}'
     
-    SymTable_UpperScope(sym_Table);  //un-dive
+    if(SymTable_UpperScope(sym_Table) != 0) {  //un-dive
+        exit(9); //unused variables
+    }
 
     // Create a BlockStatement node
     ASTNode* blockNode = createASTNode(BlockStatement, NULL);
@@ -517,7 +521,7 @@ ASTNode* parseConstDeclaration() {
         if_malloc_error(constName);
         symbol.name = token.attribute.str; //TODO: INVENT A WAY TO MARK AS A CONSTANT
         symbol.mut = false;
-        symbol.init = true;
+        symbol.used = false;
         symbol.type = UNDEFINED;
         symbol.retType = NONE;
         symbol.paramList = NULL;
@@ -715,10 +719,12 @@ ASTNode* parseFactor() {
 
             match(TOKEN_ID);
 
+
             if(SymTable_Search(sym_Table, functionName) == NULL || SymTable_GetType(sym_Table, functionName) != FUNCTION) {
                 fprintf(stderr, "Error: Function %s not declared\n", functionName);
                 exit(3); //NOT DECLARED OR NOT A FUNCTION
             }
+            SymTable_SetUsed(sym_Table, functionName, true);
             
             // Parse function call parameters
             ASTNode* params = NULL;
@@ -742,6 +748,7 @@ ASTNode* parseFactor() {
                 fprintf(stderr, "Error: Function %s not declared\n", identifier);
                 exit(3); //NOT DECLARED OR NOT A FUNCTION 
             }
+            SymTable_SetUsed(sym_Table, identifier, true);
             
             factorNode = createASTNode(FuncCall, identifier);
             factorNode->valType = SymTable_GetRetType(sym_Table, identifier);
@@ -752,6 +759,7 @@ ASTNode* parseFactor() {
                 fprintf(stderr, "Error: variable %s not declared\n", identifier);
                 exit(3); //NOT DECLARED
             }
+            SymTable_SetUsed(sym_Table, identifier, true);
 
             factorNode = createASTNode(Identifier, identifier);  // Variable reference
             factorNode->valType = SymTable_GetType(sym_Table, identifier);
@@ -851,7 +859,7 @@ ASTNode* parseVarDeclaration() {
         symbol.name = token.attribute.str;
         symbol.type = UNDEFINED;
         symbol.mut = true;
-        symbol.init = true;
+        symbol.used = false;
         symbol.retType = NONE;
         symbol.paramList = NULL;
     } else{
@@ -922,6 +930,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
             fprintf(stderr, "Error: Function %s not defined\n", functionName);
             exit(3); //DOESN'T EXIST
         }
+        SymTable_SetUsed(sym_Table, functionName, true);
         
         match(TOKEN_ID);
 
@@ -958,6 +967,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
             fprintf(stderr, "Error: invalid assignment to a constant: %s\n", identifier);
             exit(5);
         }
+        SymTable_SetUsed(sym_Table, identifier, true);
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
         if(typeConv(SymTable_GetType(sym_Table, identifier), exprNode->valType) == NONE) { //typecheck
@@ -975,6 +985,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
             fprintf(stderr, "Error: function %s not defined\n", identifier);
             exit(3); //DOESN'T EXIST OR NOT A FUNCTION
         }
+        SymTable_SetUsed(sym_Table, identifier, true);
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
         if(SymTable_GetRetType(sym_Table, identifier) != NONE) {
             fprintf(stderr, "Error: Function (%s) output is abandoned\n", identifier);
@@ -1025,7 +1036,7 @@ ASTNode* parseIfStatement() {
         }
         
         symbol.mut = true;
-        symbol.init = false;
+        symbol.used = false;
         symbol.retType = NONE;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
@@ -1042,7 +1053,9 @@ ASTNode* parseIfStatement() {
 
     match(TOKEN_LEFT_CURLY_BRACKET);  // Match '{'
     ASTNode* trueBranch = parseStatementList();  // Parse statements in the true branch
-    SymTable_UpperScope(sym_Table);
+    if(SymTable_UpperScope(sym_Table) != 0) {
+        exit(9); //unused vars
+    }
     match(TOKEN_RIGHT_CURLY_BRACKET); // Match '}'
 
     // Optional 'else' block
@@ -1056,7 +1069,9 @@ ASTNode* parseIfStatement() {
             SymTable_NewScope(sym_Table);
             match(TOKEN_LEFT_CURLY_BRACKET); // Match '{'
             falseBranch = parseStatementList();  // Parse statements in the false branch
-            SymTable_UpperScope(sym_Table);
+            if(SymTable_UpperScope(sym_Table) != 0) {
+                exit(9); //unused vars
+            }
             match(TOKEN_RIGHT_CURLY_BRACKET);    // Match '}'
         }
     }
@@ -1106,7 +1121,7 @@ ASTNode* parseWhileStatement() {
                     exit(7);//INVALID CONDITION TYPE
             }
             symbol.mut = true;
-            symbol.init = false;
+            symbol.used = false;
             symbol.retType = NONE;
             symbol.paramList = NULL;
             SymTable_AddSymbol(sym_Table, &symbol);
@@ -1128,7 +1143,9 @@ ASTNode* parseWhileStatement() {
 
     match(TOKEN_LEFT_CURLY_BRACKET);    // Match '{'
     ASTNode* bodyNode = parseStatementList();  // Parse the loop body
-    SymTable_UpperScope(sym_Table);
+    if(SymTable_UpperScope(sym_Table) != 0) {
+        exit(9); //unused vars
+    }
     match(TOKEN_RIGHT_CURLY_BRACKET);   // Match '}'
 
     // Create the AST node for the while statement
