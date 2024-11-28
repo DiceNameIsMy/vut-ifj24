@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from main import run_compiler, run_interpreter
@@ -13,16 +14,25 @@ def test_program(program_name, interpreter_input, expected_interpreter_output):
     input_file_path = f"./tests/input/{program_name}"
     output_file_path = f"./tests/output/{program_name}.ifjcode"
 
-    # Run the compiler
-    compiler_stdout, compiler_stderr, compiler_returncode = run_compiler(input_file_path)
-    assert compiler_returncode == 0, f"Compiler error: {compiler_stderr}"
+    try:
+        # Run the compiler
+        compiler_stdout, compiler_stderr, compiler_returncode = run_compiler(input_file_path)
+        assert compiler_returncode == 0, f"Compiler error: {compiler_stderr}"
 
-    # Write the compiler output to a temporary file
-    with open(output_file_path, 'w') as f:
-        f.write(compiler_stdout)
+        # Write the compiler output to a temporary file
+        with open(output_file_path, 'w') as f:
+            f.write(compiler_stdout)
 
-    # Run the interpreter
-    interpreter_stdout, interpreter_stderr, interpreter_returncode = run_interpreter(output_file_path, interpreter_input)
+        # Run the interpreter
+        interpreter_stdout, interpreter_stderr, interpreter_returncode = run_interpreter(output_file_path, interpreter_input)
 
-    assert interpreter_returncode == 0, f"Interpreter error: {interpreter_stderr}"
-    assert interpreter_stdout.strip() == expected_interpreter_output
+        assert interpreter_returncode == 0, f"Interpreter error: {interpreter_stderr}"
+        assert interpreter_stdout.strip() == expected_interpreter_output
+    finally:
+        # Cleanup
+        if os.path.exists(output_file_path):
+            os.remove(output_file_path)
+            print(f"Deleted file: {output_file_path}")
+        else:
+            print(f"File does not exist: {output_file_path}")
+        
