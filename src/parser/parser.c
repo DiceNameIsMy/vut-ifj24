@@ -1001,7 +1001,7 @@ ASTNode* parseIfCondition() {
     match(TOKEN_LEFT_ROUND_BRACKET);   // Match '('
 
     // Parse the condition expression
-    ASTNode* ifNode = parseExpression();    
+    ASTNode* conditionNode = parseExpression();    
     match(TOKEN_RIGHT_ROUND_BRACKET);  // Match ')'
 
     // Handle nullable binding if present
@@ -1013,7 +1013,7 @@ ASTNode* parseIfCondition() {
         Symbol symbol;
         symbol.name = token.attribute.str;
 
-        switch (ifNode->valType) {
+        switch (conditionNode->valType) {
             case I32_NULLABLE:
                 symbol.type = I32;
                 break;
@@ -1039,7 +1039,7 @@ ASTNode* parseIfCondition() {
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
     }
     
-    if(bindingNode == NULL && ifNode->valType != BOOL) { //PERHAPS
+    if(bindingNode == NULL && conditionNode->valType != BOOL) { //PERHAPS
         fprintf(stderr, "Error: Cannot evaluate a condition\n");
         exit(7);
     }
@@ -1067,14 +1067,14 @@ ASTNode* parseIfCondition() {
 
     // Create the AST node for the if statement
     ASTNode* ifNode = createASTNode(IfCondition, NULL);
-    ifNode->left = ifNode;   // Attach condition as the left child
+    ifNode->left = conditionNode;   // Attach condition as the left child
     ifNode->right = trueBranch;     // Attach true branch as the right child
     ifNode->next = falseBranch;     // Attach false branch as the next node
     ifNode->binding = bindingNode;    // Attach nullable binding as an extra node if present
 
-    ASTNode *conditionNode = createASTNode(ConditionalStatement, NULL);
-    conditionNode->left = ifNode;
-    return conditionNode;
+    ASTNode *conditionStatementNode = createASTNode(ConditionalStatement, NULL);
+    conditionStatementNode->left = ifNode;
+    return conditionStatementNode;
 }
 
 
@@ -1143,9 +1143,9 @@ ASTNode* parseWhileCondition() {
     whileNode->right = bodyNode;        // Attach the body as the right child
     whileNode->binding = bindingNode;   // Attach the nullable binding, if any
 
-    ASTNode *conditionNode = createASTNode(ConditionalStatement, NULL);
-    conditionNode->left = whileNode;
-    return conditionNode;
+    ASTNode *conditionStatementNode = createASTNode(ConditionalStatement, NULL);
+    conditionStatementNode->left = whileNode;
+    return conditionStatementNode;
 }
 
 
