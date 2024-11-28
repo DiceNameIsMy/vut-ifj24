@@ -207,7 +207,7 @@ Param *SymTable_GetParamList(SymTable *table, char *name)
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol)
 {
   symbol->name = strdup(symbol->name);  
-  if(BVS_Search(table->current->tree, symbol->name) == NULL) {
+  if(BVS_Search(table->current->tree, symbol->name) == NULL && symbol->used == false) {
     table->current->unused_cnt++;
   }
   BVS_Insert(table->current->tree, symbol->name, (void *)symbol, sizeof(Symbol));
