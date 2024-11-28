@@ -23,14 +23,16 @@ def run_compiler(input_file_path):
         return None, f"An error occurred: {e}", -1
 
 
-def run_interpreter(input_file_path):
+def run_interpreter(input_file_path, stdin=""):
     try:
         # Open the input file
         # Run the binary file and pass the input file contents to its stdin
-        process = subprocess.Popen(["./tests/ic24int", input_file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(["./tests/ic24int", input_file_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.stdin.write(stdin.encode('utf-8'))
         
         # Capture the output and errors
         stdout, stderr = process.communicate()
+        process.stdin.close()
 
         # Return the output and errors
         return stdout.decode('utf-8'), stderr.decode('utf-8'), process.returncode

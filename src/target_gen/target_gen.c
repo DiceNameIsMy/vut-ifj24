@@ -54,11 +54,11 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar);
 void generateNullBindingCheck(ASTNode *node, Operand *outVar);
 void generateNullBindingAssignment(ASTNode *node);
 
-ASTNode *generateConditionalStatement(ASTNode *node);
-ASTNode *unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation);
-ASTNode *unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation);
+ASTNode *generateIfCondition(ASTNode *node);
+ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation);
+ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation);
 
-void generateWhileStatement(ASTNode *node);
+void generateWhileConditional(ASTNode *node);
 void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCallParameter(ASTNode *node);
@@ -279,18 +279,19 @@ void generateFunction(ASTNode *node)
 
 void generateFunctionParametersInitialization(Param *param)
 {
-  while (param != NULL)
+  if (param == NULL)
   {
-    loginfo("Generating function parameter: %s", param->name);
-    // Add variable definition
-    Operand var = getOrCreateVar(param->name, FRAME_LF);
-
-    // Load variable from stack
-    Instruction inst = initInstr1(INST_POPS, var);
-    addInstruction(inst);
-
-    param = param->next;
+    return;
   }
+  generateFunctionParametersInitialization(param->next);
+
+  loginfo("Generating function parameter: %s", param->name);
+  // Add variable definition
+  Operand var = getOrCreateVar(param->name, FRAME_LF);
+
+  // Load variable from stack
+  Instruction inst = initInstr1(INST_POPS, var);
+  addInstruction(inst);
 }
 
 ASTNode *generateStatement(ASTNode *node)
@@ -308,10 +309,22 @@ ASTNode *generateStatement(ASTNode *node)
     break;
   case BlockStatement:
     return generateStatement(node->left);
-  case IfStatement:
-    return generateConditionalStatement(node);
-  case WhileStatement:
-    generateWhileStatement(node);
+  case ConditionalStatement:
+    assert(node->left != NULL);
+    if (node->left->nodeType == IfCondition)
+    {
+      generateIfCondition(node->left);
+    }
+    else if (node->left->nodeType == WhileCondition)
+    {
+      generateWhileConditional(node->left);
+    }
+    else
+    {
+      loginfo("Unexpected conditional statement type: %s", nodeTypeToString(node->left->nodeType));
+      inspectAstNode(node);
+      exit(99);
+    }
     break;
   case ReturnStatement:
     generateReturn(node);
@@ -513,14 +526,14 @@ void generateNullBindingAssignment(ASTNode *node)
           getOrCreateVar(nullableVarName, FRAME_LF)));
 }
 
-ASTNode *generateConditionalStatement(ASTNode *node)
+ASTNode *generateIfCondition(ASTNode *node)
 {
   loginfo("Generating conditional statement");
   inspectAstNode(node);
 
   Operand endLabel = createTmpLabel("end_if");
 
-  ASTNode *nextStatementNode = unrollConditionalStatements(node, endLabel, true);
+  ASTNode *nextStatementNode = unrollIfConditions(node, endLabel, true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
 
@@ -532,14 +545,14 @@ ASTNode *generateConditionalStatement(ASTNode *node)
 /// @param endLabel
 /// @param firstEvaluation
 /// @return Pointer to a next node to process.
-ASTNode *unrollConditionalStatements(ASTNode *node, Operand endLabel, bool firstEvaluation)
+ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
-  assert(node->nodeType == IfStatement);
+  assert(node->nodeType == IfCondition);
 
-  bool isLastEvaluation = node->next == NULL || node->next->nodeType != IfStatement;
+  bool isLastEvaluation = node->next == NULL || node->next->nodeType != IfCondition;
   if (isLastEvaluation)
   {
-    return unrollLastConditionalStatement(node, endLabel, firstEvaluation);
+    return unrollLastIfConditional(node, endLabel, firstEvaluation);
   }
 
   // Evaluate condition
@@ -563,7 +576,7 @@ ASTNode *unrollConditionalStatements(ASTNode *node, Operand endLabel, bool first
   addInstruction(jumpToBlockInst);
 
   // Unroll next evaluation.
-  ASTNode *nextStatementNode = unrollConditionalStatements(node->next, endLabel, false);
+  ASTNode *nextStatementNode = unrollIfConditions(node->next, endLabel, false);
 
   // Generate body
   if (node->binding != NULL)
@@ -582,7 +595,7 @@ ASTNode *unrollConditionalStatements(ASTNode *node, Operand endLabel, bool first
   return nextStatementNode;
 }
 
-ASTNode *unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool firstEvaluation)
+ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
   loginfo("Generating last `if` evaluation");
 
@@ -597,7 +610,7 @@ ASTNode *unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool fi
     generateNullBindingCheck(node, &ifCondition);
   }
 
-  bool hasTrailingElse = node->next != NULL && node->next->nodeType != IfStatement;
+  bool hasTrailingElse = node->next != NULL && node->next->nodeType != IfCondition;
   if (hasTrailingElse)
   {
     Operand ifTrueLabel = createTmpLabel("if_true");
@@ -669,7 +682,7 @@ ASTNode *unrollLastConditionalStatement(ASTNode *node, Operand endLabel, bool fi
   }
 }
 
-void generateWhileStatement(ASTNode *node)
+void generateWhileConditional(ASTNode *node)
 {
   inspectAstNode(node);
 
