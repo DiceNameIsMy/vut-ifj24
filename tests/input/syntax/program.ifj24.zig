@@ -8,6 +8,6 @@ pub fn main() void{
         //ifj.write(ab);
     }
     else{
-        b = 5.2;
+        b = 5;
     }
 }
