@@ -50,6 +50,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     Symbol funStrcmp = {"ifj.strcmp", FUNCTION, false, true, I32, NULL};
     Symbol funOrd = {"ifj.ord", FUNCTION, false, true, I32, NULL};
     Symbol funChr = {"ifj.chr", FUNCTION, false, true, U8_ARRAY, NULL};
+    Symbol varNull = {"_", UNDEFINED, true, true, NONE, NULL};
     SymTable_AddSymbol(table, &funWrite);
     SymTable_AddSymbol(table, &funReadi32);
     SymTable_AddSymbol(table, &funReadf64);
@@ -63,6 +64,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_AddSymbol(table, &funStrcmp);
     SymTable_AddSymbol(table, &funOrd);
     SymTable_AddSymbol(table, &funChr);
+    SymTable_AddSymbol(table, &varNull);
     SymTable_PushFuncParam(table, "ifj.write", UNDEFINED, "format");
     SymTable_PushFuncParam(table, "ifj.f2i", F64, "float");
     SymTable_PushFuncParam(table, "ifj.i2f", I32, "int");
@@ -79,6 +81,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_PushFuncParam(table, "ifj.ord", I32, "index");
     SymTable_PushFuncParam(table, "ifj.chr", I32, "int");    
 
+
     
     int token_no = 0;
     for(token_no = 0; token_no < array->size; token_no++) {
@@ -89,6 +92,10 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
             funName.mut = false;
             funName.type = FUNCTION;
             funName.paramList = NULL;
+            if(SymTable_Search(table, funName.name) != NULL) {
+                fprintf(stderr, "Error: redefinition of a function!\n");
+                exit(5);
+            }
             SymTable_AddSymbol(table, &funName);
             token_no+=2;
             if(token_no >= array->size || array->tokens[token_no].type != TOKEN_LEFT_ROUND_BRACKET) {
@@ -118,11 +125,11 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
                     exit(2);
                 }
                 if(array->tokens[token_no].type == TOKEN_RIGHT_ROUND_BRACKET) {
-                    token_no++;
                     break;
                 }
                 token_no++;
             }
+            token_no++;
             if(token_no >= array->size) {
                 exit(2);
             }
@@ -350,6 +357,10 @@ ASTNode* parseParamListTail() {
         symbol.used = false;
         symbol.retType = NONE;
         symbol.paramList = NULL;
+        if(SymTable_Search(sym_Table, symbol.name) != NULL) {
+            fprintf(stderr, "Error: resefinition of a variable!\n");
+            exit(5);
+        }
         SymTable_AddSymbol(sym_Table, &symbol);
         
         ASTNode* paramType = parseType();
@@ -656,7 +667,7 @@ ASTNode* parseSimpleExpression() {
         // Parse the next term (right operand)
         ASTNode* right = parseTerm();
 
-        if((right->valType != I32 && right->valType != F64) || (left->valType != I32 && left->valType != F64)) {
+        if((right->valType != I32 || left->valType != I32) && (right->valType != F64 || left->valType != F64)) {
             fprintf(stderr, "Error: cannot add/subtract uncompatible types\n");
             exit(7);
         }
@@ -679,7 +690,7 @@ ASTNode* parseTerm() {
 
         // Parse the next factor (right operand)
         ASTNode* right = parseFactor();
-        if((right->valType != I32 && right->valType != F64) || (left->valType != I32 && left->valType != F64)) {
+        if((right->valType != I32 || left->valType != I32) && (left->valType != F64 || right->valType != F64)) {
             fprintf(stderr, "Error: cannot multiply/divide uncompatible types\n");
             exit(7);
         }
