@@ -5,9 +5,9 @@
 #ifndef VUT_IFJ_PARSER_H
 #define VUT_IFJ_PARSER_H
 
-#include "structs/ast.h"
-#include "lexer/token.h"
-#include "structs/symtable.h"
+#include "ast.h"
+#include "token.h"
+#include "symtable.h"
 
 #include <stdio.h>
 #include <stdbool.h>

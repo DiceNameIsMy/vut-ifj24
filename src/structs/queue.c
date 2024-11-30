@@ -2,7 +2,7 @@
 
 #include "logging.h"
 
-#include "structs/queue.h"
+#include "queue.h"
 
 void Queue_Init(Queue *queue)
 {

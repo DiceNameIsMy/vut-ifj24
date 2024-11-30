@@ -1,4 +1,4 @@
-#include "target_gen/target_gen.h"
+#include "target_gen.h"
 
 int main() {
     generateTargetCode(NULL, stdout);

@@ -2,7 +2,7 @@
 // Created by nur on 19.10.24.
 // Implemented by oleh 26.10.24
 //
-#include "structs/bvs.h"
+#include "bvs.h"
 
 #include <stdlib.h>
 #include <string.h>

@@ -7,13 +7,13 @@
 
 #include "logging.h"
 
-#include "structs/dynBuffer.h"
-#include "structs/ast.h"
+#include "dynBuffer.h"
+#include "ast.h"
 
-#include "target_gen/id_indexer.h"
-#include "target_gen/instructions.h"
-#include "target_gen/target_gen.h"
-#include "target_gen/target_func_context.h"
+#include "id_indexer.h"
+#include "instructions.h"
+#include "target_gen.h"
+#include "target_func_context.h"
 
 FILE *outputStream;
 

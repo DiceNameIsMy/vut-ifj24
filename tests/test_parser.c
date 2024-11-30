@@ -4,14 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lexer/lexer.h"
-#include "parser/parser.h"
-#include "structs/ast.h"
+#include "lexer.h"
+#include "parser.h"
+#include "ast.h"
 #include "logging.h"
 
 #include "test_utils.h"
-#include "structs/bvs.h"
-#include "structs/symtable.h"
+#include "bvs.h"
+#include "symtable.h"
 
 #define CHUNK_SIZE 8000
 

@@ -1,9 +1,9 @@
 #ifndef TARGET_FUNC_SCOPE_H
 #define TARGET_FUNC_SCOPE_H
 
-#include "structs/queue.h"
+#include "queue.h"
 
-#include "target_gen/instructions.h"
+#include "instructions.h"
 
 typedef struct {
   Instruction *labelInstr;

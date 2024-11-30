@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "logging.h"
-#include "lexer/token.h"
+#include "token.h"
 
 #define TOKEN_ARRAY_INIT_CAPACITY 16
 

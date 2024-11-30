@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <tgmath.h>
 
-#include "lexer/token.h"
-#include "lexer/lexer.h"
+#include "token.h"
+#include "lexer.h"
 #include "test_utils.h"
 
 TokenArray tokenArray;

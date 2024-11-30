@@ -4,7 +4,7 @@
 #include <inttypes.h>
 
 #include "logging.h"
-#include "target_gen/instructions.h"
+#include "instructions.h"
 
 /**********************************************************/
 /* Private Function Declarations */

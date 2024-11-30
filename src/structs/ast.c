@@ -6,7 +6,7 @@
 
 #include "logging.h"
 #include "stdio.h"
-#include "structs/ast.h"
+#include "ast.h"
 
 ASTNode *createASTNode(NodeType nodeType, char *value)
 {

@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "structs/ast.h"
-#include "structs/symtable.h"
+#include "ast.h"
+#include "symtable.h"
 
-#include "lexer/lexer.h"
-#include "parser/parser.h"
-#include "target_gen/target_gen.h"
+#include "lexer.h"
+#include "parser.h"
+#include "target_gen.h"
 
 #include "logging.h"
-#include "target_gen/target_gen.h"
+#include "target_gen.h"
 
 #define CHUNK_SIZE 1024
 
