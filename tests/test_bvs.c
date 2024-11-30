@@ -4,7 +4,7 @@
 // Modified by oleh 26.10.24
 
 #include <stdio.h>
-#include <structs/bvs.h>
+#include <bvs.h>
 #include <time.h>
 #include <stdlib.h>
 
