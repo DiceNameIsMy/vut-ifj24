@@ -1,4 +1,11 @@
 #!/bin/bash
+
+set -e
+
+./scripts/local_run_tests.sh
+
+pytest
+
 dest_dir="./submission"
 
 find "./src" -type f -name "*.c" -exec cp {} "$dest_dir" \;
