@@ -4,4 +4,10 @@ build/*
 .vscode/*
 venv/*
 __pycache__*
-submission/*
+submission/main
+submission/*.c
+submission/*.h
+submission/*.o
+submission/*.pdf
+submission/rozdeleni
+submission/rozsireni
