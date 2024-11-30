@@ -2,9 +2,9 @@
 // created by GladiatorEntered on 18/11/24
 //
 
-#include "structs/symtable.h"
-#include "structs/bvs.h"
-#include "structs/stack.h"
+#include "symtable.h"
+#include "bvs.h"
+#include "stack.h"
 #include <string.h>
 #include <stdio.h>
 

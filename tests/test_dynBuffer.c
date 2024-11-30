@@ -4,7 +4,7 @@
 
 #include <string.h>
 
-#include "structs/dynBuffer.h"
+#include "dynBuffer.h"
 #include "test_utils.h"
 
 DynBuffer buffer;

@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "structs/bvs.h"
-#include "structs/stack.h"
+#include "bvs.h"
+#include "stack.h"
 
 #ifndef SYMTABLE_H
 #define SYMTABLE_H

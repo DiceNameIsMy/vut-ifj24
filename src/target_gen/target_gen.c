@@ -7,13 +7,13 @@
 
 #include "logging.h"
 
-#include "structs/dynBuffer.h"
-#include "structs/ast.h"
+#include "dynBuffer.h"
+#include "ast.h"
 
-#include "target_gen/id_indexer.h"
-#include "target_gen/instructions.h"
-#include "target_gen/target_gen.h"
-#include "target_gen/target_func_context.h"
+#include "id_indexer.h"
+#include "instructions.h"
+#include "target_gen.h"
+#include "target_func_context.h"
 
 FILE *outputStream;
 
@@ -361,7 +361,7 @@ void generateAssignment(ASTNode *node)
   if (strcmp(node->value.string, "_") == 0)
   {
     // TODO: A value is assigned but would never be used. Can it be done in some better way?
-    dest = createTmpVar("tmp", FRAME_LF);
+    dest = createTmpVar("_", FRAME_LF);
   }
   else
   {
@@ -813,13 +813,13 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   }
   else if (strcmp(node->value.string, "ifj.concat") == 0)
   {
-    // TODO: Read parameters from a function call properly
     Operand firstOperand;
     generateExpression(node->left, &firstOperand);
     Operand secondOperand;
-    generateExpression(node->left->left, &secondOperand);
+    generateExpression(node->left->next, &secondOperand);
 
     Instruction concatInst = initInstr3(INST_CONCAT, *outVar, firstOperand, secondOperand);
+    addInstruction(concatInst);
   }
   else if (strcmp(node->value.string, "ifj.substring") == 0)
   {

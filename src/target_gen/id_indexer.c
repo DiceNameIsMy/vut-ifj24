@@ -2,9 +2,9 @@
 #include <string.h>
 
 #include "logging.h"
-#include "structs/bvs.h"
+#include "bvs.h"
 
-#include "target_gen/id_indexer.h"
+#include "id_indexer.h"
 
 /**********************************************************/
 /* Private Functions */

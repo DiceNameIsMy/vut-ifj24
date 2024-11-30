@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "structs/stack.h"
+#include "stack.h"
 
 void initializeStack(Stack *s, int capacity) {
     s->top = -1;

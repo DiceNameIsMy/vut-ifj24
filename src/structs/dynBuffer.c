@@ -2,7 +2,7 @@
 // Created by nur on 19.10.24.
 //
 
-#include "structs/dynBuffer.h"
+#include "dynBuffer.h"
 #include <stdlib.h>
 #include <string.h>
 

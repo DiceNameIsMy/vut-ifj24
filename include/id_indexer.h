@@ -1,9 +1,9 @@
 #ifndef TARGET_LABEL_CONTEXT_H
 #define TARGET_LABEL_CONTEXT_H
 
-#include "structs/bvs.h"
+#include "bvs.h"
 
-#include "target_gen/instructions.h"
+#include "instructions.h"
 
 /// @brief Used to generate unique names for identifiers.
 ///        Can be used for labels or variables within a frame.

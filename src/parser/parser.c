@@ -1,9 +1,9 @@
 //
 // Created by malbert on 10/5/24.
 //
-#include "lexer/token.h"
-#include "structs/ast.h"
-#include "parser/parser.h"
+#include "token.h"
+#include "ast.h"
+#include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

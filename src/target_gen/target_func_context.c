@@ -2,9 +2,9 @@
 
 #include "logging.h"
 
-#include "structs/queue.h"
+#include "queue.h"
 
-#include "target_gen/target_func_context.h"
+#include "target_func_context.h"
 
 void TFC_Init(TargetFuncContext *scope)
 {

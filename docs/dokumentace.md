@@ -1,16 +1,35 @@
 # 1. Title Page
 
-Team Members: Full names, usernames (highlight team leader).
+Team xpopov10, variant vv-BVS.
 
-Points Allocation: Breakdown of points distribution among team members.
+Team Members:
+- Albert Popov TODO <- Team leader
+- Nurdaulet Turar (xturarn00)
+- Oleg TODO
+- Ivan Savin TODO
 
-Variant Identification: Include your assignment variant in the format Team leader_login, variant X.
+Points Allocation: TODO Breakdown of points distribution among team members.
 
-Implemented Extensions: List the identifiers of all implemented extensions.
+Implemented Extensions: TODO List the identifiers of all implemented extensions.
 
 # 2. Work Distribution
 
 Member Contributions: Describe the contributions of each team member to the project.
+
+Albert: TODO
+
+Nurdaulet:
+- Lexer (~25%)
+- Target code generation (100%)
+- Documenatation (TODO%)
+- Repository automation (100%)
+  - Setup Continuous Integration with tests
+  - Scripts to run tests, to add a comment line with authors, etc.
+  - Script to archive the project for submission
+
+Oleg: TODO
+
+Ivan: TODO
 
 Justification of Unequal Distribution: Explain any deviations from an even distribution of points.
 

@@ -7,6 +7,7 @@ from main import run_compiler, run_interpreter
 @pytest.mark.parametrize("program_name, interpreter_input, expected_interpreter_output", [
     ("hello_world.ifj24.zig", "", "Hello World!"),
     ("factorial_rec.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
+    ("stdfunc.ifj24.zig", "", "str1str2"),
     # TODO: Add implicit literal conversion
     # ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
 ])

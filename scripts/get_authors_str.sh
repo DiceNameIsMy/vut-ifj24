@@ -5,9 +5,7 @@ if [ $# -ne 1 ]; then
     Provide 1 filename as an argument & it will output a comment that can be put into the beginning of a file.
 Example:
   /*
-   *  Filename: ./src/lexer/token.c
-   *
-   *  Last Modified Date: October 13, 2024
+   *  Project: IFJ24
    *
    *  Authors:
    *      - Fundgod (fundgod.savin@gmail.com)
@@ -23,9 +21,7 @@ authors=$(git log --follow -- "$1" | awk 'match($0, "Author: (.*) <(.*)>", arr) 
 modified_date=$(LC_TIME=en_US.UTF-8 date +"%B %d, %Y")
 
 echo "/*
- *  Filename: $1
- *
- *  Last Modified Date: $modified_date
+ *  Project: IFJ24
  *
  *  Authors:"
 

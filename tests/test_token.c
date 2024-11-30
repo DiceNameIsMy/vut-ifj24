@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>  // Added for strcmp
 
-#include "lexer/token.h"
+#include "token.h"
 #include "test_utils.h"
 
 TokenArray tokenArray;
