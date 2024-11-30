@@ -8,6 +8,11 @@ pub fn main() void {
     ifj.write(str3);
     ifj.write("\n");
 
+    ifj.write("ifj.ord: ");
+    var one_as_i32 = ifj.ord(str1, 3);
+    ifj.write(one_as_i32);
+    ifj.write("\n");
+
     ifj.write("ifj.chr: ");
     var a = ifj.chr(65);
     ifj.write(a);
