@@ -14,7 +14,7 @@ int initDynBuffer(DynBuffer *buffer, int size) {
 
     buffer->data = calloc(size, sizeof(char));
     if (buffer->data == NULL)
-        return -1;
+        exit(99); // Allocation error
 
     buffer->capacity = size;
     buffer->nextIdx = 0;
