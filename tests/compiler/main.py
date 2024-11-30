@@ -27,7 +27,7 @@ def run_interpreter(input_file_path, stdin=""):
     try:
         # Open the input file
         # Run the binary file and pass the input file contents to its stdin
-        process = subprocess.Popen(["./tests/ic24int", input_file_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(["./tests/ic24int", input_file_path, "-s"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.stdin.write(stdin.encode('utf-8'))
         
         # Capture the output and errors

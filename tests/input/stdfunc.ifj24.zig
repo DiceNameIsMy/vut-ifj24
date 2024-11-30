@@ -17,4 +17,13 @@ pub fn main() void {
     var a = ifj.chr(65);
     ifj.write(a);
     ifj.write("\n");
+
+    ifj.write("ifj.strcmp: ");
+    var str4 = ifj.string("s");
+    ifj.write(ifj.strcmp(str1, str1)); // 0
+    ifj.write(ifj.strcmp(str1, str2)); // -1
+    ifj.write(ifj.strcmp(str2, str1)); // 1
+    ifj.write(ifj.strcmp(str1, str4)); // 1
+    ifj.write(ifj.strcmp(str4, str1)); // -1
+    ifj.write("\n");
 }

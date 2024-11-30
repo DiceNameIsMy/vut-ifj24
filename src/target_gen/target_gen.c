@@ -24,6 +24,86 @@ IdIndexer *funcVarsIndexer = NULL;
 
 IdIndexer *labelIndexer = NULL;
 
+const char *ifjStrcmpFunctionBody =
+    "DEFVAR LF@str1\n"
+    "DEFVAR LF@str2\n"
+    "DEFVAR LF@len1\n"
+    "DEFVAR LF@len2\n"
+    "DEFVAR LF@left_shorter\n"
+    "DEFVAR LF@i\n"
+    "DEFVAR LF@cmp_result\n"
+    "DEFVAR LF@same_length\n"
+    "DEFVAR LF@max_idx\n"
+    "DEFVAR LF@end_iter\n"
+    "DEFVAR LF@left_char\n"
+    "DEFVAR LF@right_char\n"
+    "DEFVAR LF@left_char_lower\n"
+    "DEFVAR LF@char_eq\n"
+    "\n"
+    "# Given 2 strings,\n"
+    "POPS LF@str2\n"
+    "POPS LF@str1\n"
+    "\n"
+    "# Get length of both strings\n"
+    "STRLEN LF@len1 LF@str1\n"
+    "STRLEN LF@len2 LF@str2\n"
+    "DPRINT LF@len1\n"
+    "DPRINT LF@len2\n"
+    "\n"
+    "# Choose the shortest length\n"
+    "LT LF@left_shorter LF@len1 LF@len2\n"
+    "JUMPIFEQ left_shorter LF@left_shorter bool@true\n"
+    "MOVE LF@max_idx LF@len2\n"
+    "JUMP end_comparison\n"
+    "LABEL left_shorter\n"
+    "MOVE LF@max_idx LF@len1\n"
+    "LABEL end_comparison\n"
+    "SUB LF@max_idx LF@max_idx int@1\n"
+    "\n"
+    "DPRINT LF@max_idx\n"
+    "\n"
+    "# Over the length of the shortest string,\n"
+    "MOVE LF@i int@-1\n"
+    "LABEL while_iter\n"
+    "ADD LF@i LF@i int@1\n"
+    "GT LF@end_iter LF@i LF@max_idx # i == max_idx\n"
+    "JUMPIFEQ end_while LF@end_iter bool@true\n"
+    "# Compare characters\n"
+    "STRI2INT LF@left_char LF@str1 LF@i\n"
+    "DPRINT LF@left_char\n"
+    "STRI2INT LF@right_char LF@str2 LF@i\n"
+    "DPRINT LF@right_char\n"
+    "EQ LF@char_eq LF@left_char LF@right_char\n"
+    "DPRINT LF@char_eq\n"
+    "JUMPIFEQ while_iter LF@char_eq bool@true # If chars are equal, continue the loop\n"
+    "\n"
+    "LT LF@left_char_lower LF@left_char LF@right_char\n"
+    "JUMPIFEQ left_smaller LF@left_char_lower bool@true\n"
+    "JUMP right_smaller\n"
+    "\n"
+    "LABEL end_while\n"
+    "\n"
+    "# All letters are equal up to the shortest string's length.\n"
+    "# If they same same length, return 0.\n"
+    "EQ LF@same_length LF@len1 LF@len2\n"
+    "JUMPIFEQ same_length LF@same_length bool@true\n"
+    "\n"
+    "JUMPIFEQ left_smaller LF@left_shorter bool@true\n"
+    "JUMP right_smaller\n"
+    "\n"
+    "# Otherwise,\n"
+    "# - if left is shorter, return -1\n"
+    "# - if right is shorter, return 1\n"
+    "LABEL right_smaller\n"
+    "PUSHS int@1 # right is smaller\n"
+    "RETURN\n"
+    "LABEL left_smaller\n"
+    "PUSHS int@-1 # left is smaller\n"
+    "RETURN\n"
+    "LABEL same_length\n"
+    "PUSHS int@0\n"
+    "RETURN\n";
+
 /**********************************************************/
 /* Private Function Declarations */
 /**********************************************************/
@@ -38,6 +118,7 @@ Operand createTmpVar(char *name, VarFrameType frame);
 
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
+void generateIfjStrcmpFunction();
 
 /// @brief
 /// @param node
@@ -135,6 +216,15 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   {
     generateFunction(funcNode);
     funcNode = funcNode->binding;
+  }
+
+  char *ifjStrcmpLabel;
+  bool created = IdIndexer_GetOrCreate(labelIndexer, "ifj_strcmp", &ifjStrcmpLabel);
+  bool generateStrcmpFunction = !created;
+  if (generateStrcmpFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
+    generateIfjStrcmpFunction();
   }
 
   // Add label to the end of the program. After main function is done,
@@ -292,6 +382,11 @@ void generateFunctionParametersInitialization(Param *param)
   // Load variable from stack
   Instruction inst = initInstr1(INST_POPS, var);
   addInstruction(inst);
+}
+
+void generateIfjStrcmpFunction()
+{
+  fprintf(outputStream, ifjStrcmpFunctionBody);
 }
 
 ASTNode *generateStatement(ASTNode *node)
@@ -825,10 +920,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   {
     // TODO: Implement substring
   }
-  else if (strcmp(node->value.string, "ifj.strcmp") == 0)
-  {
-    // TODO: Implement strcmp
-  }
   else if (strcmp(node->value.string, "ifj.ord") == 0)
   {
     Operand u8;
@@ -857,12 +948,17 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 
 void generateFunctionCall(ASTNode *node, Operand *outVar)
 {
-  if (strncmp(node->value.string, "ifj.", 4) == 0)
+  char *functionName = node->value.string;
+  if (strcmp(node->value.string, "ifj.strcmp") == 0)
+  {
+    functionName = "ifj_strcmp";
+  }
+  else if (strncmp(node->value.string, "ifj.", 4) == 0)
   {
     generateBuiltInFunctionCall(node, outVar);
     return;
   }
-  loginfo("Generating function call: %s", node->value.string);
+  loginfo("Generating function call: %s", functionName);
 
   // Create TF for parameters
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
@@ -881,10 +977,10 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
   addInstruction(pushFrameInst);
 
-  loginfo("Calling function: %s", node->value.string);
+  loginfo("Calling function: %s", functionName);
 
   // Call function
-  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(node->value.string));
+  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(functionName));
   addInstruction(callInst);
 
   // Pop frame
