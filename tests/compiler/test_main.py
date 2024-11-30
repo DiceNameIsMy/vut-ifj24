@@ -5,9 +5,9 @@ from main import run_compiler, run_interpreter
 
 
 @pytest.mark.parametrize("program_name, interpreter_input, expected_interpreter_output", [
-    ("hello_world.ifj24.zig", "", "Hello World!"),
+    ("hello_world.ifj24.zig", "", "Hello World!\n"),
     ("factorial_rec.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
-    ("stdfunc.ifj24.zig", "", "str1str2"),
+    ("stdfunc.ifj24.zig", "", "ifj.string: str1str2\nifj.chr: A\n"),
     # TODO: Add implicit literal conversion
     # ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
 ])
@@ -28,7 +28,7 @@ def test_program(program_name, interpreter_input, expected_interpreter_output):
         interpreter_stdout, interpreter_stderr, interpreter_returncode = run_interpreter(output_file_path, interpreter_input)
 
         assert interpreter_returncode == 0, f"Interpreter error: {interpreter_stderr}"
-        assert interpreter_stdout.strip() == expected_interpreter_output
+        assert interpreter_stdout == expected_interpreter_output
     finally:
         # Cleanup
         if os.path.exists(output_file_path):

@@ -835,7 +835,13 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   }
   else if (strcmp(node->value.string, "ifj.chr") == 0)
   {
-    // TODO: Implement chr
+    Operand convertOperand;
+    generateExpression(node->left, &convertOperand);
+    Instruction convertInst = initInstr2(
+        INST_INT2CHAR,
+        *outVar,
+        convertOperand);
+    addInstruction(convertInst);
   }
   else
   {
