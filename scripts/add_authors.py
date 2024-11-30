@@ -5,12 +5,17 @@ def get_file_heading(file_path):
     try:
         # Run the bash script
         result = subprocess.run(['bash', './scripts/get_authors_str.sh', file_path], capture_output=True, text=True)
-
+        stdout = result.stdout if result.stdout is not None else ""
+        stdout = (stdout
+                  .replace("- malbert", "- Albert Popov")
+                  .replace("- GladiatorEntered", "- Kraso... Ole...")
+                  .replace("- Fundgod", "- Ivan Savin"))
+        
         if result.stderr:
             print("Errors:" + result.stderr)
             raise Exception("An error occurred while running the script")
 
-        return result.stdout
+        return stdout
     except Exception as e:
         print(f"An error occurred while running the script: {e}")
 
