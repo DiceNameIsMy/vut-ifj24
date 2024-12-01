@@ -757,6 +757,49 @@ TEST(colon_test)
     }
 ENDTEST
 
+TEST(underscore_id)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("a_b + _", &tokenArray);
+
+    Token t;
+    // a_b
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "a_b") != 0) {
+        FAILCOMPS("Wrong attribute value", "a_b", t.attribute.str);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_ADDITION)) {
+        return;
+    }
+    // _
+    if (!check_token(&t, TOKEN_ID)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "_") != 0) {
+        FAILCOMPS("Wrong attribute value", "_", t.attribute.str);
+    }
+ENDTEST
+
+TEST (xdd_string_test)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("\"\\x2B \\x2a\"", &tokenArray);
+
+    Token t;
+    // xdd
+    if (!check_token(&t, TOKEN_STRING_LITERAL)) {
+        return;
+    }
+    if (strcmp(t.attribute.str, "+ *") != 0) {
+        FAILCOMPS("Wrong attribute value", "+ *", t.attribute.str);
+    }
+ENDTEST
+
 int main() {
     initTokenArray(&tokenArray);
 

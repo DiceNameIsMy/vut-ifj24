@@ -69,6 +69,7 @@ __attribute__((weak)) void endWithCode(int code) {
     ;
     // TODO: uncomment when time comes
     freeDynBuffer(&buff); // free the buffer (it was allocated during initialization) and was not freed yet
+    freeTokenArray(lexer_tokenArr); // free the token array (it was allocated during initialization) and was not freed yet
     exit(code);
 }
 
@@ -79,6 +80,9 @@ int streamToString(FILE *stream, char **str) {
 
     DynBuffer buff;
     initDynBuffer(&buff, -1);
+    if (buff.data == NULL) {
+        endWithCode(99); // ERROR - allocation error
+    }
 
     char buffer[512];
     while (fgets(buffer, 512, stream)) {
@@ -718,6 +722,9 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
 
     // Initialize the buffer with default size (-1 triggers default size)
     initDynBuffer(&buff, -1);
+    if (buff.data == NULL) {
+        endWithCode(99); // ERROR - allocation error
+    }
     // Initialize the token array
     lexer_tokenArr = tokenArray;
 

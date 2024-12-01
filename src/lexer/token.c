@@ -10,7 +10,7 @@ int initTokenArray(TokenArray *array) {
     array->tokens = (Token *) malloc(TOKEN_ARRAY_INIT_CAPACITY * sizeof(Token));
     if (!array->tokens) {
         loginfo("Malloc Memory ERROR\n");
-        return -1;
+        exit(99); // Token array is inicialized at the start of the program, so it is critical to have it
     }
     array->size = 0;
     array->capacity = TOKEN_ARRAY_INIT_CAPACITY;
