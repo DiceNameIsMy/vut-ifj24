@@ -19,41 +19,11 @@ SymTable Table;
 
 ASTNode* astNode;
 
-int endWithCode(int code) {
-    exit(code);
-}
-
-char* readStdinAsString() {
-    char* buffer = NULL;
-    size_t bufferSize = 0;
-    size_t totalSize = 0;
-
-    char temp[CHUNK_SIZE];  // Temporary buffer to read in chunks
-    while (fgets(temp, CHUNK_SIZE, stdin) != NULL) {
-        size_t tempLen = strlen(temp);
-
-        // Allocate (or reallocate) memory for the main buffer
-        char* newBuffer = realloc(buffer, totalSize + tempLen + 1);
-        if (newBuffer == NULL) {
-            perror("Failed to allocate memory");
-            free(buffer);
-            return NULL;
-        }
-
-        buffer = newBuffer;
-
-        // Copy the temporary buffer content into the main buffer
-        strcpy(buffer + totalSize, temp);
-        totalSize += tempLen;
-    }
-
-    return buffer;
-}
-
 int main(void) {
     // Read the source code from stdin
-    char* source_code = readStdinAsString();
-    if (source_code == NULL) {
+    char* source_code;
+
+    if (streamToString(stdin, &source_code) != 0) {
         return 99; // Exit with an allocation error
     }
     SymTable_Init(&Table);
@@ -68,6 +38,7 @@ int main(void) {
 
     freeTokenArray(&tokenArray); // Free the token array
     clearAstNode(astNode);
+
     return 0;
 }
 
