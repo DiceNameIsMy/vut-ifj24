@@ -1,18 +1,19 @@
 //
 // Created by malbert on 10/5/24.
 //
-#include "token.h"
-#include "ast.h"
-#include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
+#include "logging.h"
+#include "token.h"
+#include "ast.h"
+#include "parser.h"
 
 Token token;
 TokenArray *tokenArr;
 SymTable *sym_Table;
 unsigned int stat_index = 0;
-bool falseStatement = false;
 type_t type_to_return; //semantic return checks
 type_t type_returned; //semantic return checks
 
@@ -93,7 +94,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
             funName.type = FUNCTION;
             funName.paramList = NULL;
             if(SymTable_Search(table, funName.name) != NULL) {
-                fprintf(stderr, "Error: redefinition of a function!\n");
+                loginfo("Error: redefinition of a function!\n");
                 exit(5);
             }
             SymTable_AddSymbol(table, &funName);
@@ -202,7 +203,10 @@ void match(TokenType expected) {
         token = get_next_token(); // Move to the next token
     } else {
         // Handle syntax error
-        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
+        loginfo("Syntax error: expected %d at idx %i, but got %d\n", expected, stat_index, (TokenType)token.type);
+        if (token.type == TOKEN_ERROR) {
+            loginfo("Error message: %s\n", token.attribute.str);
+        }
         exit(2); // or handle error gracefully
     }
 }
@@ -212,7 +216,7 @@ bool isMatch(TokenType expected) {
         return true;// Move to the next token
     } else {
         // Handle syntax error
-        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
+        loginfo("Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
         exit(2); // or handle error gracefully
     }
 }
@@ -263,13 +267,13 @@ ASTNode* parseFunctionDef() {
         if_malloc_error(functionName);
     } else{
         // Handle syntax error
-        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
         exit(2); // or handle error gracefully
     }
     match(TOKEN_ID);
 
     type_to_return = SymTable_GetRetType(sym_Table, functionName);
-    //fprintf(stderr, "For function %s we need ret.type %d", functionName, (int)type_to_return);
+    //loginfo("For function %s we need ret.type %d", functionName, (int)type_to_return);
     type_returned = UNDEFINED;
 
     // Create an AST node for the function definition
@@ -288,7 +292,7 @@ ASTNode* parseFunctionDef() {
     funcNode->next = parseStatementList();  // Attach the function body statements
     match(TOKEN_RIGHT_CURLY_BRACKET);
     if(type_to_return != NONE && type_returned == UNDEFINED) {
-        fprintf(stderr, "Error: no return statement was provided in function %s\n", functionName);
+        loginfo("Error: no return statement was provided in function %s\n", functionName);
         exit(6);
     }
 
@@ -345,7 +349,7 @@ ASTNode* parseParamListTail() {
         }
         else{
             // Handle syntax error
-            fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+            loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
             exit(2); // or handle error gracefully
         }
         Symbol symbol;
@@ -358,7 +362,7 @@ ASTNode* parseParamListTail() {
         symbol.retType = NONE;
         symbol.paramList = NULL;
         if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-            fprintf(stderr, "Error: resefinition of a variable!\n");
+            loginfo("Error: resefinition of a variable!\n");
             exit(5);
         }
         SymTable_AddSymbol(sym_Table, &symbol);
@@ -440,28 +444,10 @@ ASTNode* parseStatementList() {
 
         if (head == NULL) {
             head = stmtNode;  // The first statement becomes the head
-            if (falseStatement){
-                afterElse = stmtNode;
-                while (afterElse->next != NULL){
-                    afterElse = afterElse->next;
-                }
-            }
-        }
-        else if (falseStatement && afterElse){
-            afterElse->next = stmtNode;
-            falseStatement = false;
         }
         else if (current != NULL){
             current->next = stmtNode;  // Link the new statement to the previous one
-            if (falseStatement){
-                afterElse = stmtNode;
-                while (afterElse->next != NULL){
-                    afterElse = afterElse->next;
-                }
-            }
-
         }
-
         current = stmtNode;  // Move the current pointer to the newly added statement
     }
 
@@ -497,7 +483,7 @@ ASTNode* parseStatement() {
             break;
         default:
             // Handle syntax error for unexpected token
-            fprintf(stderr, "Syntax error: unexpected token in statement\n");
+            loginfo("Syntax error: unexpected token in statement (%i)\n", token.type);
             exit(2);
     }
 
@@ -543,7 +529,7 @@ ASTNode* parseConstDeclaration() {
     }
     else{
         // Handle syntax error
-        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
         exit(2); // or handle error gracefully
     }
 
@@ -560,15 +546,15 @@ ASTNode* parseConstDeclaration() {
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
     symbol.type = typeConv(symbol.type, exprNode->valType);
     if(symbol.type == NONE) {
-        fprintf(stderr, "Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
+        loginfo("Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
         exit(7);//I'll lookup the right code later or even write a special routine for this
     }
     if(symbol.type == UNDEFINED) {
-        fprintf(stderr, "Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
+        loginfo("Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
         exit(8);
     }
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        fprintf(stderr, "Error: redefinition of a const\n");
+        loginfo("Error: redefinition of a const\n");
         exit(5); //exit with error (redefinition!!!!)
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -642,7 +628,7 @@ ASTNode* parseRelationalTail(ASTNode* left) {
                         right->nodeType == IntLiteral && (left->valType == F64 || left->valType == F64_NULLABLE) ||
                         left->nodeType == IntLiteral && (right->valType == F64 || right->valType == F64_NULLABLE));
         if(!canCmp) { //TODO: cmp logic
-            fprintf(stderr, "Error: Cannot compare uncompatible types\n");
+            loginfo("Error: Cannot compare uncompatible types\n");
             exit(7);
         }
         // Create an AST node for the relational operation
@@ -668,7 +654,7 @@ ASTNode* parseSimpleExpression() {
         ASTNode* right = parseTerm();
 
         if((right->valType != I32 || left->valType != I32) && (right->valType != F64 || left->valType != F64)) {
-            fprintf(stderr, "Error: cannot add/subtract uncompatible types\n");
+            loginfo("Error: cannot add/subtract uncompatible types\n");
             exit(7);
         }
         // Create a binary operation node
@@ -691,7 +677,7 @@ ASTNode* parseTerm() {
         // Parse the next factor (right operand)
         ASTNode* right = parseFactor();
         if((right->valType != I32 || left->valType != I32) && (left->valType != F64 || right->valType != F64)) {
-            fprintf(stderr, "Error: cannot multiply/divide uncompatible types\n");
+            loginfo("Error: cannot multiply/divide uncompatible types\n");
             exit(7);
         }
         // Create a binary operation node
@@ -728,7 +714,7 @@ ASTNode* parseFactor() {
             }
             else{
                 // Handle syntax error
-                fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+                loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
                 exit(2); // or handle error gracefully
             }
 
@@ -736,7 +722,7 @@ ASTNode* parseFactor() {
 
 
             if(SymTable_Search(sym_Table, functionName) == NULL || SymTable_GetType(sym_Table, functionName) != FUNCTION) {
-                fprintf(stderr, "Error: Function %s not declared\n", functionName);
+                loginfo("Error: Function %s not declared\n", functionName);
                 exit(3); //NOT DECLARED OR NOT A FUNCTION
             }
             SymTable_SetUsed(sym_Table, functionName, true);
@@ -760,7 +746,7 @@ ASTNode* parseFactor() {
         else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             
             if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
-                fprintf(stderr, "Error: Function %s not declared\n", identifier);
+                loginfo("Error: Function %s not declared\n", identifier);
                 exit(3); //NOT DECLARED OR NOT A FUNCTION 
             }
             SymTable_SetUsed(sym_Table, identifier, true);
@@ -771,7 +757,7 @@ ASTNode* parseFactor() {
         } else {
             
             if(SymTable_Search(sym_Table, identifier) == NULL) {
-                fprintf(stderr, "Error: variable %s not declared\n", identifier);
+                loginfo("Error: variable %s not declared\n", identifier);
                 exit(3); //NOT DECLARED
             }
             SymTable_SetUsed(sym_Table, identifier, true);
@@ -805,7 +791,7 @@ ASTNode* parseFactor() {
         match(token.type);  // Consume the literal or `null`
     } else {
         // Handle syntax error if no valid factor is found
-        fprintf(stderr, "Syntax error: unexpected token in factor\n");
+        loginfo("Syntax error: unexpected token %i with idx %i in factor\n", token.type, stat_index);
         exit(2);
     }
 
@@ -829,7 +815,7 @@ ASTNode* parseFunctionCall(char *funcName) {
 
         
         if(param == NULL || typeConv(param->paramType, currentArg->valType) == NONE) { //incorrect count or type
-            fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
+            loginfo("Error: Invalid count/type of arguments in function call %s\n", funcName);
             exit(4);
         }
 
@@ -844,7 +830,7 @@ ASTNode* parseFunctionCall(char *funcName) {
 
             param = param->next;
             if(param == NULL || typeConv(param->paramType, currentArg->valType) == NONE) {
-                fprintf(stderr, "Error: Invalid count/type of arguments in function call %s\n", funcName);
+                loginfo("Error: Invalid count/type of arguments in function call %s\n", funcName);
                 exit(4);
             }
         }
@@ -853,7 +839,7 @@ ASTNode* parseFunctionCall(char *funcName) {
         param = param->next;
     }
     if(param != NULL) { //too few arguments
-        fprintf(stderr, "Error: Too few arguments provided fpr function %s\n", funcName);
+        loginfo("Error: Too few arguments provided fpr function %s\n", funcName);
         exit(4); 
     }
     
@@ -879,7 +865,7 @@ ASTNode* parseVarDeclaration() {
         symbol.paramList = NULL;
     } else{
         // Handle syntax error
-        fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+        loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
         exit(2); // or handle error gracefully
     }
     match(TOKEN_ID);  // Match the identifier (variable name)
@@ -895,15 +881,15 @@ ASTNode* parseVarDeclaration() {
 
     symbol.type = typeConv(symbol.type, exprNode->valType);
     if(symbol.type == NONE) {
-        fprintf(stderr, "Error: Cannot assign a value to a variable of incompatible type : %s\n", symbol.name);
+        loginfo("Error: Cannot assign a value to a variable of incompatible type : %s\n", symbol.name);
         exit(7);
     }
     if(symbol.type == UNDEFINED) {
-        fprintf(stderr, "Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
+        loginfo("Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
         exit(8);
     }
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        fprintf(stderr, "Error: Redefinition of a variable: %s", symbol.name);
+        loginfo("Error: Redefinition of a variable: %s", symbol.name);
         exit(5); //REDEFINITION!
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -942,7 +928,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         }
         
         if(SymTable_Search(sym_Table, functionName) == NULL) {
-            fprintf(stderr, "Error: Function %s not defined\n", functionName);
+            loginfo("Error: Function %s not defined\n", functionName);
             exit(3); //DOESN'T EXIST
         }
         SymTable_SetUsed(sym_Table, functionName, true);
@@ -961,7 +947,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
         funcCallNode->valType = SymTable_GetRetType(sym_Table, functionName);
         if(funcCallNode->valType != NONE) {
-            fprintf(stderr, "Error: Function (%s) output is abandoned\n", functionName);
+            loginfo("Error: Function (%s) output is abandoned\n", functionName);
             exit(4);
         }
         funcCallNode->left = params;  // Attach parameters as left child
@@ -974,19 +960,19 @@ ASTNode* parseAssignmentOrFunctionCall() {
         match(TOKEN_ASSIGNMENT);  // Match '='
 
         if(SymTable_Search(sym_Table, identifier) == NULL) { 
-            fprintf(stderr, "Error: variable %s not defined\n", identifier);
+            loginfo("Error: variable %s not defined\n", identifier);
             exit(3); //DOESNT EXIST OR A CONST ASSIGNMENT
         }
         
         if(!SymTable_GetMut(sym_Table, identifier)) {
-            fprintf(stderr, "Error: invalid assignment to a constant: %s\n", identifier);
+            loginfo("Error: invalid assignment to a constant: %s\n", identifier);
             exit(5);
         }
         SymTable_SetUsed(sym_Table, identifier, true);
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
         if(typeConv(SymTable_GetType(sym_Table, identifier), exprNode->valType) == NONE) { //typecheck
-            fprintf(stderr, "Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
+            loginfo("Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
             exit(7);
         }
         ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
@@ -997,13 +983,13 @@ ASTNode* parseAssignmentOrFunctionCall() {
     } else if(token.type == TOKEN_LEFT_ROUND_BRACKET) {
         // Handle function call
         if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
-            fprintf(stderr, "Error: function %s not defined\n", identifier);
+            loginfo("Error: function %s not defined\n", identifier);
             exit(3); //DOESN'T EXIST OR NOT A FUNCTION
         }
         SymTable_SetUsed(sym_Table, identifier, true);
         ASTNode* funcCallNode = createASTNode(FuncCall, identifier);  // Create function call node
         if(SymTable_GetRetType(sym_Table, identifier) != NONE) {
-            fprintf(stderr, "Error: Function (%s) output is abandoned\n", identifier);
+            loginfo("Error: Function (%s) output is abandoned\n", identifier);
             exit(4);
         }
         funcCallNode->left = parseFunctionCall(identifier);  // Attach the argument list as the left child
@@ -1012,7 +998,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         return funcCallNode;
     } else {
         // Handle syntax error for unexpected token after identifier
-        fprintf(stderr, "Syntax error: unexpected token after identifier\n");
+        loginfo("Syntax error: unexpected token after identifier\n");
         exit(2);
     }
 }
@@ -1046,7 +1032,7 @@ ASTNode* parseIfCondition() {
                 symbol.type = U8_ARRAY;
                 break;
             default:
-                fprintf(stderr, "Error: Nullable binding with non-nullable value.\n");
+                loginfo("Error: Nullable binding with non-nullable value.\n");
                 exit(7);//INVALID CONDITION TYPE
         }
         
@@ -1062,7 +1048,7 @@ ASTNode* parseIfCondition() {
     }
     
     if(bindingNode == NULL && conditionNode->valType != BOOL) { //PERHAPS
-        fprintf(stderr, "Error: Cannot evaluate a condition\n");
+        loginfo("Error: Cannot evaluate a condition\n");
         exit(7);
     }
 
@@ -1076,7 +1062,6 @@ ASTNode* parseIfCondition() {
     // Optional 'else' block
     ASTNode* falseBranch = NULL;
     if (token.type == TOKEN_KEYWORD_ELSE) {
-        falseStatement = true;
         match(TOKEN_KEYWORD_ELSE);// Match 'else'
         if (token.type == TOKEN_KEYWORD_IF){
             falseBranch = parseIfCondition();
@@ -1134,7 +1119,7 @@ ASTNode* parseWhileCondition() {
                     symbol.type = U8_ARRAY;
                     break;
                 default:
-                    fprintf(stderr, "Error: Nullable binding with non-nullable value.\n");
+                    loginfo("Error: Nullable binding with non-nullable value.\n");
                     exit(7);//INVALID CONDITION TYPE
             }
             symbol.mut = true;
@@ -1145,7 +1130,7 @@ ASTNode* parseWhileCondition() {
         }
         else{
             // Handle syntax error
-            fprintf(stderr ,"Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
+            loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
             exit(2); // or handle error gracefully
         }
         match(TOKEN_ID);                // Match identifier for nullable binding
@@ -1154,7 +1139,7 @@ ASTNode* parseWhileCondition() {
     }
     
     if(bindingNode == NULL && conditionNode->valType != BOOL) {
-        fprintf(stderr, "Error: Cannot evaluate a condition\n");
+        loginfo("Error: Cannot evaluate a condition\n");
         exit(7);
     }
 
@@ -1191,7 +1176,7 @@ ASTNode* parseReturnStatement() {
     returnNode->valType = (exprNode == NULL) ? NONE : exprNode->valType;
     type_returned = returnNode->valType;
     if(type_to_return != type_returned && typeConv(type_to_return, returnNode->valType) == NONE) {
-        fprintf(stderr, "Error: tried to return a value of a wrong type in a function\n");
+        loginfo("Error: tried to return a value of a wrong type in a function\n");
         exit(4); //WRONG RETURN TYPE
     }
     returnNode->left = exprNode;  // Attach the expression as the left child (if present)
@@ -1210,7 +1195,7 @@ Token get_next_token(){
 
 void if_malloc_error(const char* string){
     if (string == NULL){
-        fprintf(stderr, "Memory allocation failed for string\n");
+        loginfo("Memory allocation failed for string\n");
         exit(99);
     }
 

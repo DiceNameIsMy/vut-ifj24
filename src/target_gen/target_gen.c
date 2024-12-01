@@ -24,6 +24,153 @@ IdIndexer *funcVarsIndexer = NULL;
 
 IdIndexer *labelIndexer = NULL;
 
+/// @brief These are bodies of complex builtin functions. 
+///        They were generated manually and are added to the 
+///        resulting code if they are used within the program.
+const char *ifjStrcmpFunctionBody =
+    "DEFVAR LF@b_0000\n"
+    "DEFVAR LF@a_0001\n"
+    "DEFVAR LF@lena_0002\n"
+    "DEFVAR LF@tmp_0003\n"
+    "DEFVAR LF@lenb_0004\n"
+    "DEFVAR LF@tmp_0005\n"
+    "DEFVAR LF@minLen_0006\n"
+    "DEFVAR LF@tmp_0007\n"
+    "DEFVAR LF@i_0008\n"
+    "DEFVAR LF@tmp_0009\n"
+    "DEFVAR LF@aChar_0010\n"
+    "DEFVAR LF@tmp_0011\n"
+    "DEFVAR LF@bChar_0012\n"
+    "DEFVAR LF@tmp_0013\n"
+    "DEFVAR LF@tmp_0014\n"
+    "DEFVAR LF@tmp_0015\n"
+    "DEFVAR LF@tmp_0016\n"
+    "DEFVAR LF@tmp_0017\n"
+    "DEFVAR LF@tmp_0018\n"
+    "DEFVAR LF@tmp_0019\n"
+    "DEFVAR LF@tmp_0020\n"
+    "POPS LF@b_0000\n"
+    "POPS LF@a_0001\n"
+    "STRLEN LF@tmp_0003 LF@a_0001\n"
+    "MOVE LF@lena_0002 LF@tmp_0003\n"
+    "STRLEN LF@tmp_0005 LF@b_0000\n"
+    "MOVE LF@lenb_0004 LF@tmp_0005\n"
+    "MOVE LF@minLen_0006 LF@lena_0002\n"
+    "LT LF@tmp_0007 LF@lenb_0004 LF@lena_0002\n"
+    "JUMPIFEQ end_if_0005 LF@tmp_0007 bool@false\n"
+    "MOVE LF@minLen_0006 LF@lenb_0004\n"
+    "LABEL end_if_0005\n"
+    "MOVE LF@i_0008 int@0\n"
+    "LABEL while_iteration_0006\n"
+    "LT LF@tmp_0009 LF@i_0008 LF@minLen_0006\n"
+    "JUMPIFEQ end_while_0007 LF@tmp_0009 bool@false\n"
+    "STRI2INT LF@tmp_0011 LF@a_0001 LF@i_0008\n"
+    "MOVE LF@aChar_0010 LF@tmp_0011\n"
+    "STRI2INT LF@tmp_0013 LF@b_0000 LF@i_0008\n"
+    "MOVE LF@bChar_0012 LF@tmp_0013\n"
+    "LT LF@tmp_0014 LF@aChar_0010 LF@bChar_0012\n"
+    "JUMPIFEQ if_true_0009 LF@tmp_0014 bool@true\n"
+    "GT LF@tmp_0015 LF@aChar_0010 LF@bChar_0012\n"
+    "JUMPIFEQ end_if_0010 LF@tmp_0015 bool@false\n"
+    "PUSHS int@1\n"
+    "RETURN\n"
+    "LABEL end_if_0010\n"
+    "JUMP end_if_0008\n"
+    "LABEL if_true_0009\n"
+    "SUB LF@tmp_0016 int@0 int@1\n"
+    "PUSHS LF@tmp_0016\n"
+    "RETURN\n"
+    "LABEL end_if_0008\n"
+    "ADD LF@tmp_0017 LF@i_0008 int@1\n"
+    "MOVE LF@i_0008 LF@tmp_0017\n"
+    "JUMP while_iteration_0006\n"
+    "LABEL end_while_0007\n"
+    "LT LF@tmp_0018 LF@lena_0002 LF@lenb_0004\n"
+    "JUMPIFEQ if_true_0012 LF@tmp_0018 bool@true\n"
+    "GT LF@tmp_0019 LF@lena_0002 LF@lenb_0004\n"
+    "JUMPIFEQ end_if_0013 LF@tmp_0019 bool@false\n"
+    "PUSHS int@1\n"
+    "RETURN\n"
+    "LABEL end_if_0013\n"
+    "JUMP end_if_0011\n"
+    "LABEL if_true_0012\n"
+    "SUB LF@tmp_0020 int@0 int@1\n"
+    "PUSHS LF@tmp_0020\n"
+    "RETURN\n"
+    "LABEL end_if_0011\n"
+    "PUSHS int@0\n"
+    "RETURN\n";
+
+const char *ifjSubstringFunctionBody =
+    "DEFVAR LF@j_0000\n"
+    "DEFVAR LF@i_0001\n"
+    "DEFVAR LF@s_0002\n"
+    "DEFVAR LF@len_0003\n"
+    "DEFVAR LF@tmp_0004\n"
+    "DEFVAR LF@tmp_0005\n"
+    "DEFVAR LF@tmp_0006\n"
+    "DEFVAR LF@tmp_0007\n"
+    "DEFVAR LF@tmp_0008\n"
+    "DEFVAR LF@tmp_0009\n"
+    "DEFVAR LF@ssub_0010\n"
+    "DEFVAR LF@tmp_0011\n"
+    "DEFVAR LF@idx_0012\n"
+    "DEFVAR LF@tmp_0013\n"
+    "DEFVAR LF@charStr_0014\n"
+    "DEFVAR LF@tmp_0015\n"
+    "DEFVAR LF@tmp_0016\n"
+    "DEFVAR LF@tmp_0017\n"
+    "DEFVAR LF@tmp_0018\n"
+    "POPS LF@j_0000\n"
+    "POPS LF@i_0001\n"
+    "POPS LF@s_0002\n"
+    "STRLEN LF@tmp_0004 LF@s_0002\n"
+    "MOVE LF@len_0003 LF@tmp_0004\n"
+    "LT LF@tmp_0005 LF@i_0001 int@0\n"
+    "JUMPIFEQ end_if_0014 LF@tmp_0005 bool@false\n"
+    "PUSHS nil@nil\n"
+    "RETURN\n"
+    "LABEL end_if_0014\n"
+    "LT LF@tmp_0006 LF@j_0000 int@0\n"
+    "JUMPIFEQ end_if_0015 LF@tmp_0006 bool@false\n"
+    "PUSHS nil@nil\n"
+    "RETURN\n"
+    "LABEL end_if_0015\n"
+    "GT LF@tmp_0007 LF@i_0001 LF@j_0000\n"
+    "JUMPIFEQ end_if_0016 LF@tmp_0007 bool@false\n"
+    "PUSHS nil@nil\n"
+    "RETURN\n"
+    "LABEL end_if_0016\n"
+    "LT LF@tmp_0008 LF@i_0001 LF@len_0003\n"
+    "NOT LF@tmp_0008 LF@tmp_0008\n"
+    "JUMPIFEQ end_if_0017 LF@tmp_0008 bool@false\n"
+    "PUSHS nil@nil\n"
+    "RETURN\n"
+    "LABEL end_if_0017\n"
+    "LT LF@tmp_0009 LF@j_0000 LF@len_0003\n"
+    "NOT LF@tmp_0009 LF@tmp_0009\n"
+    "JUMPIFEQ end_if_0018 LF@tmp_0009 bool@false\n"
+    "PUSHS nil@nil\n"
+    "RETURN\n"
+    "LABEL end_if_0018\n"
+    "MOVE LF@tmp_0011 string@\n"
+    "MOVE LF@ssub_0010 LF@tmp_0011\n"
+    "MOVE LF@idx_0012 LF@i_0001\n"
+    "LABEL while_iteration_0019\n"
+    "LT LF@tmp_0013 LF@idx_0012 LF@j_0000\n"
+    "JUMPIFEQ end_while_0020 LF@tmp_0013 bool@false\n"
+    "STRI2INT LF@tmp_0016 LF@s_0002 LF@idx_0012\n"
+    "INT2CHAR LF@tmp_0015 LF@tmp_0016\n"
+    "MOVE LF@charStr_0014 LF@tmp_0015\n"
+    "CONCAT LF@tmp_0017 LF@ssub_0010 LF@charStr_0014\n"
+    "MOVE LF@ssub_0010 LF@tmp_0017\n"
+    "ADD LF@tmp_0018 LF@idx_0012 int@1\n"
+    "MOVE LF@idx_0012 LF@tmp_0018\n"
+    "JUMP while_iteration_0019\n"
+    "LABEL end_while_0020\n"
+    "PUSHS LF@ssub_0010\n"
+    "RETURN\n";
+
 /**********************************************************/
 /* Private Function Declarations */
 /**********************************************************/
@@ -38,11 +185,13 @@ Operand createTmpVar(char *name, VarFrameType frame);
 
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
+void generateIfjStrcmpFunction();
+void generateIfjSubstringFunction();
 
 /// @brief
 /// @param node
 /// @return Returns a pointer to a next node to process.
-ASTNode *generateStatement(ASTNode *node);
+void generateStatement(ASTNode *node);
 void generateDeclaration(ASTNode *node);
 void generateAssignment(ASTNode *node);
 
@@ -54,12 +203,12 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar);
 void generateNullBindingCheck(ASTNode *node, Operand *outVar);
 void generateNullBindingAssignment(ASTNode *node);
 
-ASTNode *generateIfCondition(ASTNode *node);
-ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation);
-ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation);
+void generateIfCondition(ASTNode *node);
+void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation);
+void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation);
 
 void generateWhileConditional(ASTNode *node);
-void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
+void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCallParameter(ASTNode *node);
 void generateReturn(ASTNode *node);
@@ -135,6 +284,25 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   {
     generateFunction(funcNode);
     funcNode = funcNode->binding;
+  }
+
+  // Generate complex builtin functions if they were used
+  char *ifjStrcmpLabel;
+  bool created = IdIndexer_GetOrCreate(labelIndexer, "ifj_strcmp", &ifjStrcmpLabel);
+  bool generateStrcmpFunction = !created;
+  if (generateStrcmpFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
+    fprintf(outputStream, ifjStrcmpFunctionBody);
+  }
+
+  char *ifjSubstringLabel;
+  created = IdIndexer_GetOrCreate(labelIndexer, "ifj_substring", &ifjSubstringLabel);
+  bool generateSubstringFunction = !created;
+  if (generateSubstringFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
+    fprintf(outputStream, ifjSubstringFunctionBody);
   }
 
   // Add label to the end of the program. After main function is done,
@@ -245,11 +413,11 @@ void generateFunction(ASTNode *node)
   ASTNode *statementNode = node->next;
   while (statementNode != NULL)
   {
-    statementNode = generateStatement(statementNode);
+    generateStatement(statementNode);
+    statementNode = statementNode->next;
   }
 
   loginfo("Generating function return: %s", node->right->value.string);
-  inspectAstNode(node->right);
   if (strcmp(node->right->value.string, "void") == 0)
   {
     Instruction returnInst = initInstr0(INST_RETURN);
@@ -294,10 +462,13 @@ void generateFunctionParametersInitialization(Param *param)
   addInstruction(inst);
 }
 
-ASTNode *generateStatement(ASTNode *node)
+void generateIfjStrcmpFunction()
 {
-  // loginfo("Generating statement: %s", nodeTypeToString(node->nodeType));
+  fprintf(outputStream, ifjStrcmpFunctionBody);
+}
 
+void generateStatement(ASTNode *node)
+{
   switch (node->nodeType)
   {
   case VarDeclaration:
@@ -308,9 +479,11 @@ ASTNode *generateStatement(ASTNode *node)
     generateAssignment(node);
     break;
   case BlockStatement:
-    return generateStatement(node->left);
+    generateStatement(node->left);
+    break;
   case ConditionalStatement:
     assert(node->left != NULL);
+    loginfo("Generating conditional statement: %s", nodeTypeToString(node->left->nodeType));
     if (node->left->nodeType == IfCondition)
     {
       generateIfCondition(node->left);
@@ -337,7 +510,6 @@ ASTNode *generateStatement(ASTNode *node)
     inspectAstNode(node);
     exit(99);
   }
-  return node->next;
 }
 
 void generateDeclaration(ASTNode *node)
@@ -376,8 +548,6 @@ void generateAssignment(ASTNode *node)
 
 void generateExpression(ASTNode *node, Operand *outVar)
 {
-  loginfo("Generating expression: %s", nodeTypeToString(node->nodeType));
-
   switch (node->nodeType)
   {
   case AddOperation:
@@ -419,7 +589,6 @@ void generateExpression(ASTNode *node, Operand *outVar)
 void generateBinaryExpression(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating binary expression: %s", nodeTypeToString(node->nodeType));
-  inspectAstNode(node);
 
   bool leftIsVar = node->left->nodeType == Identifier;
   bool leftIsConstant = isConstant(node->left);
@@ -435,7 +604,6 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   if (leftIsVar)
   {
     leftOperand = getOrCreateVar(node->left->value.string, FRAME_LF);
-    loginfo("Left operand is a variable: %s", node->left->value.string);
   }
   else if (leftIsConstant)
     leftOperand = initConstantOperand(node->left);
@@ -488,8 +656,6 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
     addInstruction(negateInst);
   }
-
-  loginfo("Binary expression generated");
 }
 
 void generateNullBindingCheck(ASTNode *node, Operand *outVar)
@@ -526,18 +692,13 @@ void generateNullBindingAssignment(ASTNode *node)
           getOrCreateVar(nullableVarName, FRAME_LF)));
 }
 
-ASTNode *generateIfCondition(ASTNode *node)
+void generateIfCondition(ASTNode *node)
 {
-  loginfo("Generating conditional statement");
-  inspectAstNode(node);
-
   Operand endLabel = createTmpLabel("end_if");
 
-  ASTNode *nextStatementNode = unrollIfConditions(node, endLabel, true);
+  unrollIfConditions(node, endLabel, true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
-
-  return nextStatementNode;
 }
 
 /// @brief Processes all nodes of the conditional statement.
@@ -545,14 +706,15 @@ ASTNode *generateIfCondition(ASTNode *node)
 /// @param endLabel
 /// @param firstEvaluation
 /// @return Pointer to a next node to process.
-ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
+void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
   assert(node->nodeType == IfCondition);
 
   bool isLastEvaluation = node->next == NULL || node->next->nodeType != IfCondition;
   if (isLastEvaluation)
   {
-    return unrollLastIfConditional(node, endLabel, firstEvaluation);
+    unrollLastIfConditional(node, endLabel, firstEvaluation);
+    return;
   }
 
   // Evaluate condition
@@ -565,7 +727,6 @@ ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluatio
   {
     generateNullBindingCheck(node, &ifCondition);
   }
-  loginfo("Generated condition for if statement");
 
   // If not last evaluation, JUMP on positive condition
   Instruction jumpToBlockInst = initInstr3(
@@ -576,7 +737,7 @@ ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluatio
   addInstruction(jumpToBlockInst);
 
   // Unroll next evaluation.
-  ASTNode *nextStatementNode = unrollIfConditions(node->next, endLabel, false);
+  unrollIfConditions(node->next, endLabel, false);
 
   // Generate body
   if (node->binding != NULL)
@@ -586,16 +747,17 @@ ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluatio
   ASTNode *ifBlockStatement = node->right;
   while (ifBlockStatement != NULL)
   {
-    ifBlockStatement = generateStatement(ifBlockStatement);
+    generateStatement(ifBlockStatement);
+    ifBlockStatement = ifBlockStatement->next;
   }
 
   Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
   addInstruction(jumpToEnd);
 
-  return nextStatementNode;
+  return;
 }
 
-ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation)
+void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation)
 {
   loginfo("Generating last `if` evaluation");
 
@@ -628,7 +790,9 @@ ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEval
     while (elseBlockStatement != NULL)
     {
       loginfo("Generating else block statement of type %s", nodeTypeToString(elseBlockStatement->nodeType));
-      elseBlockStatement = generateStatement(elseBlockStatement);
+
+      generateStatement(elseBlockStatement);
+      elseBlockStatement = elseBlockStatement->next;
     }
     // Jump to the end
     Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
@@ -644,7 +808,8 @@ ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEval
     ASTNode *ifBlockStatement = node->right;
     while (ifBlockStatement != NULL)
     {
-      ifBlockStatement = generateStatement(ifBlockStatement);
+      generateStatement(ifBlockStatement);
+      ifBlockStatement = ifBlockStatement->next;
     }
   }
   else
@@ -666,7 +831,8 @@ ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEval
     ASTNode *ifBlockStatement = node->right;
     while (ifBlockStatement != NULL)
     {
-      ifBlockStatement = generateStatement(ifBlockStatement);
+      generateStatement(ifBlockStatement);
+      ifBlockStatement = ifBlockStatement->next;
     }
   }
 
@@ -684,8 +850,6 @@ ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEval
 
 void generateWhileConditional(ASTNode *node)
 {
-  inspectAstNode(node);
-
   // Create a label for the beginning of the while loop
   Operand whileIterLabel = createTmpLabel("while_iteration");
   addInstruction(initInstr1(INST_LABEL, whileIterLabel));
@@ -722,8 +886,8 @@ void generateWhileConditional(ASTNode *node)
   while (bodyStatement != NULL)
   {
     loginfo("Generating while loop body statement %s", nodeTypeToString(bodyStatement->nodeType));
-    inspectAstNode(bodyStatement);
-    bodyStatement = generateStatement(bodyStatement);
+    generateStatement(bodyStatement);
+    bodyStatement = bodyStatement->next;
   }
 
   // Jump to the beginning of the loop
@@ -735,10 +899,80 @@ void generateWhileConditional(ASTNode *node)
   loginfo("While loop generated");
 }
 
-void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
+void generateFunctionCall(ASTNode *node, Operand *outVar)
+{
+  char *functionName = node->value.string;
+  if (strcmp(node->value.string, "ifj.strcmp") == 0)
+  {
+    functionName = "ifj_strcmp";
+  }
+  else if (strcmp(node->value.string, "ifj.substring") == 0)
+  {
+    functionName = "ifj_substring";
+  }
+  else if (strncmp(node->value.string, "ifj.", 4) == 0)
+  {
+    generateSimpleBuiltInFunctionCall(node, outVar);
+    return;
+  }
+  loginfo("Generating function call: %s", functionName);
+
+  // Create TF for parameters
+  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
+  addInstruction(createFrameInst);
+
+  // Add parameters
+  inspectAstNode(node);
+  ASTNode *paramNode = node->left;
+  while (paramNode != NULL)
+  {
+    generateFunctionCallParameter(paramNode);
+    paramNode = paramNode->next;
+  }
+
+  // Push frame
+  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
+  addInstruction(pushFrameInst);
+
+  loginfo("Calling function: %s", functionName);
+
+  // Call function
+  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(functionName));
+  addInstruction(callInst);
+
+  // Pop frame
+  Instruction popFrameInst = initInstr0(INST_POPFRAME);
+  addInstruction(popFrameInst);
+
+  // If function returns a value, put it into outVar
+  bool returnsVoid = node->valType == NONE;
+  if (!returnsVoid)
+  {
+    *outVar = createTmpVar("tmp", FRAME_LF);
+    addInstruction(initInstr1(INST_POPS, *outVar));
+  }
+}
+
+void generateFunctionCallParameter(ASTNode *node)
+{
+  loginfo("Generating function call parameter: %s", nodeTypeToString(node->nodeType));
+  inspectAstNode(node);
+
+  // Get operand
+  Operand paramOperand;
+  generateExpression(node, &paramOperand);
+
+  // Push operand to stack
+  Instruction pushInst = initInstr1(INST_PUSHS, paramOperand);
+  addInstruction(pushInst);
+}
+
+void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating builtin function call: %s", node->value.string);
 
+  // ifj.write does not return a value. 
+  // Check for it early to avoid repeating code for operand creation.
   if (strcmp(node->value.string, "ifj.write") == 0)
   {
     Operand writeOperand;
@@ -821,21 +1055,25 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     Instruction concatInst = initInstr3(INST_CONCAT, *outVar, firstOperand, secondOperand);
     addInstruction(concatInst);
   }
-  else if (strcmp(node->value.string, "ifj.substring") == 0)
-  {
-    // TODO: Implement substring
-  }
-  else if (strcmp(node->value.string, "ifj.strcmp") == 0)
-  {
-    // TODO: Implement strcmp
-  }
   else if (strcmp(node->value.string, "ifj.ord") == 0)
   {
-    // TODO: Implement ord
+    // Convert character at given index to int
+    Operand u8;
+    generateExpression(node->left, &u8);
+    Operand idx;
+    generateExpression(node->left->next, &idx);
+    Instruction strToIntInst = initInstr3(INST_STRI2INT, *outVar, u8, idx);
+    addInstruction(strToIntInst);
   }
   else if (strcmp(node->value.string, "ifj.chr") == 0)
   {
-    // TODO: Implement chr
+    Operand convertOperand;
+    generateExpression(node->left, &convertOperand);
+    Instruction convertInst = initInstr2(
+        INST_INT2CHAR,
+        *outVar,
+        convertOperand);
+    addInstruction(convertInst);
   }
   else
   {
@@ -844,69 +1082,9 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   }
 }
 
-void generateFunctionCall(ASTNode *node, Operand *outVar)
-{
-  if (strncmp(node->value.string, "ifj.", 4) == 0)
-  {
-    generateBuiltInFunctionCall(node, outVar);
-    return;
-  }
-  loginfo("Generating function call: %s", node->value.string);
-
-  // Create TF for parameters
-  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  addInstruction(createFrameInst);
-
-  // Add parameters
-  inspectAstNode(node);
-  ASTNode *paramNode = node->left;
-  while (paramNode != NULL)
-  {
-    generateFunctionCallParameter(paramNode);
-    paramNode = paramNode->next;
-  }
-
-  // Push frame
-  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  addInstruction(pushFrameInst);
-
-  loginfo("Calling function: %s", node->value.string);
-
-  // Call function
-  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(node->value.string));
-  addInstruction(callInst);
-
-  // Pop frame
-  Instruction popFrameInst = initInstr0(INST_POPFRAME);
-  addInstruction(popFrameInst);
-
-  // If function returns a value, put it into outVar
-  bool returnsVoid = node->valType == NONE;
-  if (!returnsVoid)
-  {
-    *outVar = createTmpVar("tmp", FRAME_LF);
-    addInstruction(initInstr1(INST_POPS, *outVar));
-  }
-}
-
-void generateFunctionCallParameter(ASTNode *node)
-{
-  loginfo("Generating function call parameter: %s", nodeTypeToString(node->nodeType));
-  inspectAstNode(node);
-
-  // Get operand
-  Operand paramOperand;
-  generateExpression(node, &paramOperand);
-
-  // Push operand to stack
-  Instruction pushInst = initInstr1(INST_PUSHS, paramOperand);
-  addInstruction(pushInst);
-}
-
 void generateReturn(ASTNode *node)
 {
   loginfo("Generating return statement");
-  inspectAstNode(node);
 
   if (node->valType == NONE) // Return void
   {
