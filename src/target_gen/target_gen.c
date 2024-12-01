@@ -259,7 +259,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   IdIndexer_Init(labelIndexer);
 
   // Every .ifjcode program should start with this
-  fprintf(outputStream, ".IFJcode24\n");
+  //fprintf(outputStream, ".IFJcode24\n"); //TODO: uncomment
 
   // Create an initial frame for the program
   Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
@@ -298,7 +298,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
     addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
 
     // TODO: run lexer, then parser, then target code generation for the function body
-    fprintf(outputStream, ifjStrcmpFunctionBody);
+    //fprintf(outputStream, ifjStrcmpFunctionBody); //TODO: uncomment
   }
 
   char *ifjSubstringLabel;
@@ -307,7 +307,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   if (generateSubstringFunction)
   {
     addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
-    fprintf(outputStream, ifjSubstringFunctionBody);
+    //fprintf(outputStream, ifjSubstringFunctionBody); //TODO: uncomment
   }
 
   // Add label to the end of the program. After main function is done,
@@ -476,7 +476,7 @@ void generateFunctionParametersInitialization(Param *param)
 
 void generateIfjStrcmpFunction()
 {
-  fprintf(outputStream, ifjStrcmpFunctionBody);
+  //fprintf(outputStream, ifjStrcmpFunctionBody); //TODO: uncomment
 }
 
 void generateStatement(ASTNode *node)

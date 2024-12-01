@@ -83,61 +83,48 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_PushFuncParam(table, "ifj.chr", I32, "int");    
 
 
-    
-    int token_no = 0;
-    for(token_no = 0; token_no < array->size; token_no++) {
-        if(array->tokens[token_no].type == TOKEN_KEYWORD_FN && token_no != array->size - 1 && array->tokens[token_no+1].type == TOKEN_ID) {
-            Symbol funName;
-            funName.name = array->tokens[token_no + 1].attribute.str;
-            funName.used = false;
-            funName.mut = false;
-            funName.type = FUNCTION;
-            funName.paramList = NULL;
-            if(SymTable_Search(table, funName.name) != NULL) {
-                loginfo("Error: redefinition of a function!\n");
-                exit(5);
-            }
-            SymTable_AddSymbol(table, &funName);
-            token_no+=2;
-            if(token_no >= array->size || array->tokens[token_no].type != TOKEN_LEFT_ROUND_BRACKET) {
-                exit(2);
-            }
-            token_no++;        
-            while(array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET) {
-                if(token_no >= array->size || array->tokens[token_no].type != TOKEN_ID) {
-                    exit(2);
-                }
-                char *paramName = array->tokens[token_no].attribute.str;
-
-                token_no++;
-                if(token_no >= array->size || array->tokens[token_no].type != TOKEN_COLON) {
-                    exit(2);
-                }
-                token_no++;
-                if(token_no >= array->size || idType(array->tokens[token_no]) == NONE) {
-                    exit(2);
-                }
-
-                SymTable_PushFuncParam(table, funName.name, idType(array->tokens[token_no]), paramName);
-
-                token_no++;
-                if(token_no >= array->size || 
-                   (array->tokens[token_no].type != TOKEN_COMMA && array->tokens[token_no].type != TOKEN_RIGHT_ROUND_BRACKET)) {
-                    exit(2);
-                }
-                if(array->tokens[token_no].type == TOKEN_RIGHT_ROUND_BRACKET) {
-                    break;
-                }
-                token_no++;
-            }
-            token_no++;
-            if(token_no >= array->size) {
-                exit(2);
-            }
-            
-            SymTable_SetRetType(table, funName.name, idType(array->tokens[token_no]));
+    while(stat_index < array->size) {
+        if(token.type != TOKEN_KEYWORD_FN) {
+            token = get_next_token();
+            continue;
         }
+        match(TOKEN_KEYWORD_FN);
+        Token id = token;
+        match(TOKEN_ID);
+        Symbol funName;
+        funName.name = id.attribute.str;
+        funName.used = false;
+        funName.mut = false;
+        funName.type = FUNCTION;
+        funName.paramList = NULL;
+        if(SymTable_Search(table, funName.name) != NULL) {
+            loginfo("Error: redefinition of a function!\n");
+            exit(5);
+        }
+        SymTable_AddSymbol(table, &funName);
+        match(TOKEN_LEFT_ROUND_BRACKET);
+        while(token.type != TOKEN_RIGHT_ROUND_BRACKET) {
+            id = token;
+            match(TOKEN_ID);
+            match(TOKEN_COLON);
+            if(idType(token) == NONE) {
+                exit(2);
+            }
+            char *paramName = id.attribute.str;
+            SymTable_PushFuncParam(table, funName.name, idType(token), paramName);
+            token = get_next_token();
+            if(token.type == TOKEN_RIGHT_ROUND_BRACKET) {
+                break;
+            }
+            match(TOKEN_COMMA);
+        }
+        match(TOKEN_RIGHT_ROUND_BRACKET);
+        if(idType(token) == NONE && token.type != TOKEN_KEYWORD_VOID) {
+            exit(2);
+        }
+        SymTable_SetRetType(table, funName.name, idType(token));
     }
+    stat_index = 0;
     return;
 }
 
