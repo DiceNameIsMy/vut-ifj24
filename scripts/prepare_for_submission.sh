@@ -18,8 +18,10 @@ git restore .
 
 cp ./docs/dokumentace.pdf ./${dest_dir}/dokumentace.pdf
 
-content="xpopov10:25\nxturar00:25\nxkraso00:25\nxsavin00:25"
-echo -e "$content" > ./${dest_dir}/rozdeleni
+echo -e "xpopov10:25\nxturar00:25\nxkrasoo00:25\nxsavini00:25" > ./${dest_dir}/rozdeleni
+
+echo -e "FUNEXP" > ./${dest_dir}/rozsireni
+# echo -e "ORELSE\nUNREACHABLE\nBOLLTHEN\nFOR\nWHILE\nFUNEXP" > ./${dest_dir}/rozsireni
 
 tar -czf xpopov10.tar.gz -C ./${dest_dir} .
 

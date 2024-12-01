@@ -8,7 +8,7 @@ def get_file_heading(file_path):
         stdout = result.stdout if result.stdout is not None else ""
         stdout = (stdout
                   .replace("- malbert", "- Albert Popov")
-                  .replace("- GladiatorEntered", "- Kraso... Ole...")
+                  .replace("- GladiatorEntered", "- Krasovskyi Ole")
                   .replace("- Fundgod", "- Ivan Savin"))
         
         if result.stderr:

@@ -64,10 +64,9 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
     return true;
 }
 
-// Error handler
+/// @brief Error handler. Is overriden when running per-component tests
 __attribute__((weak)) void endWithCode(int code) {
-    ;
-    // TODO: uncomment when time comes
+    loginfo("Lexer error: %d", code);
     exit(code);
 }
 
@@ -80,7 +79,6 @@ int streamToString(FILE *stream, char **str) {
     initDynBuffer(&buff, -1);
 
     char buffer[512];
-    // TODO: Is fgets of 512 is correct when buffer size is 512?
     while (fgets(buffer, 512, stream)) {
         if (appendStringDynBuffer(&buff, buffer) == -1) {
             freeDynBuffer(&buff);
