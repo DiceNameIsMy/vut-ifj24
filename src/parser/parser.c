@@ -14,7 +14,6 @@ Token token;
 TokenArray *tokenArr;
 SymTable *sym_Table;
 unsigned int stat_index = 0;
-bool falseStatement = false;
 type_t type_to_return; //semantic return checks
 type_t type_returned; //semantic return checks
 
@@ -445,28 +444,10 @@ ASTNode* parseStatementList() {
 
         if (head == NULL) {
             head = stmtNode;  // The first statement becomes the head
-            if (falseStatement){
-                afterElse = stmtNode;
-                while (afterElse->next != NULL){
-                    afterElse = afterElse->next;
-                }
-            }
-        }
-        else if (falseStatement && afterElse){
-            afterElse->next = stmtNode;
-            falseStatement = false;
         }
         else if (current != NULL){
             current->next = stmtNode;  // Link the new statement to the previous one
-            if (falseStatement){
-                afterElse = stmtNode;
-                while (afterElse->next != NULL){
-                    afterElse = afterElse->next;
-                }
-            }
-
         }
-
         current = stmtNode;  // Move the current pointer to the newly added statement
     }
 
@@ -1081,7 +1062,6 @@ ASTNode* parseIfCondition() {
     // Optional 'else' block
     ASTNode* falseBranch = NULL;
     if (token.type == TOKEN_KEYWORD_ELSE) {
-        falseStatement = true;
         match(TOKEN_KEYWORD_ELSE);// Match 'else'
         if (token.type == TOKEN_KEYWORD_IF){
             falseBranch = parseIfCondition();
