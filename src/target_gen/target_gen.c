@@ -24,6 +24,9 @@ IdIndexer *funcVarsIndexer = NULL;
 
 IdIndexer *labelIndexer = NULL;
 
+/// @brief These are bodies of complex builtin functions. 
+///        They were generated manually and are added to the 
+///        resulting code if they are used within the program.
 const char *ifjStrcmpFunctionBody =
     "DEFVAR LF@b_0000\n"
     "DEFVAR LF@a_0001\n"
@@ -183,6 +186,7 @@ Operand createTmpVar(char *name, VarFrameType frame);
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
 void generateIfjStrcmpFunction();
+void generateIfjSubstringFunction();
 
 /// @brief
 /// @param node
