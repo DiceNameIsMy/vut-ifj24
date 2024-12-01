@@ -64,9 +64,11 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
     return true;
 }
 
-/// @brief Error handler. Is overriden when running per-component tests
+// Error handler
 __attribute__((weak)) void endWithCode(int code) {
-    loginfo("Lexer error: %d", code);
+    ;
+    // TODO: uncomment when time comes
+    freeDynBuffer(&buff); // free the buffer (it was allocated during initialization) and was not freed yet
     exit(code);
 }
 
@@ -95,13 +97,11 @@ int streamToString(FILE *stream, char **str) {
     return 0;
 }
 
-// TODO: CHECK
 bool isWhitespace(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
-// TODO: CHECK
+
 bool isSpecialSymbol(char c) {
-    // TODO: do we need . / &
     const bool specialSymbol = strchr("+-*=()[]{}|,;:><!", c) != NULL;
     return specialSymbol; // return true if c is in the list of special symbols
 }
@@ -149,6 +149,16 @@ void parse_ID_TEMPLATE(){
 
             int check_i = current_char_index;
             // Read the next word into the buffer
+            // if ifj . 12func is possible error
+            if (isdigit(sourceCode[current_char_index])) {
+                // if the next character is a digit, handle as an error or unexpected token
+                Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Error: Expected [function] after 'ifj.'");
+                addToken(lexer_tokenArr, errorToken);
+                emptyDynBuffer(&buff);
+                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+                break;
+            }
             while (inIdTemplate(sourceCode[current_char_index])) {
                 appendDynBuffer(&buff, sourceCode[current_char_index]);
                 current_char_index++;
@@ -169,7 +179,7 @@ void parse_ID_TEMPLATE(){
             const Token token = createToken(TOKEN_ID, attribute);
             addToken(lexer_tokenArr, token);
             emptyDynBuffer(&buff);
-            // added ifj.'functionName' as a token
+            // added [ifj.'functionName'] as a token_id
             // return to the common state
             return;
         } else {
@@ -246,9 +256,9 @@ void parse_ARRAY(){
 void parse_NULLABLE() {
         Token nullableToken;
         nullableToken.attribute.str = NULL;
-        nullableToken.type = TOKEN_ERROR; // Изначально делаем флагом
+        nullableToken.type = TOKEN_ERROR; // for the beginning making it a flag
         
-        // Возможные значения и их типы
+        // Possible nullable types
         const char *nullableKeywords[] = {
             "?i32", "?f64", "?[]u8"
         };
@@ -258,20 +268,20 @@ void parse_NULLABLE() {
         };
         const int keywordsCount = sizeof(nullableKeywords) / sizeof(nullableKeywords[0]);
 
-    // Проверяем каждый ключевой токен
+    // Check every nullable type
     for (int i = 0; i < keywordsCount; i++) {
         size_t keywordLength = strlen(nullableKeywords[i]);
         if (strlen(sourceCode) < current_char_index + keywordLength) {
-            continue; // Пропускаем, если не хватает символов
+            continue; // Skip if the keyword is too long
         }
         if (strncmp(&sourceCode[current_char_index - 1], nullableKeywords[i], keywordLength) == 0) {
             nullableToken.type = nullableTypes[i];
-            current_char_index += keywordLength-1; // Смещаем текущий индекс
+            current_char_index += keywordLength-1; // Move the current index to the end of the keyword
             break;
         }
     }
 
-    // Если токен не был установлен, генерируем ошибку
+    // If the token was not set, generate an error
     if (nullableToken.type == TOKEN_ERROR) {
         initStringAttribute(&nullableToken.attribute, "Expected nullable type");
         addToken(lexer_tokenArr, nullableToken);
@@ -281,7 +291,7 @@ void parse_NULLABLE() {
 
     addToken(lexer_tokenArr, nullableToken);
     emptyDynBuffer(&buff);
-    // Возвращаемся к общему состоянию
+    // Return to the common state
     return;
 }
 
@@ -350,7 +360,6 @@ void parse_SPECIAL_SYMBOL(){
         specialSymbolToken.type = TOKEN_MULTIPLICATION;
         break;
     case '/':
-        // TODO: check solo symbol, all '/' cases and division as a token
         specialSymbolToken.type = TOKEN_DIVISION;
         break;
     // Brackets
@@ -379,9 +388,12 @@ void parse_SPECIAL_SYMBOL(){
     case ',': // TODO: I suppose in functions it works fine
         specialSymbolToken.type = TOKEN_COMMA;
         break;
-    case '.': // TODO: Can dot be a solo symboL?
+    /*
+    // Dot can be parsed from common state only as a part of float number
+    case '.':
         specialSymbolToken.type = TOKEN_DOT;
         break;
+    */
     case ':':
         specialSymbolToken.type = TOKEN_COLON;
         break;
@@ -420,8 +432,8 @@ void parse_NUMBER() {
     Token numberToken;
     numberToken.attribute.str = NULL;
 
-    // Проверка на начальный 0 (не плавающее число)
-    // TODO: do we care about e/E in the beginning?
+    // Check if the number starts with 0
+    // If it does, it can't be followed by a digit
     if (buff.data[0] == '0' && sourceCode[current_char_index] != '.' && 
         sourceCode[current_char_index] != 'e' && sourceCode[current_char_index] != 'E' &&
         isdigit(sourceCode[current_char_index])) {
@@ -432,32 +444,33 @@ void parse_NUMBER() {
         endWithCode(1); // ERROR - invalid number
     }
 
-    int isFloat = 0; // Флаг для определения числа с плавающей запятой
-    int hasExponent = 0; // Флаг для показателя степени
+    int isFloat = 0; // flag for float number
+    int hasExponent = 0; // flag for exponent
 
     while (sourceCode[current_char_index] != '\0') {
         const char c = sourceCode[current_char_index];
 
         if (c >= '0' && c <= '9') {
-            // Число, добавляем к буферу
+            // digit to the number
             appendDynBuffer(&buff, c);
         } else if (c == '.' && !isFloat) {
-            // Если встречается точка, число становится float
+            // if there is a dot, it is a float number
             isFloat = 1;
             appendDynBuffer(&buff, c);
         } else if ((c == 'e' || c == 'E') && !hasExponent) {
-            // Если встречается 'e' или 'E', переходим к обработке степени
             hasExponent = 1;
-            isFloat = 1; // Показатель степени делает число float
             appendDynBuffer(&buff, c);
 
-            // Следующий символ должен быть либо знаком, либо числом
+            // next character must be a digit or + or -
             current_char_index++;
             char next = sourceCode[current_char_index];
             if (next == '+' || next == '-') {
                 appendDynBuffer(&buff, next);
-            } else if (next < '0' || next > '9') {
-                // Ошибка: ожидается число после 'e'/'E'
+                next = sourceCode[++current_char_index];
+            }
+            // check for 0.2e (no digit after e)
+            if (!isdigit(next)) {
+                // a digit expected
                 Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "Invalid exponent format");
                 addToken(lexer_tokenArr, errorToken);
@@ -468,13 +481,13 @@ void parse_NUMBER() {
                 appendDynBuffer(&buff, next);
             }
         } else {
-            // Конец числа
+            // End of the number
             break;
         }
         current_char_index++;
     }
 
-    // Проверка на валидность буфера (недопустимо пустое число)
+    // Check if the number ends with a dot
     if (isFloat && buff.data[buff.nextIdx - 1] == '.') {
         Token errorToken = {.type = TOKEN_ERROR};
         initStringAttribute(&errorToken.attribute, "Invalid number format");
@@ -483,8 +496,8 @@ void parse_NUMBER() {
         endWithCode(1); // ERROR - invalid number format
     }
 
-    // Определяем тип токена
-    if (isFloat) {
+    // Determine the type of the number
+    if (isFloat || hasExponent) {
         double fValue = strtod(buff.data, NULL);
         numberToken.attribute.real = fValue;
         numberToken.type = TOKEN_F64_LITERAL;
@@ -559,7 +572,6 @@ void parse_MULTILINE_STRING() {
             parse_MULTILINE_STRING_SKIP_WHITESPACE();
             return;
         } else if (c == '\\') {
-            // TODO: can replace nextChar with c 
             char nextChar = sourceCode[current_char_index];
             current_char_index++;
             switch (nextChar){
@@ -629,7 +641,6 @@ void parse_STRING() {
         current_char_index++;
         if (c == '"'){
             // end of the string
-            // loginfo("String: \"%s\"\n", buff->data);
             Token stringToken = {.type = TOKEN_STRING_LITERAL};
             initStringAttribute(&stringToken.attribute, buff.data);
             addToken(lexer_tokenArr, stringToken);
@@ -667,6 +678,7 @@ void parse_STRING() {
                         emptyDynBuffer(&buff);
                         endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
                     } else {
+                        // TODO: could it be \x00 and can it cause an error?
                         // Convert hex to char
                         char hex[3] = {firstHex, secondHex, '\0'};
                         appendDynBuffer(&buff, (char)strtol(hex, NULL, 16));
@@ -733,11 +745,12 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
                 parse_COMMENT();
             }
             else {
-                // TODO: division token?
-                endWithCode(1); 
+                // parse '/' as a division
+                current_char_index--;
+                parse_SPECIAL_SYMBOL();
             }
         } else if (isalpha(c) || c == '_' || c == '@') {
-            // TODO: exception for @import, because it starts as a special symbol
+            // Exception for @import, because it starts as a special symbol
             // but in fact it is a keyword
             appendDynBuffer(&buff, c);
             parse_ID_TEMPLATE();
@@ -761,7 +774,7 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
             // appendDynBuffer(&buff, c);
             current_char_index--;
             parse_SPECIAL_SYMBOL();
-        }  else { // TODO: Do we need check for other conditions?
+        }  else {
             //there is no token for this character
             endWithCode(1);
         }
