@@ -204,7 +204,7 @@ void match(TokenType expected) {
         token = get_next_token(); // Move to the next token
     } else {
         // Handle syntax error
-        loginfo("Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
+        loginfo("Syntax error: expected %d at idx %i, but got %d\n", expected, stat_index, (TokenType)token.type);
         if (token.type == TOKEN_ERROR) {
             loginfo("Error message: %s\n", token.attribute.str);
         }
@@ -502,7 +502,7 @@ ASTNode* parseStatement() {
             break;
         default:
             // Handle syntax error for unexpected token
-            loginfo("Syntax error: unexpected token in statement\n");
+            loginfo("Syntax error: unexpected token in statement (%i)\n", token.type);
             exit(2);
     }
 
@@ -810,7 +810,7 @@ ASTNode* parseFactor() {
         match(token.type);  // Consume the literal or `null`
     } else {
         // Handle syntax error if no valid factor is found
-        loginfo("Syntax error: unexpected token in factor\n");
+        loginfo("Syntax error: unexpected token %i with idx %i in factor\n", token.type, stat_index);
         exit(2);
     }
 
