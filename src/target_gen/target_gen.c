@@ -204,7 +204,7 @@ ASTNode *unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluatio
 ASTNode *unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation);
 
 void generateWhileConditional(ASTNode *node);
-void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar);
+void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCall(ASTNode *node, Operand *outVar);
 void generateFunctionCallParameter(ASTNode *node);
 void generateReturn(ASTNode *node);
@@ -904,10 +904,80 @@ void generateWhileConditional(ASTNode *node)
   loginfo("While loop generated");
 }
 
-void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
+void generateFunctionCall(ASTNode *node, Operand *outVar)
+{
+  char *functionName = node->value.string;
+  if (strcmp(node->value.string, "ifj.strcmp") == 0)
+  {
+    functionName = "ifj_strcmp";
+  }
+  else if (strcmp(node->value.string, "ifj.substring") == 0)
+  {
+    functionName = "ifj_substring";
+  }
+  else if (strncmp(node->value.string, "ifj.", 4) == 0)
+  {
+    generateSimpleBuiltInFunctionCall(node, outVar);
+    return;
+  }
+  loginfo("Generating function call: %s", functionName);
+
+  // Create TF for parameters
+  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
+  addInstruction(createFrameInst);
+
+  // Add parameters
+  inspectAstNode(node);
+  ASTNode *paramNode = node->left;
+  while (paramNode != NULL)
+  {
+    generateFunctionCallParameter(paramNode);
+    paramNode = paramNode->next;
+  }
+
+  // Push frame
+  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
+  addInstruction(pushFrameInst);
+
+  loginfo("Calling function: %s", functionName);
+
+  // Call function
+  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(functionName));
+  addInstruction(callInst);
+
+  // Pop frame
+  Instruction popFrameInst = initInstr0(INST_POPFRAME);
+  addInstruction(popFrameInst);
+
+  // If function returns a value, put it into outVar
+  bool returnsVoid = node->valType == NONE;
+  if (!returnsVoid)
+  {
+    *outVar = createTmpVar("tmp", FRAME_LF);
+    addInstruction(initInstr1(INST_POPS, *outVar));
+  }
+}
+
+void generateFunctionCallParameter(ASTNode *node)
+{
+  loginfo("Generating function call parameter: %s", nodeTypeToString(node->nodeType));
+  inspectAstNode(node);
+
+  // Get operand
+  Operand paramOperand;
+  generateExpression(node, &paramOperand);
+
+  // Push operand to stack
+  Instruction pushInst = initInstr1(INST_PUSHS, paramOperand);
+  addInstruction(pushInst);
+}
+
+void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
 {
   loginfo("Generating builtin function call: %s", node->value.string);
 
+  // ifj.write does not return a value. 
+  // Check for it early to avoid repeating code for operand creation.
   if (strcmp(node->value.string, "ifj.write") == 0)
   {
     Operand writeOperand;
@@ -990,10 +1060,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     Instruction concatInst = initInstr3(INST_CONCAT, *outVar, firstOperand, secondOperand);
     addInstruction(concatInst);
   }
-  else if (strcmp(node->value.string, "ifj.substring") == 0)
-  {
-    // TODO: Implement substring
-  }
   else if (strcmp(node->value.string, "ifj.ord") == 0)
   {
     // Convert character at given index to int
@@ -1019,74 +1085,6 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     loginfo("Unexpected builtin function call: %s", node->value.string);
     exit(99);
   }
-}
-
-void generateFunctionCall(ASTNode *node, Operand *outVar)
-{
-  char *functionName = node->value.string;
-  if (strcmp(node->value.string, "ifj.strcmp") == 0)
-  {
-    functionName = "ifj_strcmp";
-  }
-  else if (strcmp(node->value.string, "ifj.substring") == 0)
-  {
-    functionName = "ifj_substring";
-  }
-  else if (strncmp(node->value.string, "ifj.", 4) == 0)
-  {
-    generateBuiltInFunctionCall(node, outVar);
-    return;
-  }
-  loginfo("Generating function call: %s", functionName);
-
-  // Create TF for parameters
-  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  addInstruction(createFrameInst);
-
-  // Add parameters
-  inspectAstNode(node);
-  ASTNode *paramNode = node->left;
-  while (paramNode != NULL)
-  {
-    generateFunctionCallParameter(paramNode);
-    paramNode = paramNode->next;
-  }
-
-  // Push frame
-  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  addInstruction(pushFrameInst);
-
-  loginfo("Calling function: %s", functionName);
-
-  // Call function
-  Instruction callInst = initInstr1(INST_CALL, getOrCreateLabel(functionName));
-  addInstruction(callInst);
-
-  // Pop frame
-  Instruction popFrameInst = initInstr0(INST_POPFRAME);
-  addInstruction(popFrameInst);
-
-  // If function returns a value, put it into outVar
-  bool returnsVoid = node->valType == NONE;
-  if (!returnsVoid)
-  {
-    *outVar = createTmpVar("tmp", FRAME_LF);
-    addInstruction(initInstr1(INST_POPS, *outVar));
-  }
-}
-
-void generateFunctionCallParameter(ASTNode *node)
-{
-  loginfo("Generating function call parameter: %s", nodeTypeToString(node->nodeType));
-  inspectAstNode(node);
-
-  // Get operand
-  Operand paramOperand;
-  generateExpression(node, &paramOperand);
-
-  // Push operand to stack
-  Instruction pushInst = initInstr1(INST_PUSHS, paramOperand);
-  addInstruction(pushInst);
 }
 
 void generateReturn(ASTNode *node)
