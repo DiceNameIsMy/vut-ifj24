@@ -160,7 +160,7 @@ void parse_ID_TEMPLATE(){
                 initStringAttribute(&errorToken.attribute, "Error: Expected [function] after 'ifj.'");
                 addToken(lexer_tokenArr, errorToken);
                 emptyDynBuffer(&buff);
-                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+                endWithCode(1);
                 break;
             }
             while (inIdTemplate(sourceCode[current_char_index])) {
@@ -172,7 +172,7 @@ void parse_ID_TEMPLATE(){
                 // If the buffer is empty, handle as an error or unexpected token
                 Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "Error: Expected [function] after 'ifj.'");
-                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+                endWithCode(1);
                 break;
             }
 
@@ -248,7 +248,7 @@ void parse_ARRAY(){
         initStringAttribute(&arrayToken.attribute, "Expected array type");
         addToken(lexer_tokenArr, arrayToken);
         emptyDynBuffer(&buff);
-        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+        endWithCode(1);
     }
 
     addToken(lexer_tokenArr, arrayToken);
@@ -290,7 +290,7 @@ void parse_NULLABLE() {
         initStringAttribute(&nullableToken.attribute, "Expected nullable type");
         addToken(lexer_tokenArr, nullableToken);
         emptyDynBuffer(&buff);
-        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+        endWithCode(1);
     }
 
     addToken(lexer_tokenArr, nullableToken);
@@ -349,7 +349,7 @@ void parse_SPECIAL_SYMBOL(){
             initStringAttribute(&specialSymbolToken.attribute, "Expected = after !");
             addToken(lexer_tokenArr, specialSymbolToken);
             emptyDynBuffer(&buff);
-            endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+            endWithCode(1);
         }
     }
     switch (c){
@@ -389,7 +389,7 @@ void parse_SPECIAL_SYMBOL(){
         specialSymbolToken.type = TOKEN_VERTICAL_BAR;
         break;
     // Special symbols
-    case ',': // TODO: I suppose in functions it works fine
+    case ',':
         specialSymbolToken.type = TOKEN_COMMA;
         break;
     /*
@@ -411,7 +411,7 @@ void parse_SPECIAL_SYMBOL(){
         initStringAttribute(&specialSymbolToken.attribute, "Unrecognized special symbol");
         addToken(lexer_tokenArr, specialSymbolToken);
         emptyDynBuffer(&buff);
-        endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+        endWithCode(1);
     }
     addToken(lexer_tokenArr, specialSymbolToken);
     emptyDynBuffer(&buff);
@@ -542,7 +542,7 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
                 Token errorToken = {.type = TOKEN_ERROR};
                 initStringAttribute(&errorToken.attribute, "After multiline strange character was found");
                 addToken(lexer_tokenArr, errorToken);
-                endWithCode(1); // ERROR - unrecognized token found TODO: clean up used memory
+                endWithCode(1);
             }
         } else {
             // next line is not a part of multiline and must be processed as a common line
@@ -605,7 +605,7 @@ void parse_MULTILINE_STRING() {
                     initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a multiline string");
                     addToken(lexer_tokenArr, errorToken);
                     emptyDynBuffer(&buff);
-                    endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
+                    endWithCode(1);
                 } else {
                     // Convert hex to char
                     char hex[3] = {firstHex, secondHex, '\0'};
@@ -619,7 +619,7 @@ void parse_MULTILINE_STRING() {
                 initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a multiline string");
                 addToken(lexer_tokenArr, errorToken);
                 emptyDynBuffer(&buff);
-                endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
+                endWithCode(1);
             }
         } else if (c >= 32 && c <= 126){ 
             // printable characters
@@ -630,7 +630,7 @@ void parse_MULTILINE_STRING() {
             initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a multiline string");
             addToken(lexer_tokenArr, errorToken);
             emptyDynBuffer(&buff);
-            endWithCode(1); // ERROR - non-printable character found TODO: clean up used memory
+            endWithCode(1);
         }
     }
     // Error - multiline string was not ended properly
@@ -680,7 +680,7 @@ void parse_STRING() {
                         initStringAttribute(&errorToken.attribute, "Got invalid hex number while parsing a multiline string");
                         addToken(lexer_tokenArr, errorToken);
                         emptyDynBuffer(&buff);
-                        endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
+                        endWithCode(1);
                     } else {
                         // TODO: could it be \x00 and can it cause an error?
                         // Convert hex to char
@@ -695,7 +695,7 @@ void parse_STRING() {
                     initStringAttribute(&errorToken.attribute, "Got invalid escape sequence while parsing a multiline string");
                     addToken(lexer_tokenArr, errorToken);
                     emptyDynBuffer(&buff);
-                    endWithCode(1); // ERROR - unrecognized literal TODO: clean up used memory
+                    endWithCode(1);
             }
         } else if (c >= 32 && c <= 126){ 
             // printable characters
@@ -706,7 +706,7 @@ void parse_STRING() {
             initStringAttribute(&errorToken.attribute, "Got non-printable character while parsing a double quote string");
             addToken(lexer_tokenArr, errorToken);
             emptyDynBuffer(&buff);
-            endWithCode(1); // ERROR - non-printable character TODO: clean up used memory
+            endWithCode(1);
         }
     }
     // Error - string was not ended properly
@@ -769,7 +769,7 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
         } else if (c == '?'){ // ?u8 / ?[]u8
             // appendDynBuffer(&buff, c);
             parse_NULLABLE();
-        } else if (c >= '0' && c <= '9'){ // TODO: check conditions for numbers
+        } else if (c >= '0' && c <= '9'){
             appendDynBuffer(&buff, c);
             parse_NUMBER();
         } else if (c == '.'){ // In case of dot, it can be a part of a number
