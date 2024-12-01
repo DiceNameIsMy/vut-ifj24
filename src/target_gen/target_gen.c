@@ -922,12 +922,13 @@ void generateBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   }
   else if (strcmp(node->value.string, "ifj.ord") == 0)
   {
+    // Convert character at given index to int
     Operand u8;
     generateExpression(node->left, &u8);
     Operand idx;
     generateExpression(node->left->next, &idx);
-    Instruction getCharInst = initInstr3(INST_GETCHAR, *outVar, u8, idx);
-    addInstruction(getCharInst);
+    Instruction strToIntInst = initInstr3(INST_STRI2INT, *outVar, u8, idx);
+    addInstruction(strToIntInst);
   }
   else if (strcmp(node->value.string, "ifj.chr") == 0)
   {
