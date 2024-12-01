@@ -66,7 +66,7 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
 
 // Error handler
 __attribute__((weak)) void endWithCode(int code) {
-    ;
+    loginfo("Lexer error: %d", code);
     // TODO: uncomment when time comes
     freeDynBuffer(&buff); // free the buffer (it was allocated during initialization) and was not freed yet
     freeTokenArray(lexer_tokenArr); // free the token array (it was allocated during initialization) and was not freed yet
@@ -79,9 +79,8 @@ int streamToString(FILE *stream, char **str) {
     }
 
     DynBuffer buff;
-    initDynBuffer(&buff, -1);
-    if (buff.data == NULL) {
-        endWithCode(99); // ERROR - allocation error
+    if (initDynBuffer(&buff, -1) != 0) {
+        endWithCode(99);
     }
 
     char buffer[512];
@@ -721,9 +720,8 @@ void parse_STRING() {
 void runLexer(const char *source_code, TokenArray *tokenArray) {
 
     // Initialize the buffer with default size (-1 triggers default size)
-    initDynBuffer(&buff, -1);
-    if (buff.data == NULL) {
-        endWithCode(99); // ERROR - allocation error
+    if (initDynBuffer(&buff, -1) != 0) {
+        endWithCode(99);
     }
     // Initialize the token array
     lexer_tokenArr = tokenArray;

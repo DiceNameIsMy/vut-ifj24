@@ -6,7 +6,7 @@
 
 #define TOKEN_ARRAY_INIT_CAPACITY 16
 
-int initTokenArray(TokenArray *array) {
+void initTokenArray(TokenArray *array) {
     array->tokens = (Token *) malloc(TOKEN_ARRAY_INIT_CAPACITY * sizeof(Token));
     if (!array->tokens) {
         loginfo("Malloc Memory ERROR\n");
@@ -14,7 +14,7 @@ int initTokenArray(TokenArray *array) {
     }
     array->size = 0;
     array->capacity = TOKEN_ARRAY_INIT_CAPACITY;
-    return 0;
+    return;
 }
 
 void freeTokenArray(TokenArray *array) {
