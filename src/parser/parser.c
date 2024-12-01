@@ -249,18 +249,12 @@ ASTNode* parseFunctionDef() {
     SymTable_NewScope(sym_Table); //each function is a scope
     // Capture the function name
     char* functionName;
-    if(isMatch(TOKEN_ID)) {
-        functionName = strdup(token.attribute.str);
-        if_malloc_error(functionName);
-    } else{
-        // Handle syntax error
-        loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
-        exit(2); // or handle error gracefully
-    }
+    isMatch(TOKEN_ID);
+    functionName = strdup(token.attribute.str);
+    if_malloc_error(functionName);
     match(TOKEN_ID);
 
     type_to_return = SymTable_GetRetType(sym_Table, functionName);
-    //loginfo("For function %s we need ret.type %d", functionName, (int)type_to_return);
     type_returned = UNDEFINED;
 
     // Create an AST node for the function definition
@@ -330,15 +324,10 @@ ASTNode* parseParamListTail() {
 
         // Parse the next parameter
         char* paramName;
-        if(isMatch(TOKEN_ID)) {
-            paramName = strdup(token.attribute.str);
-            if_malloc_error(paramName);
-        }
-        else{
-            // Handle syntax error
-            loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
-            exit(2); // or handle error gracefully
-        }
+        isMatch(TOKEN_ID);
+        paramName = strdup(token.attribute.str);
+        if_malloc_error(paramName);
+        
         Symbol symbol;
         symbol.name = token.attribute.str;
         match(TOKEN_ID);
@@ -504,22 +493,15 @@ ASTNode* parseConstDeclaration() {
     
     char *constName;
     // Capture the constant name
-    if (isMatch(TOKEN_ID)){
-        constName = strdup(token.attribute.str);
-        if_malloc_error(constName);
-        symbol.name = token.attribute.str; //TODO: INVENT A WAY TO MARK AS A CONSTANT
-        symbol.mut = false;
-        symbol.used = false;
-        symbol.type = UNDEFINED;
-        symbol.retType = NONE;
-        symbol.paramList = NULL;
-    }
-    else{
-        // Handle syntax error
-        loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
-        exit(2); // or handle error gracefully
-    }
-
+    isMatch(TOKEN_ID);
+    constName = strdup(token.attribute.str);
+    if_malloc_error(constName);
+    symbol.name = token.attribute.str; //TODO: INVENT A WAY TO MARK AS A CONSTANT
+    symbol.mut = false;
+    symbol.used = false;
+    symbol.type = UNDEFINED;
+    symbol.retType = NONE;
+    symbol.paramList = NULL;
     match(TOKEN_ID);  // Match the identifier (constant name)
 
     // Use parseVarType to handle optional type annotation
@@ -687,50 +669,7 @@ ASTNode* parseFactor() {
         char* identifier = strdup(token.attribute.str);
         if_malloc_error(identifier);
         match(TOKEN_ID);
-        if (token.type == TOKEN_DOT) {
-            // If the next token is a dot, parse it as a qualified function call
-            match(TOKEN_DOT);
-
-            char* functionName;
-            if(isMatch(TOKEN_ID)) {
-                functionName = (char *)calloc(100, sizeof(char)); //MAX_FUNCTIONNAME_LENGTH=100
-                strcat(functionName, identifier);
-                strcat(functionName, ".");
-                strcat(functionName, token.attribute.str); //build a function name
-                if_malloc_error(functionName);
-            }
-            else{
-                // Handle syntax error
-                loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
-                exit(2); // or handle error gracefully
-            }
-
-            match(TOKEN_ID);
-
-
-            if(SymTable_Search(sym_Table, functionName) == NULL || SymTable_GetType(sym_Table, functionName) != FUNCTION) {
-                loginfo("Error: Function %s not declared\n", functionName);
-                exit(3); //NOT DECLARED OR NOT A FUNCTION
-            }
-            SymTable_SetUsed(sym_Table, functionName, true);
-            
-            // Parse function call parameters
-            ASTNode* params = NULL;
-            if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
-                params = parseFunctionCall(functionName);
-            }
-
-            // Create a node for the qualified function call
-            ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
-            funcCallNode->valType = SymTable_GetRetType(sym_Table, functionName);
-            funcCallNode->left = params;  // Attach parameters as left child
-//            // Attach the main identifier (e.g., 'ifj') as an additional node
-//            ASTNode* mainNode = createASTNode(Identifier, identifier);
-//            mainNode->left = funcCallNode;
-
-            return funcCallNode;
-        }
-        else if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
+        if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             
             if(SymTable_Search(sym_Table, identifier) == NULL || SymTable_GetType(sym_Table, identifier) != FUNCTION) {
                 loginfo("Error: Function %s not declared\n", identifier);
@@ -841,20 +780,15 @@ ASTNode* parseVarDeclaration() {
     char* varName;
     Symbol symbol;
     // Capture variable name
-    if (isMatch(TOKEN_ID)){
-        varName = strdup(token.attribute.str);
-        if_malloc_error(varName);
-        symbol.name = token.attribute.str;
-        symbol.type = UNDEFINED;
-        symbol.mut = true;
-        symbol.used = false;
-        symbol.retType = NONE;
-        symbol.paramList = NULL;
-    } else{
-        // Handle syntax error
-        loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
-        exit(2); // or handle error gracefully
-    }
+    isMatch(TOKEN_ID);
+    varName = strdup(token.attribute.str);
+    if_malloc_error(varName);
+    symbol.name = token.attribute.str;
+    symbol.type = UNDEFINED;
+    symbol.mut = true;
+    symbol.used = false;
+    symbol.retType = NONE;
+    symbol.paramList = NULL;
     match(TOKEN_ID);  // Match the identifier (variable name)
 
     // Use parseVarType to handle optional type annotation
@@ -893,55 +827,10 @@ ASTNode* parseVarDeclaration() {
 ASTNode* parseAssignmentOrFunctionCall() {
     // Capture the identifier (variable or function name)
     char* identifier;
-    if(isMatch(TOKEN_ID)) {
-        identifier = strdup(token.attribute.str);
-        if_malloc_error(identifier);
-    }
+    isMatch(TOKEN_ID);
+    identifier = strdup(token.attribute.str);
+    if_malloc_error(identifier);
     match(TOKEN_ID);  // Match the identifier
-    if (token.type == TOKEN_DOT) {
-        // If the next token is a dot, parse it as a qualified function call
-        match(TOKEN_DOT);
-
-        // Parse the function name after the dot
-        char *functionName;
-        if(isMatch(TOKEN_ID)) {
-            functionName = (char *)calloc(100, sizeof(char)); //MAX_FUNCTIONNAME_LENGTH=100
-            strcat(functionName, identifier);
-            strcat(functionName, ".");
-            strcat(functionName, token.attribute.str); //build a function name
-            if_malloc_error(functionName);
-        } else {
-            exit(2);
-        }
-        
-        if(SymTable_Search(sym_Table, functionName) == NULL) {
-            loginfo("Error: Function %s not defined\n", functionName);
-            exit(3); //DOESN'T EXIST
-        }
-        SymTable_SetUsed(sym_Table, functionName, true);
-        
-        match(TOKEN_ID);
-
-        // Parse function call parameters
-        ASTNode* params = NULL;
-        if (token.type == TOKEN_LEFT_ROUND_BRACKET) {
-            params = parseFunctionCall(functionName);
-        } else {
-            exit(2);
-        }
-
-        // Create a node for the qualified function call
-        ASTNode* funcCallNode = createASTNode(BuiltInFunctionCall, functionName);
-        funcCallNode->valType = SymTable_GetRetType(sym_Table, functionName);
-        if(funcCallNode->valType != NONE) {
-            loginfo("Error: Function (%s) output is abandoned\n", functionName);
-            exit(4);
-        }
-        funcCallNode->left = params;  // Attach parameters as left child
-        // Attach the main identifier (e.g., 'ifj') as an additional node
-        match(TOKEN_SEMICOLON);  // Match ';'
-        return funcCallNode;
-    }
     if (token.type == TOKEN_ASSIGNMENT) {
         // Handle assignment
         match(TOKEN_ASSIGNMENT);  // Match '='
@@ -1004,10 +893,10 @@ ASTNode* parseIfCondition() {
     SymTable_NewScope(sym_Table);
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
+        isMatch(TOKEN_ID);
         char* bindingVar = strdup(token.attribute.str);
         Symbol symbol;
         symbol.name = token.attribute.str;
-
         switch (conditionNode->valType) {
             case I32_NULLABLE:
                 symbol.type = I32;
@@ -1022,7 +911,6 @@ ASTNode* parseIfCondition() {
                 loginfo("Error: Nullable binding with non-nullable value.\n");
                 exit(7);//INVALID CONDITION TYPE
         }
-        
         symbol.mut = true;
         symbol.used = false;
         symbol.retType = NONE;
@@ -1090,36 +978,30 @@ ASTNode* parseWhileCondition() {
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar;
-        if(isMatch(TOKEN_ID)) {
-            bindingVar = strdup(token.attribute.str);
-            if_malloc_error(bindingVar);
-            Symbol symbol;
-            symbol.name = token.attribute.str;
-            switch (conditionNode->valType) {
-                case I32_NULLABLE:
-                    symbol.type = I32;
-                    break;
-                case F64_NULLABLE:
-                    symbol.type = F64;
-                    break;
-                case U8_ARRAY_NULLABLE:
-                    symbol.type = U8_ARRAY;
-                    break;
-                default:
-                    loginfo("Error: Nullable binding with non-nullable value.\n");
-                    exit(7);//INVALID CONDITION TYPE
-            }
-            symbol.mut = true;
-            symbol.used = false;
-            symbol.retType = NONE;
-            symbol.paramList = NULL;
-            SymTable_AddSymbol(sym_Table, &symbol);
+        isMatch(TOKEN_ID);
+        bindingVar = strdup(token.attribute.str);
+        if_malloc_error(bindingVar);
+        Symbol symbol;
+        symbol.name = token.attribute.str;
+        switch (conditionNode->valType) {
+            case I32_NULLABLE:
+                symbol.type = I32;
+                break;
+            case F64_NULLABLE:
+                symbol.type = F64;
+                break;
+            case U8_ARRAY_NULLABLE:
+                symbol.type = U8_ARRAY;
+                break;
+            default:
+                loginfo("Error: Nullable binding with non-nullable value.\n");
+                exit(7);//INVALID CONDITION TYPE
         }
-        else{
-            // Handle syntax error
-            loginfo("Syntax error: expected %d, but got %d\n", TOKEN_ID, (TokenType)token.type);
-            exit(2); // or handle error gracefully
-        }
+        symbol.mut = true;
+        symbol.used = false;
+        symbol.retType = NONE;
+        symbol.paramList = NULL;
+        SymTable_AddSymbol(sym_Table, &symbol);
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
