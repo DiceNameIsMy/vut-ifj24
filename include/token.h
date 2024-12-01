@@ -79,7 +79,7 @@ typedef struct {
     size_t capacity;
 } TokenArray;
 
-int initTokenArray(TokenArray *array);
+void initTokenArray(TokenArray *array);
 
 void freeTokenArray(TokenArray *array);
 
