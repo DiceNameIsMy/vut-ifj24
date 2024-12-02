@@ -1,12 +1,10 @@
 #include <stdlib.h>
 #include "bvs.h"
 #include "stack.h"
+#include "types.h"
 
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
-
-typedef enum {U8_LITERAL, U8_ARRAY, I32, F64, U8_ARRAY_NULLABLE, 
-              I32_NULLABLE, F64_NULLABLE, BOOL, FUNCTION, UNDEFINED, NULL_LITERAL, STR_LITERAL, NONE} type_t;
 
 typedef struct SymTable_t {
   struct Scope_t *current;

@@ -2,6 +2,7 @@ project(ParserLib)
 
 set(SOURCE_FILES
         parser.c
+        semantics.c
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})

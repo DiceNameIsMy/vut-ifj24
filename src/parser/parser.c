@@ -6,9 +6,8 @@
 #include <stdbool.h>
 
 #include "logging.h"
-#include "token.h"
-#include "ast.h"
 #include "parser.h"
+#include "semantics.h"
 
 Token token;
 TokenArray *tokenArr;
@@ -198,9 +197,9 @@ void match(TokenType expected) {
     }
 }
 
-bool isMatch(TokenType expected) {
+void isMatch(TokenType expected) {
     if ((TokenType)token.type == expected) {
-        return true;// Move to the next token
+        return;// Move to the next token
     } else {
         // Handle syntax error
         loginfo("Syntax error: expected %d, but got %d\n", expected, (TokenType)token.type);
@@ -319,41 +318,40 @@ ASTNode* parseParamList() {
 }
 
 ASTNode* parseParamListTail() {
-    if (token.type == TOKEN_COMMA) {
-        match(TOKEN_COMMA);
-
-        // Parse the next parameter
-        char* paramName;
-        isMatch(TOKEN_ID);
-        paramName = strdup(token.attribute.str);
-        if_malloc_error(paramName);
-        
-        Symbol symbol;
-        symbol.name = token.attribute.str;
-        match(TOKEN_ID);
-        match(TOKEN_COLON);
-        symbol.type = idType(token);
-        symbol.mut = true;
-        symbol.used = false;
-        symbol.retType = NONE;
-        symbol.paramList = NULL;
-        if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-            loginfo("Error: resefinition of a variable!\n");
-            exit(5);
-        }
-        SymTable_AddSymbol(sym_Table, &symbol);
-        
-        ASTNode* paramType = parseType();
-
-        ASTNode* paramNode = createASTNode(Parameter, paramName);
-        paramNode->left = paramType;
-
-        // Continue parsing additional parameters
-        paramNode->next = parseParamListTail();
-        return paramNode;
+    if (token.type != TOKEN_COMMA) {
+        return NULL; //no more parameters
     }
+    match(TOKEN_COMMA);
 
-    return NULL;  // No more parameters
+    // Parse the next parameter
+    char* paramName;
+    isMatch(TOKEN_ID);
+    paramName = strdup(token.attribute.str);
+    if_malloc_error(paramName);
+        
+    Symbol symbol;
+    symbol.name = token.attribute.str;
+    match(TOKEN_ID);
+    match(TOKEN_COLON);
+    symbol.type = idType(token);
+    symbol.mut = true;
+    symbol.used = false;
+    symbol.retType = NONE;
+    symbol.paramList = NULL;
+    if(SymTable_Search(sym_Table, symbol.name) != NULL) {
+        loginfo("Error: resefinition of a variable!\n");
+        exit(5);
+    }
+    SymTable_AddSymbol(sym_Table, &symbol);
+        
+    ASTNode* paramType = parseType();
+
+    ASTNode* paramNode = createASTNode(Parameter, paramName);
+    paramNode->left = paramType;
+
+    // Continue parsing additional parameters
+    paramNode->next = parseParamListTail();
+    return paramNode;
 }
 
 
@@ -476,6 +474,7 @@ ASTNode* parseBlockStatement() {
     match(TOKEN_RIGHT_CURLY_BRACKET);  // Match '}'
     
     if(SymTable_UpperScope(sym_Table) != 0) {  //un-dive
+        loginfo("Error: there are unused variables in your code!\n");
         exit(9); //unused variables
     }
 
@@ -513,7 +512,7 @@ ASTNode* parseConstDeclaration() {
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
-    symbol.type = typeConv(symbol.type, exprNode->valType);
+    symbol.type = Sem_AssignConv(symbol.type, exprNode->valType);
     if(symbol.type == NONE) {
         loginfo("Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
         exit(7);//I'll lookup the right code later or even write a special routine for this
@@ -595,7 +594,12 @@ ASTNode* parseRelationalTail(ASTNode* left) {
         bool canCmp = (typeConv(left->valType, right->valType) != NONE ||
                       typeConv(right->valType, left->valType) != NONE ||
                         right->nodeType == IntLiteral && (left->valType == F64 || left->valType == F64_NULLABLE) ||
-                        left->nodeType == IntLiteral && (right->valType == F64 || right->valType == F64_NULLABLE));
+                        left->nodeType == IntLiteral && (right->valType == F64 || right->valType == F64_NULLABLE) ||
+                        right->nodeType == FloatLiteral && (left->valType == I32 || left->valType == I32_NULLABLE) ||
+                        left->nodeType == FloatLiteral && (right->valType == F64 || right->valType == F64_NULLABLE));
+        if((right->valType == STR_LITERAL || left->valType == STR_LITERAL) && operator != EqualOperation && operator != NotEqualOperation) {
+            canCmp = false; //cannot compare string lexicographically
+        }
         if(!canCmp) { //TODO: cmp logic
             loginfo("Error: Cannot compare uncompatible types\n");
             exit(7);
@@ -622,7 +626,7 @@ ASTNode* parseSimpleExpression() {
         // Parse the next term (right operand)
         ASTNode* right = parseTerm();
 
-        if((right->valType != I32 || left->valType != I32) && (right->valType != F64 || left->valType != F64)) {
+        if((right->valType != I32 || left->valType != I32) && ((right->valType != F64 && right->nodeType != IntLiteral) || (left->valType != F64 && left->nodeType != IntLiteral))) {
             loginfo("Error: cannot add/subtract uncompatible types\n");
             exit(7);
         }
@@ -631,27 +635,26 @@ ASTNode* parseSimpleExpression() {
         left->valType = typeConv(right->valType, left->left->valType);
     }
 
-    return left;  // Return the completed simple expression node
+    return left;  // Return the completed simple expression n
 }
-
 
 ASTNode* parseTerm() {
     ASTNode* left = parseFactor();  // Parse the initial factor (left operand)
 
     // Handle multiplication and division
     while (token.type == TOKEN_MULTIPLICATION || token.type == TOKEN_DIVISION) {
-        NodeType operator = token.type == TOKEN_MULTIPLICATION ? MulOperation : DivOperation;// Capture the operator
+        NodeType operator = (token.type == TOKEN_MULTIPLICATION) ? MulOperation : DivOperation;// Capture the operator
         match(token.type);  // Consume the operator
 
         // Parse the next factor (right operand)
         ASTNode* right = parseFactor();
-        if((right->valType != I32 || left->valType != I32) && (left->valType != F64 || right->valType != F64)) {
+        // Create a binary operation node
+        left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
+        left->valType = Sem_MathConv(left->left, left->right, left);
+        if(left->valType == NONE) {
             loginfo("Error: cannot multiply/divide uncompatible types\n");
             exit(7);
         }
-        // Create a binary operation node
-        left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
-        left->valType = typeConv(right->valType, left->left->valType);
     }
 
     return left;  // Return the completed term node
@@ -697,11 +700,11 @@ ASTNode* parseFactor() {
         switch (token.type) {
             case TOKEN_I32_LITERAL:
                 factorNode = createASTNodeInteger(IntLiteral, token.attribute.integer);  // Literal node
-                factorNode->valType = I32;
+                factorNode->valType = I32_LITERAL;
                 break;
             case TOKEN_F64_LITERAL:
                 factorNode = createASTNodeReal(FloatLiteral, token.attribute.real);  // Literal node
-                factorNode->valType = F64;
+                factorNode->valType = F64_LITERAL;
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, token.attribute.str);  // Literal node
@@ -800,7 +803,7 @@ ASTNode* parseVarDeclaration() {
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
 
-    symbol.type = typeConv(symbol.type, exprNode->valType);
+    symbol.type = Sem_AssignConv(symbol.type, exprNode->valType);
     if(symbol.type == NONE) {
         loginfo("Error: Cannot assign a value to a variable of incompatible type : %s\n", symbol.name);
         exit(7);
@@ -847,7 +850,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         SymTable_SetUsed(sym_Table, identifier, true);
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
-        if(typeConv(SymTable_GetType(sym_Table, identifier), exprNode->valType) == NONE) { //typecheck
+        if(Sem_AssignConv(SymTable_GetType(sym_Table, identifier), exprNode->valType) == NONE) { //typecheck
             loginfo("Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
             exit(7);
         }

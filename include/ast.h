@@ -1,7 +1,7 @@
 //
 // Created by malbert on 10/23/24.
 //
-#include "symtable.h"
+#include "types.h"
 
 #ifndef AST_H
 #define AST_H
@@ -54,7 +54,6 @@ typedef enum {
 //}
 typedef union ASTValue{
     char *string;
-    Symbol *symbol;
     int integer;
     double real;
 } ASTValue;
