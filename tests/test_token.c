@@ -44,7 +44,8 @@ TEST(add_string_token)
 ENDTEST
 
 int main() {
-    if (initTokenArray(&tokenArray) != 0) {
+    initTokenArray(&tokenArray);
+    if (tokenArray.tokens == NULL) {
         FAIL("Failed to initialize token array");
         return -1;
     }

@@ -526,6 +526,7 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
             // if whitespace continue searching for next character
             continue;
         }else if (c == '\\') {
+            // TODO: Can return with current_char_index - 1 so error would be in common state
             // if next simbol is \ then it is a multiline string
             if (sourceCode[current_char_index] == '\\') {
                 current_char_index++;
