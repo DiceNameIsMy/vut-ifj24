@@ -8,7 +8,7 @@
 #include "stdio.h"
 #include "ast.h"
 
-ASTNode *createASTNode(NodeType nodeType, char *value)
+ASTNode *createASTNode(NodeType nodeType, char *name)
 {
     // Allocate memory for the ASTNode
     ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
@@ -22,8 +22,8 @@ ASTNode *createASTNode(NodeType nodeType, char *value)
     newNode->nodeType = nodeType;
 
     // Allocate and copy the value (if provided)
-    newNode->value.string = value ? strdup(value) : NULL;
-    if (newNode->value.string == NULL && value)
+    newNode->name = name ? strdup(name) : NULL;
+    if (newNode->name == NULL && name)
     {
         fprintf(stderr, "Memory allocation failed for nodeType\n");
         free(newNode);
@@ -31,6 +31,7 @@ ASTNode *createASTNode(NodeType nodeType, char *value)
     }
     // Initialize child pointers to NULL
     newNode->valType = NONE;
+    newNode->value.string = NULL;
     newNode->left = NULL;
     newNode->right = NULL;
     newNode->next = NULL;
@@ -52,6 +53,7 @@ ASTNode *createASTNodeInteger(NodeType nodeType, int value)
     newNode->nodeType = nodeType;
     // Allocate and copy the value (if provided)
     newNode->value.integer = value;
+    newNode->name = NULL;
     newNode->valType = I32;
     // Initialize child pointers to NULL
     newNode->left = NULL;
@@ -83,6 +85,7 @@ ASTNode *createASTNodeReal(NodeType nodeType, double value)
     newNode->right = NULL;
     newNode->next = NULL;
     newNode->binding = NULL;
+    newNode->name = NULL;
 
     return newNode;
 }
@@ -106,7 +109,7 @@ ASTNode *createBinaryASTNode(NodeType operator, ASTNode * left, ASTNode *right)
     // Attach the left and right child nodes
     newNode->left = left;
     newNode->right = right;
-
+    newNode->name = NULL;
     // Initialize the next pointer to NULL (binary nodes usually don't use it)
     newNode->next = NULL;
     newNode->binding = NULL;
@@ -124,6 +127,9 @@ void clearAstNode(ASTNode *node)
     clearAstNode(node->right);
     clearAstNode(node->next);
     clearAstNode(node->binding);
+    if(node->name != NULL) {
+        free(node->name);
+    }
     free(node);
 }
 

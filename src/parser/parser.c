@@ -127,36 +127,6 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     return;
 }
 
-type_t typeConv(type_t type1, type_t type2) {
-    if(type1 == type2) {
-        return type1;
-    }
-    if(type1 == NONE || type2 == NONE) {
-        return NONE;
-    }
-    if(type2 == NULL_LITERAL) {
-        if(type1 == I32_NULLABLE || type1 == F64_NULLABLE || type1 == U8_ARRAY_NULLABLE || type1 == UNDEFINED) {
-            return type1;
-        }
-        return NONE;
-    }
-    if(type1 == UNDEFINED) {
-        return type2; //NULL_LITERAL OPTION INLUDED EARLIER
-    }
-    if(type1 == I32_NULLABLE && type2 == I32) {
-        return I32_NULLABLE;
-    }
-    if(type1 == F64_NULLABLE && type2 == F64) {
-        return F64_NULLABLE;
-    }
-    if(type1 == U8_ARRAY_NULLABLE && type2 == U8_ARRAY) {
-        return U8_ARRAY_NULLABLE;
-    }
-    if(type1 == STR_LITERAL && type2 == U8_ARRAY) {
-        return U8_ARRAY;
-    }
-    return NONE;
-}
 
 ASTNode* parseInit(TokenArray* array, SymTable *table) {
     stat_index = 0;
@@ -249,7 +219,7 @@ ASTNode* parseFunctionDef() {
     // Capture the function name
     char* functionName;
     isMatch(TOKEN_ID);
-    functionName = strdup(token.attribute.str);
+    functionName = strdup(token.attribute.str);//does it have any sense?
     if_malloc_error(functionName);
     match(TOKEN_ID);
 
@@ -694,7 +664,8 @@ ASTNode* parseFactor() {
                 factorNode->valType = F64_LITERAL;
                 break;
             case TOKEN_STRING_LITERAL:
-                factorNode = createASTNode(StringLiteral, token.attribute.str);  // Literal node
+                factorNode = createASTNode(StringLiteral, NULL);  // Literal node
+                factorNode->value.string = strdup(token.attribute.string);
                 factorNode->valType = STR_LITERAL;
                 break;
             default:

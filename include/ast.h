@@ -62,6 +62,7 @@ typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
     type_t valType;
     ASTValue value;    // Literal value or identifier
+    char *name;        //TODO: free afterwards
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node
     struct ASTNode* next;      // Pointer to the next statement (for sequences of statements)
