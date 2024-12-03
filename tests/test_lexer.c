@@ -198,7 +198,7 @@ TEST(float_literals)
     freeTokenArray(&tokenArray);
     initTokenArray(&tokenArray);
     idx = 0;
-    runLexer("1.2; .2; 1.2E3; .2e-3", &tokenArray);
+    runLexer("1.2; 1.2E3; 0.2e-3;", &tokenArray); // .2 raises an error in common state, so no token is created
 
     Token t;
 
@@ -208,18 +208,6 @@ TEST(float_literals)
     }
     if (fabs(t.attribute.real - 1.2) > 0.0000001) {
         FAILCOMPF("Invalid float literal (1.2)", 1.2, t.attribute.real);
-    }
-    // ;
-    if (!check_token(&t, TOKEN_SEMICOLON)) {
-        return;
-    }
-
-    // .2
-    if (!check_token(&t, TOKEN_F64_LITERAL)) {
-        return;
-    }
-    if (fabs(t.attribute.real - .2) > 0.0000001) {
-        FAILCOMPF("Invalid float literal (.2)", .2, t.attribute.real);
     }
     // ;
     if (!check_token(&t, TOKEN_SEMICOLON)) {
@@ -238,16 +226,15 @@ TEST(float_literals)
         return;
     }
 
-    // .2e-3
+    // 0.2e-3
     if (!check_token(&t, TOKEN_F64_LITERAL)) {
         return;
     }
-    if (fabs(t.attribute.real - .2e-3) > 0.0000001) {
+    if (fabs(t.attribute.real - 0.2e-3) > 0.0000001) {
         FAILCOMPF("Invalid float literal (.2e-3)", .2e-3, t.attribute.real);
     }
-
-    if (!check_token(&t, TOKEN_EOF)) {
-        FAIL("Expected EOF token at the end of source code, but got %s", getTokenTypeName(t.type));
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
         return;
     }
 ENDTEST
@@ -797,6 +784,19 @@ TEST (xdd_string_test)
     }
     if (strcmp(t.attribute.str, "+ *") != 0) {
         FAILCOMPS("Wrong attribute value", "+ *", t.attribute.str);
+    }
+ENDTEST
+
+TEST (num_no_whitespace)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("1abc", &tokenArray);
+
+    Token t;
+    // ERROR
+    if (!check_token(&t, TOKEN_ERROR)) {
+        return;
     }
 ENDTEST
 
