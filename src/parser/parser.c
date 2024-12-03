@@ -591,7 +591,7 @@ ASTNode* parseRelationalTail(ASTNode* left) {
 
         bool canCmp = (Sem_MathConv(left, right, opNode) == BOOL);
         if(!canCmp) { //TODO: cmp logic
-            loginfo("Error: Cannot compare uncompatible types\n");
+            loginfo("Error: Cannot compare uncompatible types %d and %d\n", (int)left->valType, (int)right->valType);
             exit(7);
         }
         // Create an AST node for the relational operation
@@ -1031,7 +1031,7 @@ ASTNode* parseReturnStatement() {
     ASTNode* returnNode = createASTNode(ReturnStatement, NULL);
     returnNode->valType = (exprNode == NULL) ? NONE : exprNode->valType;
     type_returned = returnNode->valType;
-    if(type_to_return != type_returned && typeConv(type_to_return, returnNode->valType) == NONE) {
+    if(type_to_return != type_returned && Sem_ParamConv(type_to_return, returnNode->valType) == NONE) {
         loginfo("Error: tried to return a value of a wrong type in a function\n");
         exit(4); //WRONG RETURN TYPE
     }

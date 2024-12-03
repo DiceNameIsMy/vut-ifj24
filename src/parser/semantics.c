@@ -96,7 +96,7 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         higher_order->valType = BOOL;
         return BOOL;
       }
-      if((typeR = F64 || typeR == F64_NULLABLE || typeR == F64_LITERAL) && (typeL == F64 || typeL == F64_NULLABLE || typeL == F64_LITERAL)) {
+      if((typeR == F64 || typeR == F64_NULLABLE || typeR == F64_LITERAL) && (typeL == F64 || typeL == F64_NULLABLE || typeL == F64_LITERAL)) {
         higher_order->valType = BOOL;
         return BOOL;
       }
@@ -105,6 +105,14 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return BOOL;
       }
       if(typeL == I32 && typeR == F64_LITERAL && isRound(right->value.real)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeR == I32 && typeL == I32_LITERAL) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeL == I32 && typeR == I32_LITERAL) {
         higher_order->valType = BOOL;
         return BOOL;
       }
@@ -143,92 +151,91 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
 
 type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
 
-  type_t typeL = (left == NULL) ? UNDEFINED : left->valType; //in case var has no typenode 
-  type_t typeR = (right == NULL) ? NONE : right->valType; //to prevent segfaults
   NodeType oper = higher_order->nodeType;
-  switch(oper) {
-    case ConstDeclaration:
-    case VarDeclaration:
-      if(typeR == NONE) {
+  type_t typeL = (oper == Assignment) ? higher_order->valType : ((left == NULL) ? UNDEFINED : left->valType); //in case var has no typenode 
+  type_t typeR = right->valType; //to prevent segfaults
+  if(typeR == NONE) {
+    higher_order->valType = NONE;
+    return NONE;
+  }
+  switch(typeL) {
+    case I32_LITERAL:
+    case I32:
+      if(typeR == NULL_LITERAL || typeR == I32_NULLABLE) {
         higher_order->valType = NONE;
         return NONE;
       }
-      switch(typeL) {
-        case I32:
-          if(typeR == NULL_LITERAL || typeR == I32_NULLABLE) {
-            higher_order->valType = NONE;
-            return NONE;
-          }
-        case I32_NULLABLE:
-          if(typeR == I32 || typeR == I32_NULLABLE || typeR == NULL_LITERAL) {
-            higher_order->valType = typeL; //both for I32 and I32_NULLABLE
-            return typeL;
-          }
-          if(typeR == I32_LITERAL) {
-            higher_order->valType = I32_LITERAL;
-            higher_order->value.integer = right->value.integer;            
-            return I32_LITERAL;
-          }
-          if(typeR == F64_LITERAL && isRound(right->value.real)) {
-            higher_order->valType = I32_LITERAL;
-            //TODO: f2i conversion!
-            higher_order->value.integer = (int)(right->value.real);
-            return I32_LITERAL;
-          }
-          return NONE;
-        case F64:
-          if(typeR == NULL_LITERAL || typeR == F64_NULLABLE) {
-            higher_order->valType = NONE;
-            return NONE;
-          }
-        case F64_NULLABLE:
-          if(typeR == F64 || typeR == F64_NULLABLE || typeR == NULL_LITERAL) {
-            higher_order->valType = typeL;
-            return typeL;
-          }
-          if(typeR == F64_LITERAL) {
-            higher_order->valType = F64_LITERAL;
-            higher_order->value.real = right->value.real;
-            return F64_LITERAL;
-          }
-          if(typeR == I32_LITERAL) {
-            higher_order->valType = F64_LITERAL;
-            //TODO: i2f conversion!
-            higher_order->value.real = (double)(right->value.integer);
-            return F64_LITERAL;
-          }
-          return NONE;
-        case U8_ARRAY:
-          if(typeR == NULL_LITERAL || typeR == U8_ARRAY_NULLABLE) {
-            higher_order->valType = NONE;
-            return NONE;
-          }
-        case U8_ARRAY_NULLABLE:
-          if(typeR != U8_ARRAY_NULLABLE || typeR != U8_ARRAY) {
-            higher_order->valType = NONE;
-            return NONE;
-          }
-          higher_order->valType = typeL;
-          return typeL;
-        case UNDEFINED:
-          if(typeR == STR_LITERAL || typeR == FUNCTION){
-            higher_order->valType = NONE;
-            return NONE;
-          }
-          higher_order->valType = typeR;
-          return typeR;
-        default:
-          //fprintf(stderr, "London bridge is falling down\n");
-          exit(99);
+    case I32_NULLABLE:
+      if(typeR == I32 || typeR == I32_NULLABLE || typeR == NULL_LITERAL) {
+        higher_order->valType = typeL; //both for I32 and I32_NULLABLE
+        return typeL;
       }
-    case Assignment:
+      if(typeR == I32_LITERAL) {
+        higher_order->valType = I32_LITERAL;
+        higher_order->value.integer = right->value.integer;            
+        return I32_LITERAL;
+      }
+      if(typeR == F64_LITERAL && isRound(right->value.real)) {
+        higher_order->valType = I32_LITERAL;
+        ASTNode *convNode = createASTNode(FuncCall, "ifj.f2i"); //convert implicitly
+        convNode->valType = I32_LITERAL;
+        convNode->value.integer = (int)(right->value.real);
+        convNode->left = right;
+        higher_order->right = convNode;
+        higher_order->value.integer = convNode->value.integer;
+        return I32_LITERAL;
+      }
+      return NONE;
+    case F64_LITERAL:
+    case F64:
+      if(typeR == NULL_LITERAL || typeR == F64_NULLABLE) {
+        higher_order->valType = NONE;
+        return NONE;
+      }
+    case F64_NULLABLE:
+      if(typeR == F64 || typeR == F64_NULLABLE || typeR == NULL_LITERAL) {
+        higher_order->valType = typeL;
+        return typeL;
+      }
+      if(typeR == F64_LITERAL) {
+        higher_order->valType = F64_LITERAL;
+        higher_order->value.real = right->value.real;
+        return F64_LITERAL;
+      }
+      if(typeR == I32_LITERAL) {
+        higher_order->valType = F64_LITERAL;
+        ASTNode *convNode = createASTNode(FuncCall, "ifj.i2f");
+        convNode->valType = F64_LITERAL;
+        convNode->value.real = (double)(right->value.integer);
+        convNode->left = right;
+        higher_order->right = convNode;
+        higher_order->value.real = convNode->value.real;
+        return F64_LITERAL;
+      }
+      return NONE;
+    case U8_ARRAY:
+      if(typeR == NULL_LITERAL || typeR == U8_ARRAY_NULLABLE) {
+        higher_order->valType = NONE;
+        return NONE;
+      }
+    case U8_ARRAY_NULLABLE:
+      if(typeR != U8_ARRAY_NULLABLE && typeR != U8_ARRAY && typeR != NULL_LITERAL) {
+        higher_order->valType = NONE;
+        return NONE;
+      }
       higher_order->valType = typeL;
       return typeL;
+    case UNDEFINED:
+      if(typeR == STR_LITERAL || typeR == FUNCTION){
+        higher_order->valType = NONE;
+        return NONE;
+      }
+      higher_order->valType = typeR;
+      return typeR;
     default:
-      //fprintf(stderr, "Cuz I've blown it up\n");
+      fprintf(stderr, "London bridge is falling down with nodetype %d\n", (int)higher_order->nodeType);
       exit(99);
-  }
-  
+    } 
 }
 
 bool isRound(double literal) {
