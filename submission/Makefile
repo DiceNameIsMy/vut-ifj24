@@ -1,3 +1,10 @@
+#
+#  Project: IFJ24
+#
+#  Authors:
+#      - Nurdaulet Turar (nurdaulet.turar.cz@gmail.com)
+#
+
 CC = gcc
 CFLAGS = -Wall -Wextra -Wpedantic
 SRCS = $(wildcard *.c)
