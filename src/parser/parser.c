@@ -665,7 +665,7 @@ ASTNode* parseFactor() {
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, NULL);  // Literal node
-                factorNode->value.string = strdup(token.attribute.string);
+                factorNode->value.string = strdup(token.attribute.str);
                 factorNode->valType = STR_LITERAL;
                 break;
             default:
