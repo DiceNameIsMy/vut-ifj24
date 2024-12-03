@@ -22,18 +22,12 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       if((typeL == I32_LITERAL || typeL == F64_LITERAL || typeL == F64) && (typeR == I32_LITERAL || typeR == F64_LITERAL || typeR == F64)) {
         higher_order->valType = F64;
         if(typeL == I32_LITERAL) {
-          ASTNode *convNode = createASTNode(FuncCall, "ifj.i2f"); //convert impicitly
-          convNode->valType = F64_LITERAL;
-          convNode->value.real = (double)(left->value.integer);
-          convNode->left = left;
-          higher_order->left = convNode;
+          left->valType = F64_LITERAL;
+          left->value.real = (double)(left->value.integer);
         }
         if(typeR == I32_LITERAL) {
-          ASTNode *convNode = createASTNode(FuncCall, "ifj.i2f"); //convert implicitly
-          convNode->valType = F64_LITERAL;
-          convNode->value.real = (double)(right->value.integer);
-          convNode->left = right;
-          higher_order->right = convNode;
+          right->valType = F64_LITERAL;
+          right->value.real = (double)(right->value.integer);
         }
         if(typeR != F64 && typeL != F64) {
           higher_order->valType = F64_LITERAL;
@@ -42,37 +36,20 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return higher_order->valType; //I32Lit X I32Lit was already handled
       }
       
-      if (typeL == I32) {
-        if(typeR == I32_LITERAL) {
+      if (typeL == I32 || typeR == I32) {
+        ASTNode *IntVal = (typeL == I32) ? left : right;
+        ASTNode *other = (IntVal == left) ? right : left;
+        if(other->valType == I32_LITERAL) {
           higher_order->valType = I32;
           return I32;
         }
-        if(typeR == F64_LITERAL && isRound(right->value.real)) {
+        if(other->valType == F64_LITERAL && isRound(other->value.real)) {
           higher_order->valType = I32;
-          ASTNode *convNode = createASTNode(FuncCall, "ifj.f2i"); //convert implicitly
-          convNode->valType = I32_LITERAL;
-          convNode->value.integer = (int)(right->value.real);
-          convNode->left = right;
-          higher_order->right = convNode;
+          other->valType = I32_LITERAL;
+          other->value.integer = (int)(other->value.real);
           return I32;
         }
-      }
-      
-      if(typeR == I32) {
-        if(typeL == I32_LITERAL) {
-          higher_order->valType = I32;
-          return I32;
-        }
-        if(typeL == F64_LITERAL && isRound(left->value.real)) {
-          higher_order->valType = I32;
-          ASTNode *convNode = createASTNode(FuncCall, "ifj.f2i"); //convert implicitly
-          convNode->valType = I32_LITERAL;
-          convNode->value.integer = (int)(left->value.real);
-          convNode->left = left;
-          higher_order->left = convNode;
-          return I32;
-        }
-      }
+      }      
       return NONE;
     case EqualOperation:
     case NotEqualOperation:
@@ -89,10 +66,12 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return BOOL;
       }
       if(typeR == I32_LITERAL && (typeL == F64 || typeL == F64_NULLABLE || typeL == F64_LITERAL)) {
+        right->value.real = (double)(right->value.integer);
         higher_order->valType = BOOL;
         return BOOL;
       }
       if(typeL == I32_LITERAL && (typeR == F64 || typeR == F64_NULLABLE || typeR == F64_LITERAL)) {
+        left->value.real = (double)(left->value.integer);
         higher_order->valType = BOOL;
         return BOOL;
       }
@@ -101,10 +80,12 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return BOOL;
       }
       if(typeR == I32 && typeL == F64_LITERAL && isRound(left->value.real)) {
+        left->value.integer = (int)(left->value.real);
         higher_order->valType = BOOL;
         return BOOL;
       }
       if(typeL == I32 && typeR == F64_LITERAL && isRound(right->value.real)) {
+        right->value.integer = (int)(right->value.real);
         higher_order->valType = BOOL;
         return BOOL;
       }
@@ -135,10 +116,14 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return BOOL;
       }
       if((typeL == F64 && typeR == I32_LITERAL) || (typeL == I32_LITERAL && typeR == F64)) {
+        ASTNode *IntLit = (typeR == I32_LITERAL) ? right : left;
+        IntLit->value.real = (double)(IntLit->value.integer);
         higher_order->valType = BOOL;
         return BOOL;
       }
       if((typeL == F64_LITERAL && typeR == I32_LITERAL) || (typeR == F64_LITERAL && typeL == I32_LITERAL)) {
+        ASTNode *IntLit = (typeR == I32_LITERAL) ? right : left;
+        IntLit->value.real = (double)(IntLit->value.integer);
         higher_order->valType = BOOL;
         return BOOL;
       }
@@ -176,13 +161,10 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return I32_LITERAL;
       }
       if(typeR == F64_LITERAL && isRound(right->value.real)) {
+        right->valType = I32_LITERAL;
+        right->value.integer = (int)(right->value.real);
         higher_order->valType = I32_LITERAL;
-        ASTNode *convNode = createASTNode(FuncCall, "ifj.f2i"); //convert implicitly
-        convNode->valType = I32_LITERAL;
-        convNode->value.integer = (int)(right->value.real);
-        convNode->left = right;
-        higher_order->right = convNode;
-        higher_order->value.integer = convNode->value.integer;
+        higher_order->value.integer = right->value.integer;
         return I32_LITERAL;
       }
       return NONE;
@@ -203,13 +185,10 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return F64_LITERAL;
       }
       if(typeR == I32_LITERAL) {
+        right->valType = F64_LITERAL;
+        right->value.real = (double)(right->value.integer);
         higher_order->valType = F64_LITERAL;
-        ASTNode *convNode = createASTNode(FuncCall, "ifj.i2f");
-        convNode->valType = F64_LITERAL;
-        convNode->value.real = (double)(right->value.integer);
-        convNode->left = right;
-        higher_order->right = convNode;
-        higher_order->value.real = convNode->value.real;
+        higher_order->value.real = right->value.real;
         return F64_LITERAL;
       }
       return NONE;
@@ -306,7 +285,7 @@ type_t Sem_ParamConv(type_t ParamType, type_t ArgType) {
         return NONE;
       }
     case I32_NULLABLE:
-      if(ArgType == I32 || ArgType == I32_LITERAL || ArgType == I32_NULLABLE) {
+      if(ArgType == I32 || ArgType == I32_LITERAL || ArgType == I32_NULLABLE || ArgType == NULL_LITERAL) {
         return ParamType;
       }
       return NONE;
@@ -315,7 +294,7 @@ type_t Sem_ParamConv(type_t ParamType, type_t ArgType) {
         return NONE;
       }
     case F64_NULLABLE:
-      if(ArgType == F64 || ArgType == F64_LITERAL || ArgType == F64_NULLABLE || I32_LITERAL) {
+      if(ArgType == F64 || ArgType == F64_LITERAL || ArgType == F64_NULLABLE || ArgType ==I32_LITERAL || ArgType == NULL_LITERAL) {
         return ParamType;
       }
       return NONE;
@@ -324,7 +303,7 @@ type_t Sem_ParamConv(type_t ParamType, type_t ArgType) {
         return NONE;
       }
     case U8_ARRAY_NULLABLE:
-      if(ArgType == U8_ARRAY || U8_ARRAY_NULLABLE) {
+      if(ArgType == U8_ARRAY || U8_ARRAY_NULLABLE || ArgType == NULL_LITERAL) {
         return ParamType;
       }
       return NONE;
