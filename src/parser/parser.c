@@ -505,14 +505,14 @@ ASTNode* parseConstDeclaration() {
 
     // Use parseVarType to handle optional type annotation
     ASTNode* typeNode = parseVarType();  // Returns the type node or NULL if no type
-    if (typeNode != NULL) {
-        symbol.type = typeNode->valType; //the type we expect from the exptession on the right
-    }
 
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the constant's assigned value
-    symbol.type = Sem_AssignConv(symbol.type, exprNode->valType);
+    ASTNode* constNode = createASTNode(ConstDeclaration, constName);
+    constNode->left = typeNode;    // Attach type as left child (if available)
+    constNode->right = exprNode;   // Attach the expression as right child
+    symbol.type = Sem_AssignConv(typeNode, exprNode, constNode);
     if(symbol.type == NONE) {
         loginfo("Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
         exit(7);//I'll lookup the right code later or even write a special routine for this
@@ -527,9 +527,6 @@ ASTNode* parseConstDeclaration() {
     }
     SymTable_AddSymbol(sym_Table, &symbol);
     // Create the AST node for the const declaration
-    ASTNode* constNode = createASTNode(ConstDeclaration, constName);
-    constNode->left = typeNode;    // Attach type as left child (if available)
-    constNode->right = exprNode;   // Attach the expression as right child
     //constNode->value = SymTable_Search(sym_Table, symbol.name); 
     match(TOKEN_SEMICOLON);  // Match ';'
 
@@ -625,14 +622,13 @@ ASTNode* parseSimpleExpression() {
 
         // Parse the next term (right operand)
         ASTNode* right = parseTerm();
+        left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
+        left->valType = Sem_MathConv(left->left, left->right, left);
 
-        if((right->valType != I32 || left->valType != I32) && ((right->valType != F64 && right->nodeType != IntLiteral) || (left->valType != F64 && left->nodeType != IntLiteral))) {
+        if(left->valType == NONE) {
             loginfo("Error: cannot add/subtract uncompatible types\n");
             exit(7);
         }
-        // Create a binary operation node
-        left = createBinaryASTNode(operator, left, right);  // Update left with new binary node
-        left->valType = typeConv(right->valType, left->left->valType);
     }
 
     return left;  // Return the completed simple expression n
@@ -796,14 +792,14 @@ ASTNode* parseVarDeclaration() {
 
     // Use parseVarType to handle optional type annotation
     ASTNode* typeNode = parseVarType();  // Returns the type node or NULL if no type
-    if (typeNode != NULL) {
-        symbol.type = typeNode->valType;
-    }
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
+    ASTNode* varNode = createASTNode(VarDeclaration, varName);
+    varNode->left = typeNode;   // Attach type as left child (if available)
+    varNode->right = exprNode;  // Attach expression as right child
 
-    symbol.type = Sem_AssignConv(symbol.type, exprNode->valType);
+    symbol.type = Sem_AssignConv(typeNode, exprNode, varNode);
     if(symbol.type == NONE) {
         loginfo("Error: Cannot assign a value to a variable of incompatible type : %s\n", symbol.name);
         exit(7);
@@ -818,9 +814,6 @@ ASTNode* parseVarDeclaration() {
     }
     SymTable_AddSymbol(sym_Table, &symbol);
     // Create AST node for variable declaration
-    ASTNode* varNode = createASTNode(VarDeclaration, varName);
-    varNode->left = typeNode;   // Attach type as left child (if available)
-    varNode->right = exprNode;  // Attach expression as right child
 
     match(TOKEN_SEMICOLON);  // Match ';'
 
@@ -850,12 +843,12 @@ ASTNode* parseAssignmentOrFunctionCall() {
         SymTable_SetUsed(sym_Table, identifier, true);
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
-        if(Sem_AssignConv(SymTable_GetType(sym_Table, identifier), exprNode->valType) == NONE) { //typecheck
+        ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
+        assignNode->valType = SymTable_GetType(sym_Table, identifier);  // Attach the expression as the left child
+        if(Sem_AssignConv(exprNode, NULL, assignNode) == NONE) { //typecheck
             loginfo("Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
             exit(7);
         }
-        ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
-        assignNode->left = exprNode;  // Attach the expression as the left child
 
         match(TOKEN_SEMICOLON);  // Match ';'
         return assignNode;
