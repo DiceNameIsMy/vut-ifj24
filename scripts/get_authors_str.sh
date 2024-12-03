@@ -16,7 +16,7 @@ Example:
     exit
 fi
 
-authors=$(git log --follow -- "$1" | awk 'match($0, "Author: (.*) <(.*)>", arr) { printf("%s (%s)\n", arr[1], arr[2]) }' | sort | uniq)
+authors=$(git log --pretty=format:"%h|%an|%ae" --follow -- "$1" | awk -F '|' '!/^b84d05d/ { print $2 " (" $3 ")" }' | sort | uniq)
 
 modified_date=$(LC_TIME=en_US.UTF-8 date +"%B %d, %Y")
 
