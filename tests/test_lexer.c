@@ -800,6 +800,26 @@ TEST (num_no_whitespace)
     }
 ENDTEST
 
+TEST (exponent_over_zero)
+    freeTokenArray(&tokenArray);
+    initTokenArray(&tokenArray);
+    idx = 0;
+    runLexer("0e3;", &tokenArray);
+
+    Token t;
+    // 0e3
+    if (!check_token(&t, TOKEN_F64_LITERAL)) {
+        return;
+    }
+    if (fabs(t.attribute.real - 0e3) > 0.0000001) {
+        FAILCOMPF("Invalid float literal (0e3)", 0e3, t.attribute.real);
+    }
+    // ;
+    if (!check_token(&t, TOKEN_SEMICOLON)) {
+        return;
+    }
+ENDTEST
+
 int main() {
     initTokenArray(&tokenArray);
 
