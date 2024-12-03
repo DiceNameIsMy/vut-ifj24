@@ -587,23 +587,14 @@ ASTNode* parseRelationalTail(ASTNode* left) {
 
         // Parse the right operand
         ASTNode* right = parseSimpleExpression();
+        ASTNode* opNode = createBinaryASTNode(operator, left, right);
 
-        bool canCmp = (typeConv(left->valType, right->valType) != NONE ||
-                      typeConv(right->valType, left->valType) != NONE ||
-                        right->nodeType == IntLiteral && (left->valType == F64 || left->valType == F64_NULLABLE) ||
-                        left->nodeType == IntLiteral && (right->valType == F64 || right->valType == F64_NULLABLE) ||
-                        right->nodeType == FloatLiteral && (left->valType == I32 || left->valType == I32_NULLABLE) ||
-                        left->nodeType == FloatLiteral && (right->valType == F64 || right->valType == F64_NULLABLE));
-        if((right->valType == STR_LITERAL || left->valType == STR_LITERAL) && operator != EqualOperation && operator != NotEqualOperation) {
-            canCmp = false; //cannot compare string lexicographically
-        }
+        bool canCmp = (Sem_MathConv(left, right, opNode) == BOOL);
         if(!canCmp) { //TODO: cmp logic
             loginfo("Error: Cannot compare uncompatible types\n");
             exit(7);
         }
         // Create an AST node for the relational operation
-        ASTNode* opNode = createBinaryASTNode(operator, left, right);
-        opNode->valType = BOOL;
         // Recursively call parseRelationalTail with the new opNode as the left operand
         return parseRelationalTail(opNode);
     }
@@ -739,7 +730,7 @@ ASTNode* parseFunctionCall(char *funcName) {
         currentArg = argsHead;
 
         
-        if(param == NULL || typeConv(param->paramType, currentArg->valType) == NONE) { //incorrect count or type
+        if(param == NULL || Sem_ParamConv(param->paramType, currentArg->valType) == NONE) { //incorrect count or type
             loginfo("Error: Invalid count/type of arguments in function call %s\n", funcName);
             exit(4);
         }
@@ -754,7 +745,7 @@ ASTNode* parseFunctionCall(char *funcName) {
             currentArg = nextArg;
 
             param = param->next;
-            if(param == NULL || typeConv(param->paramType, currentArg->valType) == NONE) {
+            if(param == NULL || Sem_ParamConv(param->paramType, currentArg->valType) == NONE) {
                 loginfo("Error: Invalid count/type of arguments in function call %s\n", funcName);
                 exit(4);
             }
@@ -845,7 +836,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
         ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
         assignNode->valType = SymTable_GetType(sym_Table, identifier);  // Attach the expression as the left child
-        if(Sem_AssignConv(exprNode, NULL, assignNode) == NONE) { //typecheck
+        if(Sem_AssignConv(NULL, exprNode, assignNode) == NONE) { //typecheck
             loginfo("Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
             exit(7);
         }

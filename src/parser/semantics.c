@@ -76,11 +76,64 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       return NONE;
     case EqualOperation:
     case NotEqualOperation:
+      if(typeL == typeR && (typeL == I32 || typeL == I32_NULLABLE || typeL == F64 || typeL == F64_NULLABLE || typeL == I32_LITERAL || typeL == F64_LITERAL || typeL == NULL_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeL == NULL_LITERAL && (typeR == I32_NULLABLE || typeR == F64_NULLABLE || typeR == U8_ARRAY_NULLABLE)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeR == NULL_LITERAL && (typeL == I32_NULLABLE || typeL == F64_NULLABLE || typeR == U8_ARRAY_NULLABLE)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeR == I32_LITERAL && (typeL == F64 || typeL == F64_NULLABLE || typeL == F64_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeL == I32_LITERAL && (typeR == F64 || typeR == F64_NULLABLE || typeR == F64_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if((typeR = F64 || typeR == F64_NULLABLE || typeR == F64_LITERAL) && (typeL == F64 || typeL == F64_NULLABLE || typeL == F64_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeR == I32 && typeL == F64_LITERAL && isRound(left->value.real)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if(typeL == I32 && typeR == F64_LITERAL && isRound(right->value.real)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
       return NONE;
     case LessOperation:
     case LessEqOperation:
     case GreaterOperation:
     case GreaterEqOperation:
+      //fprintf(stderr, "Left is %d right is %d\n", (int)typeL, (int)typeR);
+      if((typeL == typeR) && (typeL == I32 || typeL == F64 || typeL == I32_LITERAL || typeL == F64_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if((typeL == I32 || typeL == I32_LITERAL) && (typeR == I32 || typeR == I32_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if((typeL == F64 || typeL == F64_LITERAL) && (typeR == F64 || typeR == F64_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if((typeL == F64 && typeR == I32_LITERAL) || (typeL == I32_LITERAL && typeR == F64)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
+      if((typeL == F64_LITERAL && typeR == I32_LITERAL) || (typeR == F64_LITERAL && typeL == I32_LITERAL)) {
+        higher_order->valType = BOOL;
+        return BOOL;
+      }
       return NONE;
     default:
       return NONE;
@@ -89,27 +142,9 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
 }
 
 type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
-  /*switch(type1) {
-    case I32:
-      return (type2 == I32 || type2 == I32_LITERAL) ? I32 : NONE;
-    case F64: 
-      return (type2 == F64 || type2 == F64_LITERAL) ? F64 : NONE;
-    case U8_ARRAY:
-      return (type2 == U8_ARRAY) ? U8_ARRAY : NONE;
-    case I32_NULLABLE:
-      return (type2 == I32_NULLABLE || type2 == I32 || type2 == I32_LITERAL || type2 == NULL_LITERAL) ? I32_NULLABLE : NONE;
-    case F64_NULLABLE:
-      return (type2 == F64_NULLABLE || type2 == F64 || type2 == F64_LITERAL || type2 == NULL_LITERAL) ? F64_NULLABLE : NONE;
-    case U8_ARRAY_NULLABLE:
-      return (type2 == U8_ARRAY_NULLABLE || type2 == U8_ARRAY || type2 == NULL_LITERAL) ? U8_ARRAY_NULLABLE : NONE;
-    case UNDEFINED:
-      return type2;
-    default: 
-      return NONE;
-  }*/
 
-  type_t typeL = (left == NULL) ? UNDEFINED : left->valType;
-  type_t typeR = (right == NULL) ? NONE : right->valType;
+  type_t typeL = (left == NULL) ? UNDEFINED : left->valType; //in case var has no typenode 
+  type_t typeR = (right == NULL) ? NONE : right->valType; //to prevent segfaults
   NodeType oper = higher_order->nodeType;
   switch(oper) {
     case ConstDeclaration:
@@ -183,14 +218,14 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
           higher_order->valType = typeR;
           return typeR;
         default:
-          fprintf(stderr, "London bridge is falling down\n");
+          //fprintf(stderr, "London bridge is falling down\n");
           exit(99);
       }
     case Assignment:
       higher_order->valType = typeL;
       return typeL;
     default:
-      fprintf(stderr, "Cuz I've blown it up\n");
+      //fprintf(stderr, "Cuz I've blown it up\n");
       exit(99);
   }
   
@@ -248,4 +283,47 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
     default:
       exit(99);
   }
+
+}
+
+
+type_t Sem_ParamConv(type_t ParamType, type_t ArgType) {
+  switch(ParamType) {
+    case STR_LITERAL:
+      if(ArgType == STR_LITERAL || ArgType == U8_ARRAY) {
+        return STR_LITERAL;
+      }
+      return NONE;
+    case I32:
+      if(ArgType == I32_NULLABLE) {
+        return NONE;
+      }
+    case I32_NULLABLE:
+      if(ArgType == I32 || ArgType == I32_LITERAL || ArgType == I32_NULLABLE) {
+        return ParamType;
+      }
+      return NONE;
+    case F64:
+      if(ArgType == F64_NULLABLE) {
+        return NONE;
+      }
+    case F64_NULLABLE:
+      if(ArgType == F64 || ArgType == F64_LITERAL || ArgType == F64_NULLABLE || I32_LITERAL) {
+        return ParamType;
+      }
+      return NONE;
+    case U8_ARRAY:
+      if(ArgType == U8_ARRAY_NULLABLE) {
+        return NONE;
+      }
+    case U8_ARRAY_NULLABLE:
+      if(ArgType == U8_ARRAY || U8_ARRAY_NULLABLE) {
+        return ParamType;
+      }
+      return NONE;
+    case UNDEFINED:
+      return ParamType;
+    default:
+      exit(99);
+  }    
 }
