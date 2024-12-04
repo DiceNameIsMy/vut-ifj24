@@ -82,6 +82,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
     SymTable_PushFuncParam(table, "ifj.chr", I32, "int");    
 
 
+    token = get_next_token();
     while(stat_index < array->size) {
         if(token.type != TOKEN_KEYWORD_FN) {
             token = get_next_token();

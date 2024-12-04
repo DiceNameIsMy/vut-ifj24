@@ -36,7 +36,7 @@ INT2FLOAT LF@tmp_0007 LF@val_0004
 MOVE LF@d_0006 LF@tmp_0007
 MOVE LF@vysl_0008 float@0x1p+0
 LABEL while_iteration_0006
-GT LF@tmp_0009 LF@d_0006 int@0
+GT LF@tmp_0009 LF@d_0006 float@0x0p+0
 JUMPIFEQ end_while_0007 LF@tmp_0009 bool@false
 MUL LF@tmp_0010 LF@vysl_0008 LF@d_0006
 MOVE LF@vysl_0008 LF@tmp_0010
