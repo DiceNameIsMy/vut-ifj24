@@ -234,7 +234,7 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return UNDEFINED;
       }
       higher_order->valType = typeR;
-      higher_order->value = valCpy(right->value);
+      //higher_order->value = valCpy(right->value);
       return typeR;
     default:
       fprintf(stderr, "London bridge is falling down with nodetype %d\n", (int)higher_order->nodeType);
