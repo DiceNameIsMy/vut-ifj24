@@ -46,10 +46,10 @@ def test_program(program_name, interpreter_input, expected_interpreter_output):
     try:
         # Run the compiler
         compiler_stdout, compiler_stderr, compiler_returncode = run_compiler(input_file_path)
-        assert compiler_returncode == 0, f"Compiler error: {compiler_stderr}"
+        assert compiler_returncode == 0, f"Compiler error: file[{program_name}] exit_code[{compiler_returncode}] stderr[{compiler_stderr}] stdout[{compiler_stdout}]"
 
         # Write the compiler output to a temporary file
-        with open(output_file_path, 'w') as f:
+        with open(output_file_path, 'w', encoding="utf-8") as f:
             f.write(compiler_stdout)
 
         # Run the interpreter
