@@ -246,6 +246,7 @@ void SymTable_Dispose(SymTable *table)
     Scope_Dispose(scope);
   }
   destroyStack(table->stack);
+  free(table->stack);
 
   // should we free a symtable?
   return;

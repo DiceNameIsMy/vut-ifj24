@@ -13,14 +13,12 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       
       if((typeL == typeR) && (typeL == I32 || typeL == F64 || typeL == I32_LITERAL || typeL == F64_LITERAL)) { //equal numeric types 
         higher_order->valType = typeL;
-        fprintf(stderr, "Types are equal\n");
         PerformArithm(left, right, higher_order);
         return higher_order->valType;
       }
 
       if((typeL == I32_LITERAL || typeL == I32) && (typeR == I32_LITERAL || typeR == I32)) {
         higher_order->valType = I32;
-        fprintf(stderr, "Types are I32-like\n");
         PerformArithm(left, right, higher_order);
         if(typeL == I32_LITERAL && typeR == I32_LITERAL) {
           higher_order->valType = I32_LITERAL;
@@ -29,7 +27,6 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       }
 
       if((typeL == F64_LITERAL || typeL == F64) && (typeR == F64_LITERAL || typeR == F64)) {
-        fprintf(stderr, "Types are F64-like\n");
         higher_order->valType = F64;
         PerformArithm(left, right, higher_order);
         if(typeL == F64_LITERAL && typeR == F64_LITERAL) {
@@ -237,7 +234,6 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       //higher_order->value = valCpy(right->value);
       return typeR;
     default:
-      fprintf(stderr, "London bridge is falling down with nodetype %d\n", (int)higher_order->nodeType);
       exit(99);
     } 
 }
@@ -250,7 +246,6 @@ bool isRound(double literal) {
 
 void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
   if(right->value == NULL || left->value == NULL) {
-    fprintf(stderr, "NULL...");
     return;
   }
   higher_order->value = (ASTValue *)malloc(sizeof(ASTValue));
@@ -259,26 +254,22 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
     int B = right->value->integer;
     switch(higher_order->nodeType) {
       case AddOperation:
-        fprintf(stderr, "%d + %d = %d\n", A, B, A + B);
         higher_order->value->integer = A + B;
         return;
       case SubOperation:
-        fprintf(stderr, "%d - %d = %d\n", A, B, A - B);
         higher_order->value->integer = A - B;
         return;
       case MulOperation:
-        fprintf(stderr, "%d * %d = %d\n", A, B, A * B);
         higher_order->value->integer = A * B;
         return;
       case DivOperation:
-        fprintf(stderr, "%d / %d = %d\n", A, B, A / B);
         if(B == 0) {
+          fprintf(stderr, "Error: Division by a compile time zero!\n");
           exit(10);
         }
         higher_order->value->integer = A / B;
         return;
       default:
-        fprintf(stderr, "Lonfon\n");
         exit(99);
     }
   }
@@ -287,20 +278,17 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
   double B = (right->valType == I32_LITERAL) ? (double)(right->value->integer) : right->value->real;
   switch (higher_order->nodeType) {
     case AddOperation:
-      fprintf(stderr, "%lf + %lf = %lf\n", A, B, A + B);
       higher_order->value->real = A + B;
       return;
     case SubOperation:
-      fprintf(stderr, "%lf - %lf = %lf\n", A, B, A - B);
       higher_order->value->real = A - B;
       return;
     case MulOperation:
-      fprintf(stderr, "%lf * %lf = %lf\n", A, B, A * B);
       higher_order->value->real = A * B;
       return;
     case DivOperation:
-      fprintf(stderr, "%lf / %lf = %lf\n", A, B, A / B);
       if (B == 0.0) {
+        fprintf(stderr, "Error: Division by a compile time zero!\n");
         exit(10);
       }
       higher_order->value->real = A / B;
