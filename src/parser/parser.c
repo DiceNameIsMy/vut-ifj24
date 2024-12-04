@@ -597,7 +597,6 @@ ASTNode* parseSimpleExpression() {
             exit(7);
         }
     }
-
     return left;  // Return the completed simple expression n
 }
 
@@ -656,6 +655,7 @@ ASTNode* parseFactor() {
 
             factorNode = createASTNode(Identifier, identifier);  // Variable reference
             factorNode->valType = SymTable_GetType(sym_Table, identifier);
+            factorNode->value = valCpy(SymTable_GetCTVal(sym_Table, identifier));
         }
     } else if (token.type == TOKEN_I32_LITERAL || token.type == TOKEN_F64_LITERAL ||
                token.type == TOKEN_STRING_LITERAL || token.type == TOKEN_KEYWORD_NULL) {

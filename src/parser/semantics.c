@@ -237,15 +237,19 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
     int B = right->value->integer;
     switch(higher_order->nodeType) {
       case AddOperation:
+        fprintf(stderr, "%d + %d = %d\n", A, B, A + B);
         higher_order->value->integer = A + B;
         return;
       case SubOperation:
+        fprintf(stderr, "%d - %d = %d\n", A, B, A - B);
         higher_order->value->integer = A - B;
         return;
       case MulOperation:
+        fprintf(stderr, "%d * %d = %d\n", A, B, A * B);
         higher_order->value->integer = A * B;
         return;
       case DivOperation:
+        fprintf(stderr, "%d / %d = %d\n", A, B, A / B);
         if(B == 0) {
           exit(10);
         }
