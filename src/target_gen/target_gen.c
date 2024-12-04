@@ -267,7 +267,6 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   // Call main function
   Operand mainFuncLabel = getOrCreateLabel("main");
   Instruction callMainInst = initInstr1(INST_CALL, mainFuncLabel);
-  destroyOperand(&mainFuncLabel);
   addInstruction(callMainInst);
 
   // Pop the frame since its no longer needed
@@ -275,19 +274,16 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(popFrameInst);
 
   // Jump to the end of the generated file
-  Operand endProgramLabel = getOrCreateLabel("end_program");
-  addInstruction(initInstr1(INST_JUMP, endProgramLabel));
+  Operand endProgramLabelOperand = getOrCreateLabel("end_program");
+  addInstruction(initInstr1(INST_JUMP, endProgramLabelOperand));
 
   // Generate functions
   generateAllFunctions(root->right);
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initStringOperand(OP_LABEL, endProgramLabel.attr.string);
-  Instruction inst = initInstr1(INST_LABEL, var);
+  Instruction inst = initInstr1(INST_LABEL, copyOperand(&endProgramLabelOperand));
   addInstruction(inst);
-  destroyOperand(&endProgramLabel);
-  destroyOperand(&var);
 
   IdIndexer_Destroy(labelIndexer);
   free(labelIndexer);
@@ -327,6 +323,7 @@ Operand getOrCreateLabel(char *name)
   }
 
   Operand var = initStringOperand(OP_LABEL, labelName);
+  free(labelName);
   return var;
 }
 
@@ -336,6 +333,7 @@ Operand createTmpLabel(char *name)
   loginfo("Creating temporary label: %s", labelName);
 
   Operand var = initStringOperand(OP_LABEL, labelName);
+  free(labelName);
   return var;
 }
 
@@ -364,7 +362,8 @@ Operand createTmpVar(char *name, VarFrameType frame)
   return var;
 }
 
-void generateAllFunctions(ASTNode *node) {
+void generateAllFunctions(ASTNode *node)
+{
   while (node != NULL)
   {
     generateFunction(node);
@@ -680,7 +679,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   bool negate = negateBinaryInstruction(node);
   if (negate)
   {
-    Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
+    Instruction negateInst = initInstr2(INST_NOT, *outVar, copyOperand(outVar));
     addInstruction(negateInst);
   }
 }
@@ -700,11 +699,11 @@ void generateNullBindingCheck(ASTNode *node, Operand *outVar)
   Instruction putIsNullCheck = initInstr3(
       INST_EQ,
       *outVar,
-      varTypeOperand,
+      copyOperand(&varTypeOperand),
       initStringOperand(OP_CONST_STRING, "nil"));
   addInstruction(putIsNullCheck);
 
-  Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
+  Instruction negateInst = initInstr2(INST_NOT, *outVar, copyOperand(outVar));
   addInstruction(negateInst);
 }
 
@@ -724,7 +723,7 @@ void generateIfCondition(ASTNode *node)
   Operand endLabel = createTmpLabel("end_if");
   loginfo("Got label to end if: %s", endLabel.attr.string);
 
-  unrollIfConditions(node, endLabel, true);
+  unrollIfConditions(node, copyOperand(&endLabel), true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
 }
@@ -741,7 +740,7 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
   bool isLastEvaluation = node->next == NULL || node->next->nodeType != IfCondition;
   if (isLastEvaluation)
   {
-    unrollLastIfConditional(node, endLabel, firstEvaluation);
+    unrollLastIfConditional(node, copyOperand(&endLabel), firstEvaluation);
     return;
   }
 
@@ -759,13 +758,13 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
   // If not last evaluation, JUMP on positive condition
   Instruction jumpToBlockInst = initInstr3(
       INST_JUMPIFEQ,
-      endLabel,
+      copyOperand(&endLabel),
       ifCondition,
       initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
   addInstruction(jumpToBlockInst);
 
   // Unroll next evaluation.
-  unrollIfConditions(node->next, endLabel, false);
+  unrollIfConditions(node->next, copyOperand(&endLabel), false);
 
   // Generate body
   if (node->binding != NULL)
@@ -779,7 +778,7 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
     ifBlockStatement = ifBlockStatement->next;
   }
 
-  Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+  Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
   addInstruction(jumpToEnd);
 
   return;
@@ -823,7 +822,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
       elseBlockStatement = elseBlockStatement->next;
     }
     // Jump to the end
-    Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+    Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
     addInstruction(jumpToEnd);
 
     addInstruction(initInstr1(INST_LABEL, ifTrueLabel));
@@ -846,7 +845,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
     // Optimization: If it's a last evaluation, jump to end on negative condition. Put the code right after.
     Instruction jumpToEndOnNegativeCondition = initInstr3(
         INST_JUMPIFEQ,
-        endLabel,
+        copyOperand(&endLabel),
         ifCondition,
         initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
     addInstruction(jumpToEndOnNegativeCondition);
@@ -871,7 +870,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
   }
   else
   {
-    Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+    Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
     addInstruction(jumpToEnd);
   }
 }
@@ -899,7 +898,7 @@ void generateWhileConditional(ASTNode *node)
   // Jump to the end of the loop if the condition is false
   Instruction instrCondEndLoop = initInstr3(
       INST_JUMPIFEQ,
-      endWhileLabel,
+      copyOperand(&endWhileLabel),
       whileCondition,
       initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
   addInstruction(instrCondEndLoop);
@@ -919,10 +918,10 @@ void generateWhileConditional(ASTNode *node)
   }
 
   // Jump to the beginning of the loop
-  addInstruction(initInstr1(INST_JUMP, whileIterLabel));
+  addInstruction(initInstr1(INST_JUMP, copyOperand(&whileIterLabel)));
 
   // Add label for the end of the while loop
-  addInstruction(initInstr1(INST_LABEL, endWhileLabel));
+  addInstruction(initInstr1(INST_LABEL, copyOperand(&endWhileLabel)));
 
   loginfo("While loop generated");
 }
@@ -1040,38 +1039,34 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   {
     Operand convertOperand;
     generateExpression(node->left, &convertOperand);
-    Instruction convertInst = initInstr2(
+    addInstruction(initInstr2(
         INST_INT2FLOAT,
         *outVar,
-        convertOperand);
-    addInstruction(convertInst);
+        convertOperand));
   }
   else if (strcmp(node->name, "ifj.f2i") == 0)
   {
     Operand convertOperand;
     generateExpression(node->left, &convertOperand);
-    Instruction convertInst = initInstr2(
+    addInstruction(initInstr2(
         INST_FLOAT2INT,
         *outVar,
-        convertOperand);
-    addInstruction(convertInst);
+        convertOperand));
   }
   else if (strcmp(node->name, "ifj.string") == 0)
   {
     assert(node->left->nodeType == StringLiteral);
     Operand literalToConvert = initConstantOperand(node->left);
-    Instruction toStringInst = initInstr2(
+    addInstruction(initInstr2(
         INST_MOVE,
         *outVar,
-        literalToConvert);
-    addInstruction(toStringInst);
+        literalToConvert));
   }
   else if (strcmp(node->name, "ifj.length") == 0)
   {
     Operand strlenOperand;
     generateExpression(node->left, &strlenOperand);
-    Instruction toStringInst = initInstr2(INST_STRLEN, *outVar, strlenOperand);
-    addInstruction(toStringInst);
+    addInstruction(initInstr2(INST_STRLEN, *outVar, strlenOperand));
   }
   else if (strcmp(node->name, "ifj.concat") == 0)
   {
