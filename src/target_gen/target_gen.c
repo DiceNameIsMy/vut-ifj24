@@ -589,7 +589,6 @@ void generateExpression(ASTNode *node, Operand *outVar)
     break;
 
   case FuncCall:
-  case BuiltInFunctionCall: // TODO: Delete this enum value
     generateFunctionCall(node, outVar);
     break;
 

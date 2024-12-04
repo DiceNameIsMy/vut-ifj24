@@ -39,7 +39,6 @@ typedef enum {
     WhileCondition,
     ReturnStatement,
     Assignment,
-    BuiltInFunctionCall,
 } NodeType;
 
 //const char* getQuestionTypeName(NodeType type) {

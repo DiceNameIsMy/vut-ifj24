@@ -202,8 +202,6 @@ const char *nodeTypeToString(NodeType nodeType)
         return "ReturnStatement";
     case Assignment:
         return "Assignment";
-    case BuiltInFunctionCall:
-        return "BuiltInFunctionCall";
     default:
         return "Unknown";
     }
