@@ -1135,11 +1135,11 @@ Operand initConstantOperand(ASTNode *node)
   switch (node->valType)
   {
   case I32_LITERAL:
-    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
+    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value->integer});
   case F64_LITERAL:
-    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
+    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value->real});
   case STR_LITERAL:
-    char *literalString = convertToCompatibleStringLiteral(node->value.string);
+    char *literalString = convertToCompatibleStringLiteral(node->value->string);
     return initStringOperand(OP_CONST_STRING, literalString);
   case NULL_LITERAL:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
@@ -1154,11 +1154,11 @@ Operand initCompileTimeOperand(ASTNode *node)
   switch (node->valType)
   {
   case I32_LITERAL:
-    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
+    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value->integer});
   case F64_LITERAL:
-    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
+    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value->real});
   case STR_LITERAL:
-    char *literalString = convertToCompatibleStringLiteral(node->value.string);
+    char *literalString = convertToCompatibleStringLiteral(node->value->string);
     return initStringOperand(OP_CONST_STRING, literalString);
   default:
     loginfo("Unexpected compile time type: %s", nodeTypeToString(node->valType));

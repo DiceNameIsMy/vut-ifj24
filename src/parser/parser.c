@@ -666,7 +666,7 @@ ASTNode* parseFactor() {
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, NULL);  // Literal node
-                factorNode->value.string = strdup(token.attribute.str);
+                factorNode->value->string = strdup(token.attribute.str);
                 factorNode->valType = STR_LITERAL;
                 break;
             default:
@@ -835,6 +835,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
     } else {
         // Handle syntax error for unexpected token after identifier
         loginfo("Syntax error: unexpected token after identifier\n");
+        free(identifier);
         exit(2);
     }
 }

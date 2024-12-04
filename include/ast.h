@@ -60,7 +60,7 @@ typedef union ASTValue{
 typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
     type_t valType;
-    ASTValue value;    // Literal value or identifier
+    ASTValue* value;    // Literal value or identifier
     char *name;        //TODO: free afterwards
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node

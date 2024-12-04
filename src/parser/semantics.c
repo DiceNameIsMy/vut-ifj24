@@ -23,11 +23,11 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         higher_order->valType = F64;
         if(typeL == I32_LITERAL) {
           left->valType = F64_LITERAL;
-          left->value.real = (double)(left->value.integer);
+          left->value->real = (double)(left->value->integer);
         }
         if(typeR == I32_LITERAL) {
           right->valType = F64_LITERAL;
-          right->value.real = (double)(right->value.integer);
+          right->value->real = (double)(right->value->integer);
         }
         if(typeR != F64 && typeL != F64) {
           higher_order->valType = F64_LITERAL;
@@ -43,10 +43,10 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
           higher_order->valType = I32;
           return I32;
         }
-        if(other->valType == F64_LITERAL && isRound(other->value.real)) {
+        if(other->valType == F64_LITERAL && isRound(other->value->real)) {
           higher_order->valType = I32;
           other->valType = I32_LITERAL;
-          other->value.integer = (int)(other->value.real);
+          other->value->integer = (int)(other->value->real);
           return I32;
         }
       }      
@@ -66,13 +66,13 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return BOOL;
       }
       if(typeR == I32_LITERAL && (typeL == F64 || typeL == F64_NULLABLE || typeL == F64_LITERAL)) {
-        right->value.real = (double)(right->value.integer);
+        right->value->real = (double)(right->value->integer);
         right->valType = F64_LITERAL;
         higher_order->valType = BOOL;
         return BOOL;
       }
       if(typeL == I32_LITERAL && (typeR == F64 || typeR == F64_NULLABLE || typeR == F64_LITERAL)) {
-        left->value.real = (double)(left->value.integer);
+        left->value->real = (double)(left->value->integer);
         left->valType = F64_LITERAL;
         higher_order->valType = BOOL;
         return BOOL;
@@ -81,14 +81,14 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         higher_order->valType = BOOL;
         return BOOL;
       }
-      if(typeR == I32 && typeL == F64_LITERAL && isRound(left->value.real)) {
-        left->value.integer = (int)(left->value.real);
+      if(typeR == I32 && typeL == F64_LITERAL && isRound(left->value->real)) {
+        left->value->integer = (int)(left->value->real);
         left->valType = I32_LITERAL;
         higher_order->valType = BOOL;
         return BOOL;
       }
-      if(typeL == I32 && typeR == F64_LITERAL && isRound(right->value.real)) {
-        right->value.integer = (int)(right->value.real);
+      if(typeL == I32 && typeR == F64_LITERAL && isRound(right->value->real)) {
+        right->value->integer = (int)(right->value->real);
         right->valType = I32_LITERAL;
         higher_order->valType = BOOL;
         return BOOL;
@@ -121,14 +121,14 @@ type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       }
       if((typeL == F64 && typeR == I32_LITERAL) || (typeL == I32_LITERAL && typeR == F64)) {
         ASTNode *IntLit = (typeR == I32_LITERAL) ? right : left;
-        IntLit->value.real = (double)(IntLit->value.integer);
+        IntLit->value->real = (double)(IntLit->value->integer);
         IntLit->valType = F64_LITERAL;
         higher_order->valType = BOOL;
         return BOOL;
       }
       if((typeL == F64_LITERAL && typeR == I32_LITERAL) || (typeR == F64_LITERAL && typeL == I32_LITERAL)) {
         ASTNode *IntLit = (typeR == I32_LITERAL) ? right : left;
-        IntLit->value.real = (double)(IntLit->value.integer);
+        IntLit->value->real = (double)(IntLit->value->integer);
         IntLit->valType = F64_LITERAL;
         higher_order->valType = BOOL;
         return BOOL;
@@ -163,14 +163,14 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       }
       if(typeR == I32_LITERAL) {
         higher_order->valType = I32_LITERAL;
-        higher_order->value.integer = right->value.integer;            
+        higher_order->value->integer = right->value->integer;            
         return I32_LITERAL;
       }
-      if(typeR == F64_LITERAL && isRound(right->value.real)) {
+      if(typeR == F64_LITERAL && isRound(right->value->real)) {
         right->valType = I32_LITERAL;
-        right->value.integer = (int)(right->value.real);
+        right->value->integer = (int)(right->value->real);
         higher_order->valType = I32_LITERAL;
-        higher_order->value.integer = right->value.integer;
+        higher_order->value->integer = right->value->integer;
         return I32_LITERAL;
       }
       return NONE;
@@ -187,14 +187,14 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       }
       if(typeR == F64_LITERAL) {
         higher_order->valType = F64_LITERAL;
-        higher_order->value.real = right->value.real;
+        higher_order->value->real = right->value->real;
         return F64_LITERAL;
       }
       if(typeR == I32_LITERAL) {
         right->valType = F64_LITERAL;
-        right->value.real = (double)(right->value.integer);
+        right->value->real = (double)(right->value->integer);
         higher_order->valType = F64_LITERAL;
-        higher_order->value.real = right->value.real;
+        higher_order->value->real = right->value->real;
         return F64_LITERAL;
       }
       return NONE;
@@ -231,46 +231,46 @@ bool isRound(double literal) {
 
 void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
   if(left->valType == I32_LITERAL && right->valType == I32_LITERAL) {
-    int A = left->value.integer;
-    int B = right->value.integer;
+    int A = left->value->integer;
+    int B = right->value->integer;
     switch(higher_order->nodeType) {
       case AddOperation:
-        higher_order->value.integer = A + B;
+        higher_order->value->integer = A + B;
         return;
       case SubOperation:
-        higher_order->value.integer = A - B;
+        higher_order->value->integer = A - B;
         return;
       case MulOperation:
-        higher_order->value.integer = A * B;
+        higher_order->value->integer = A * B;
         return;
       case DivOperation:
         if(B == 0) {
           exit(10);
         }
-        higher_order->value.integer = A / B;
+        higher_order->value->integer = A / B;
         return;
       default:
         exit(99);
     }
   }
 
-  double A = (left->valType == I32_LITERAL) ? (double)(left->value.integer) : left->value.real;
-  double B = (right->valType == I32_LITERAL) ? (double)(right->value.integer) : right->value.real;
+  double A = (left->valType == I32_LITERAL) ? (double)(left->value->integer) : left->value->real;
+  double B = (right->valType == I32_LITERAL) ? (double)(right->value->integer) : right->value->real;
   switch (higher_order->nodeType) {
     case AddOperation:
-      higher_order->value.real = A + B;
+      higher_order->value->real = A + B;
       return;
     case SubOperation:
-      higher_order->value.real = A - B;
+      higher_order->value->real = A - B;
       return;
     case MulOperation:
-      higher_order->value.real = A * B;
+      higher_order->value->real = A * B;
       return;
     case DivOperation:
       if (B == 0.0) {
         exit(10);
       }
-      higher_order->value.real = A / B;
+      higher_order->value->real = A / B;
       return;
     default:
       exit(99);
