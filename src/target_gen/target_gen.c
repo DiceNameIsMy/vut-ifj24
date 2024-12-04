@@ -275,7 +275,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
 
   // Jump to the end of the generated file
   Operand endProgramLabelOperand = getOrCreateLabel("end_program");
-  addInstruction(initInstr1(INST_JUMP, endProgramLabelOperand));
+  addInstruction(initInstr1(INST_JUMP, copyOperand(&endProgramLabelOperand)));
 
   // Generate functions
   generateAllFunctions(root->right);
@@ -283,6 +283,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
   Instruction inst = initInstr1(INST_LABEL, copyOperand(&endProgramLabelOperand));
+  destroyOperand(&endProgramLabelOperand);
   addInstruction(inst);
 
   IdIndexer_Destroy(labelIndexer);
@@ -343,6 +344,7 @@ Operand getOrCreateVar(char *name, VarFrameType frame)
   bool created = IdIndexer_GetOrCreate(funcVarsIndexer, name, &varName);
 
   Operand var = initVarOperand(OP_VAR, frame, varName);
+  free(varName);
 
   assert(funcScope != NULL);
   if (created)
@@ -356,6 +358,7 @@ Operand createTmpVar(char *name, VarFrameType frame)
 {
   char *varName = IdIndexer_CreateOneTime(funcVarsIndexer, name);
   Operand var = initVarOperand(OP_VAR, frame, varName);
+  free(varName);
 
   assert(funcScope != NULL);
   TFC_AddVar(funcScope, var.attr.var);
@@ -379,6 +382,7 @@ void generateAllFunctions(ASTNode *node)
     addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
     fprintf(outputStream, "%s", ifjStrcmpFunctionBody);
   }
+  free(ifjStrcmpLabel);
 
   char *ifjSubstringLabel;
   created = IdIndexer_GetOrCreate(labelIndexer, "ifj_substring", &ifjSubstringLabel);
@@ -388,6 +392,7 @@ void generateAllFunctions(ASTNode *node)
     addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
     fprintf(outputStream, "%s", ifjSubstringFunctionBody);
   }
+  free(ifjSubstringLabel);
 }
 
 void generateFunction(ASTNode *node)
@@ -418,6 +423,7 @@ void generateFunction(ASTNode *node)
   Operand funcNameLabel = getOrCreateLabel(node->name);
   Instruction inst = initInstr1(INST_LABEL, funcNameLabel);
   TFC_SetFuncLabel(funcScope, funcNameLabel.attr.string);
+  destroyOperand(&funcNameLabel);
 
   // Load function parameters from stack
   Param *param = SymTable_GetParamList(symTable, node->name);
@@ -638,14 +644,14 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
     // Left operand is not inline but right operand is.
     // Evaluate left at the place of outVar & then use it to set the final value to outVar.
     generateExpression(node->left, outVar);
-    leftOperand = *outVar;
+    leftOperand = copyOperand(outVar);
     outVarInitialized = true;
   }
   else
   {
     // Both operands can't be inlined. Set left's value to outVar.
     generateExpression(node->left, outVar);
-    leftOperand = *outVar;
+    leftOperand = copyOperand(outVar);
     outVarInitialized = true;
   }
 
@@ -658,7 +664,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   {
     // Same as for left, but for right operand.
     generateExpression(node->right, outVar);
-    rightOperand = *outVar;
+    rightOperand = copyOperand(outVar);
     outVarInitialized = true;
   }
   else
@@ -698,12 +704,12 @@ void generateNullBindingCheck(ASTNode *node, Operand *outVar)
   // Put true if the value is not NULL
   Instruction putIsNullCheck = initInstr3(
       INST_EQ,
-      *outVar,
+      copyOperand(outVar),
       copyOperand(&varTypeOperand),
       initStringOperand(OP_CONST_STRING, "nil"));
   addInstruction(putIsNullCheck);
 
-  Instruction negateInst = initInstr2(INST_NOT, *outVar, copyOperand(outVar));
+  Instruction negateInst = initInstr2(INST_NOT, copyOperand(outVar), copyOperand(outVar));
   addInstruction(negateInst);
 }
 
@@ -723,7 +729,7 @@ void generateIfCondition(ASTNode *node)
   Operand endLabel = createTmpLabel("end_if");
   loginfo("Got label to end if: %s", endLabel.attr.string);
 
-  unrollIfConditions(node, copyOperand(&endLabel), true);
+  unrollIfConditions(node, endLabel, true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
 }
@@ -780,8 +786,6 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
 
   Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
   addInstruction(jumpToEnd);
-
-  return;
 }
 
 void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluation)
@@ -807,7 +811,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
     // Jump to the code to execute if the condition is true.
     Instruction jumpToBlockInst = initInstr3(
         INST_JUMPIFEQ,
-        ifTrueLabel,
+        copyOperand(&ifTrueLabel),
         ifCondition,
         initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
     addInstruction(jumpToBlockInst);
@@ -825,7 +829,8 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
     Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
     addInstruction(jumpToEnd);
 
-    addInstruction(initInstr1(INST_LABEL, ifTrueLabel));
+    addInstruction(initInstr1(INST_LABEL, copyOperand(&ifTrueLabel)));
+    destroyOperand(&ifTrueLabel);
 
     // Generate body on true condition
     if (node->binding != NULL)
@@ -922,6 +927,7 @@ void generateWhileConditional(ASTNode *node)
 
   // Add label for the end of the while loop
   addInstruction(initInstr1(INST_LABEL, copyOperand(&endWhileLabel)));
+  destroyOperand(&endWhileLabel);
 
   loginfo("While loop generated");
 }
@@ -973,7 +979,7 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
 
   // If function returns a value, put it into outVar
   bool returnsVoid = node->valType == NONE;
-  if (!returnsVoid)
+  if (!returnsVoid && outVar != NULL)
   {
     *outVar = createTmpVar("tmp", FRAME_LF);
     addInstruction(initInstr1(INST_POPS, *outVar));
@@ -1015,7 +1021,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   {
     Instruction readInst = initInstr2(
         INST_READ,
-        *outVar,
+        copyOperand(outVar),
         initStringOperand(OP_TYPE, "string"));
     addInstruction(readInst);
   }
@@ -1023,7 +1029,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   {
     Instruction readInst = initInstr2(
         INST_READ,
-        *outVar,
+        copyOperand(outVar),
         initStringOperand(OP_TYPE, "int"));
     addInstruction(readInst);
   }
@@ -1031,7 +1037,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   {
     Instruction readInst = initInstr2(
         INST_READ,
-        *outVar,
+        copyOperand(outVar),
         initStringOperand(OP_TYPE, "float"));
     addInstruction(readInst);
   }
@@ -1041,7 +1047,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     generateExpression(node->left, &convertOperand);
     addInstruction(initInstr2(
         INST_INT2FLOAT,
-        *outVar,
+        copyOperand(outVar),
         convertOperand));
   }
   else if (strcmp(node->name, "ifj.f2i") == 0)
@@ -1050,7 +1056,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     generateExpression(node->left, &convertOperand);
     addInstruction(initInstr2(
         INST_FLOAT2INT,
-        *outVar,
+        copyOperand(outVar),
         convertOperand));
   }
   else if (strcmp(node->name, "ifj.string") == 0)
@@ -1059,14 +1065,14 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     Operand literalToConvert = initConstantOperand(node->left);
     addInstruction(initInstr2(
         INST_MOVE,
-        *outVar,
+        copyOperand(outVar),
         literalToConvert));
   }
   else if (strcmp(node->name, "ifj.length") == 0)
   {
     Operand strlenOperand;
     generateExpression(node->left, &strlenOperand);
-    addInstruction(initInstr2(INST_STRLEN, *outVar, strlenOperand));
+    addInstruction(initInstr2(INST_STRLEN, copyOperand(outVar), strlenOperand));
   }
   else if (strcmp(node->name, "ifj.concat") == 0)
   {
@@ -1075,7 +1081,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     Operand secondOperand;
     generateExpression(node->left->next, &secondOperand);
 
-    Instruction concatInst = initInstr3(INST_CONCAT, *outVar, firstOperand, secondOperand);
+    Instruction concatInst = initInstr3(INST_CONCAT, copyOperand(outVar), firstOperand, secondOperand);
     addInstruction(concatInst);
   }
   else if (strcmp(node->name, "ifj.ord") == 0)
@@ -1085,7 +1091,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     generateExpression(node->left, &u8);
     Operand idx;
     generateExpression(node->left->next, &idx);
-    Instruction strToIntInst = initInstr3(INST_STRI2INT, *outVar, u8, idx);
+    Instruction strToIntInst = initInstr3(INST_STRI2INT, copyOperand(outVar), u8, idx);
     addInstruction(strToIntInst);
   }
   else if (strcmp(node->name, "ifj.chr") == 0)
@@ -1094,7 +1100,7 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
     generateExpression(node->left, &convertOperand);
     Instruction convertInst = initInstr2(
         INST_INT2CHAR,
-        *outVar,
+        copyOperand(outVar),
         convertOperand);
     addInstruction(convertInst);
   }

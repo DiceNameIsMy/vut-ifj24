@@ -273,9 +273,12 @@ int initInstruction(Instruction *inst, InstType type,
     }
 
     inst->type = type;
+    // inst->opFirst = opFirst;
+    inst->opSecond = opSecond;
+    inst->opThird = opThird;
     inst->opFirst = copyOperand(&opFirst);
-    inst->opSecond = copyOperand(&opSecond);
-    inst->opThird = copyOperand(&opThird);
+    // inst->opSecond = copyOperand(&opSecond);
+    // inst->opThird = copyOperand(&opThird);
 
     return 0;
 }
