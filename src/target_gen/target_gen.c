@@ -186,6 +186,7 @@ Operand createTmpLabel(char *name);
 Operand getOrCreateVar(char *name, VarFrameType frame);
 Operand createTmpVar(char *name, VarFrameType frame);
 
+void generateAllFunctions(ASTNode *node);
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
 
@@ -215,7 +216,6 @@ void generateFunctionCallParameter(ASTNode *node);
 void generateReturn(ASTNode *node);
 
 Operand initConstantOperand(ASTNode *node);
-Operand initCompileTimeOperand(ASTNode *node);
 
 InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
@@ -261,10 +261,8 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   fprintf(outputStream, ".IFJcode24\n");
 
   // Create an initial frame for the program
-  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  addInstruction(createFrameInst);
-  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  addInstruction(pushFrameInst);
+  addInstruction(initInstr0(INST_CREATEFRAME));
+  addInstruction(initInstr0(INST_PUSHFRAME));
 
   // Call main function
   Operand mainFuncLabel = getOrCreateLabel("main");
@@ -276,41 +274,15 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   addInstruction(popFrameInst);
 
   // Jump to the end of the generated file
-  Operand endProgramLabel = getOrCreateLabel("end_program");
-  Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
-  addInstruction(jumpToEndInst);
+  Operand endProgramLabelOperand = getOrCreateLabel("end_program");
+  addInstruction(initInstr1(INST_JUMP, endProgramLabelOperand));
 
   // Generate functions
-  ASTNode *funcNode = root->right;
-  while (funcNode != NULL)
-  {
-    generateFunction(funcNode);
-    funcNode = funcNode->binding;
-  }
-
-  // Generate complex builtin functions if they were used
-  char *ifjStrcmpLabel;
-  bool created = IdIndexer_GetOrCreate(labelIndexer, "ifj_strcmp", &ifjStrcmpLabel);
-  bool generateStrcmpFunction = !created;
-  if (generateStrcmpFunction)
-  {
-    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
-    fprintf(outputStream, "%s", ifjStrcmpFunctionBody);
-  }
-
-  char *ifjSubstringLabel;
-  created = IdIndexer_GetOrCreate(labelIndexer, "ifj_substring", &ifjSubstringLabel);
-  bool generateSubstringFunction = !created;
-  if (generateSubstringFunction)
-  {
-    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
-    fprintf(outputStream, "%s", ifjSubstringFunctionBody);
-  }
+  generateAllFunctions(root->right);
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
-  Operand var = initStringOperand(OP_LABEL, endProgramLabel.attr.string);
-  Instruction inst = initInstr1(INST_LABEL, var);
+  Instruction inst = initInstr1(INST_LABEL, copyOperand(&endProgramLabelOperand));
   addInstruction(inst);
 
   IdIndexer_Destroy(labelIndexer);
@@ -351,6 +323,7 @@ Operand getOrCreateLabel(char *name)
   }
 
   Operand var = initStringOperand(OP_LABEL, labelName);
+  free(labelName);
   return var;
 }
 
@@ -360,6 +333,7 @@ Operand createTmpLabel(char *name)
   loginfo("Creating temporary label: %s", labelName);
 
   Operand var = initStringOperand(OP_LABEL, labelName);
+  free(labelName);
   return var;
 }
 
@@ -386,6 +360,34 @@ Operand createTmpVar(char *name, VarFrameType frame)
   assert(funcScope != NULL);
   TFC_AddVar(funcScope, var.attr.var);
   return var;
+}
+
+void generateAllFunctions(ASTNode *node)
+{
+  while (node != NULL)
+  {
+    generateFunction(node);
+    node = node->binding;
+  }
+
+  // Generate complex builtin functions if they were used
+  char *ifjStrcmpLabel;
+  bool created = IdIndexer_GetOrCreate(labelIndexer, "ifj_strcmp", &ifjStrcmpLabel);
+  bool generateStrcmpFunction = !created;
+  if (generateStrcmpFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
+    fprintf(outputStream, "%s", ifjStrcmpFunctionBody);
+  }
+
+  char *ifjSubstringLabel;
+  created = IdIndexer_GetOrCreate(labelIndexer, "ifj_substring", &ifjSubstringLabel);
+  bool generateSubstringFunction = !created;
+  if (generateSubstringFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
+    fprintf(outputStream, "%s", ifjSubstringFunctionBody);
+  }
 }
 
 void generateFunction(ASTNode *node)
@@ -529,7 +531,7 @@ void generateDeclaration(ASTNode *node)
   bool isCompileTimeValue = false;
   if (isCompileTimeValue)
   {
-    addInstruction(initInstr2(INST_MOVE, varOperand, initCompileTimeOperand(node)));
+    addInstruction(initInstr2(INST_MOVE, varOperand, initConstantOperand(node)));
   }
   else
   {
@@ -561,7 +563,7 @@ void generateAssignment(ASTNode *node)
   bool isCompileTimeValue = false;
   if (isCompileTimeValue)
   {
-    addInstruction(initInstr2(INST_MOVE, dest, initCompileTimeOperand(node)));
+    addInstruction(initInstr2(INST_MOVE, dest, initConstantOperand(node)));
   }
   else
   {
@@ -677,7 +679,7 @@ void generateBinaryExpression(ASTNode *node, Operand *outVar)
   bool negate = negateBinaryInstruction(node);
   if (negate)
   {
-    Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
+    Instruction negateInst = initInstr2(INST_NOT, *outVar, copyOperand(outVar));
     addInstruction(negateInst);
   }
 }
@@ -697,11 +699,11 @@ void generateNullBindingCheck(ASTNode *node, Operand *outVar)
   Instruction putIsNullCheck = initInstr3(
       INST_EQ,
       *outVar,
-      varTypeOperand,
+      copyOperand(&varTypeOperand),
       initStringOperand(OP_CONST_STRING, "nil"));
   addInstruction(putIsNullCheck);
 
-  Instruction negateInst = initInstr2(INST_NOT, *outVar, *outVar);
+  Instruction negateInst = initInstr2(INST_NOT, *outVar, copyOperand(outVar));
   addInstruction(negateInst);
 }
 
@@ -721,7 +723,7 @@ void generateIfCondition(ASTNode *node)
   Operand endLabel = createTmpLabel("end_if");
   loginfo("Got label to end if: %s", endLabel.attr.string);
 
-  unrollIfConditions(node, endLabel, true);
+  unrollIfConditions(node, copyOperand(&endLabel), true);
 
   addInstruction(initInstr1(INST_LABEL, endLabel));
 }
@@ -738,7 +740,7 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
   bool isLastEvaluation = node->next == NULL || node->next->nodeType != IfCondition;
   if (isLastEvaluation)
   {
-    unrollLastIfConditional(node, endLabel, firstEvaluation);
+    unrollLastIfConditional(node, copyOperand(&endLabel), firstEvaluation);
     return;
   }
 
@@ -756,13 +758,13 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
   // If not last evaluation, JUMP on positive condition
   Instruction jumpToBlockInst = initInstr3(
       INST_JUMPIFEQ,
-      endLabel,
+      copyOperand(&endLabel),
       ifCondition,
       initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = true}));
   addInstruction(jumpToBlockInst);
 
   // Unroll next evaluation.
-  unrollIfConditions(node->next, endLabel, false);
+  unrollIfConditions(node->next, copyOperand(&endLabel), false);
 
   // Generate body
   if (node->binding != NULL)
@@ -776,7 +778,7 @@ void unrollIfConditions(ASTNode *node, Operand endLabel, bool firstEvaluation)
     ifBlockStatement = ifBlockStatement->next;
   }
 
-  Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+  Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
   addInstruction(jumpToEnd);
 
   return;
@@ -820,7 +822,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
       elseBlockStatement = elseBlockStatement->next;
     }
     // Jump to the end
-    Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+    Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
     addInstruction(jumpToEnd);
 
     addInstruction(initInstr1(INST_LABEL, ifTrueLabel));
@@ -843,7 +845,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
     // Optimization: If it's a last evaluation, jump to end on negative condition. Put the code right after.
     Instruction jumpToEndOnNegativeCondition = initInstr3(
         INST_JUMPIFEQ,
-        endLabel,
+        copyOperand(&endLabel),
         ifCondition,
         initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
     addInstruction(jumpToEndOnNegativeCondition);
@@ -868,7 +870,7 @@ void unrollLastIfConditional(ASTNode *node, Operand endLabel, bool firstEvaluati
   }
   else
   {
-    Instruction jumpToEnd = initInstr1(INST_JUMP, endLabel);
+    Instruction jumpToEnd = initInstr1(INST_JUMP, copyOperand(&endLabel));
     addInstruction(jumpToEnd);
   }
 }
@@ -896,7 +898,7 @@ void generateWhileConditional(ASTNode *node)
   // Jump to the end of the loop if the condition is false
   Instruction instrCondEndLoop = initInstr3(
       INST_JUMPIFEQ,
-      endWhileLabel,
+      copyOperand(&endWhileLabel),
       whileCondition,
       initOperand(OP_CONST_BOOL, (OperandAttribute){.boolean = false}));
   addInstruction(instrCondEndLoop);
@@ -916,10 +918,10 @@ void generateWhileConditional(ASTNode *node)
   }
 
   // Jump to the beginning of the loop
-  addInstruction(initInstr1(INST_JUMP, whileIterLabel));
+  addInstruction(initInstr1(INST_JUMP, copyOperand(&whileIterLabel)));
 
   // Add label for the end of the while loop
-  addInstruction(initInstr1(INST_LABEL, endWhileLabel));
+  addInstruction(initInstr1(INST_LABEL, copyOperand(&endWhileLabel)));
 
   loginfo("While loop generated");
 }
@@ -1037,38 +1039,34 @@ void generateSimpleBuiltInFunctionCall(ASTNode *node, Operand *outVar)
   {
     Operand convertOperand;
     generateExpression(node->left, &convertOperand);
-    Instruction convertInst = initInstr2(
+    addInstruction(initInstr2(
         INST_INT2FLOAT,
         *outVar,
-        convertOperand);
-    addInstruction(convertInst);
+        convertOperand));
   }
   else if (strcmp(node->name, "ifj.f2i") == 0)
   {
     Operand convertOperand;
     generateExpression(node->left, &convertOperand);
-    Instruction convertInst = initInstr2(
+    addInstruction(initInstr2(
         INST_FLOAT2INT,
         *outVar,
-        convertOperand);
-    addInstruction(convertInst);
+        convertOperand));
   }
   else if (strcmp(node->name, "ifj.string") == 0)
   {
     assert(node->left->nodeType == StringLiteral);
     Operand literalToConvert = initConstantOperand(node->left);
-    Instruction toStringInst = initInstr2(
+    addInstruction(initInstr2(
         INST_MOVE,
         *outVar,
-        literalToConvert);
-    addInstruction(toStringInst);
+        literalToConvert));
   }
   else if (strcmp(node->name, "ifj.length") == 0)
   {
     Operand strlenOperand;
     generateExpression(node->left, &strlenOperand);
-    Instruction toStringInst = initInstr2(INST_STRLEN, *outVar, strlenOperand);
-    addInstruction(toStringInst);
+    addInstruction(initInstr2(INST_STRLEN, *outVar, strlenOperand));
   }
   else if (strcmp(node->name, "ifj.concat") == 0)
   {
@@ -1140,28 +1138,13 @@ Operand initConstantOperand(ASTNode *node)
     return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value->real});
   case STR_LITERAL:
     char *literalString = convertToCompatibleStringLiteral(node->value->string);
-    return initStringOperand(OP_CONST_STRING, literalString);
+    Operand strLiteralOperand = initStringOperand(OP_CONST_STRING, literalString);
+    free(literalString);
+    return strLiteralOperand;
   case NULL_LITERAL:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
   default:
     loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
-    exit(99);
-  }
-}
-
-Operand initCompileTimeOperand(ASTNode *node)
-{
-  switch (node->valType)
-  {
-  case I32_LITERAL:
-    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value->integer});
-  case F64_LITERAL:
-    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value->real});
-  case STR_LITERAL:
-    char *literalString = convertToCompatibleStringLiteral(node->value->string);
-    return initStringOperand(OP_CONST_STRING, literalString);
-  default:
-    loginfo("Unexpected compile time type: %s", nodeTypeToString(node->valType));
     exit(99);
   }
 }
