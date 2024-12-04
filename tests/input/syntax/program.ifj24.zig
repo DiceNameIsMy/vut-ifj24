@@ -1,6 +1,6 @@
 const ifj = @import("ifj24.zig");
 
-pub fn main() i32 {
-    const a = null;
+pub fn main() void {
+    const a = 5;
     _ = a;
 }
