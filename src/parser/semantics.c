@@ -145,6 +145,7 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
   NodeType oper = higher_order->nodeType;
   type_t typeL = (oper == Assignment) ? higher_order->valType : ((left == NULL) ? UNDEFINED : left->valType); //in case var has no typenode 
   type_t typeR = right->valType; //to prevent segfaults
+  
   if(typeR == NONE) {
     higher_order->valType = NONE;
     return NONE;
@@ -163,14 +164,12 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       }
       if(typeR == I32_LITERAL) {
         higher_order->valType = I32_LITERAL;
-        higher_order->value->integer = right->value->integer;            
         return I32_LITERAL;
       }
       if(typeR == F64_LITERAL && isRound(right->value->real)) {
         right->valType = I32_LITERAL;
         right->value->integer = (int)(right->value->real);
         higher_order->valType = I32_LITERAL;
-        higher_order->value->integer = right->value->integer;
         return I32_LITERAL;
       }
       return NONE;
@@ -187,14 +186,12 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       }
       if(typeR == F64_LITERAL) {
         higher_order->valType = F64_LITERAL;
-        higher_order->value->real = right->value->real;
         return F64_LITERAL;
       }
       if(typeR == I32_LITERAL) {
         right->valType = F64_LITERAL;
         right->value->real = (double)(right->value->integer);
         higher_order->valType = F64_LITERAL;
-        higher_order->value->real = right->value->real;
         return F64_LITERAL;
       }
       return NONE;
@@ -221,6 +218,7 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       fprintf(stderr, "London bridge is falling down with nodetype %d\n", (int)higher_order->nodeType);
       exit(99);
     } 
+  higher_order->value = valCpy(right->value);
 }
 
 bool isRound(double literal) {
@@ -230,6 +228,7 @@ bool isRound(double literal) {
 }
 
 void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
+  higher_order->value = (ASTValue *)malloc(sizeof(ASTValue));
   if(left->valType == I32_LITERAL && right->valType == I32_LITERAL) {
     int A = left->value->integer;
     int B = right->value->integer;
@@ -275,7 +274,6 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
     default:
       exit(99);
   }
-
 }
 
 

@@ -37,20 +37,20 @@ type_t idType(Token token) {
 }
 
 void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
-    Symbol funWrite = {"ifj.write", FUNCTION, false, true, NONE, NULL};
-    Symbol funReadi32 = {"ifj.readi32", FUNCTION, false, true, I32_NULLABLE, NULL};
-    Symbol funReadf64 = {"ifj.readf64", FUNCTION, false, true, F64_NULLABLE, NULL};
-    Symbol funReadstr = {"ifj.readstr", FUNCTION, false, true, U8_ARRAY_NULLABLE, NULL};
-    Symbol funf2i = {"ifj.f2i", FUNCTION, false, true, I32, NULL};
-    Symbol funi2f = {"ifj.i2f", FUNCTION, false, true, F64, NULL};
-    Symbol funString = {"ifj.string", FUNCTION, false, true, U8_ARRAY, NULL};
-    Symbol funLength = {"ifj.length", FUNCTION, false, true, I32, NULL};
-    Symbol funConcat = {"ifj.concat", FUNCTION, false, true, U8_ARRAY, NULL};
-    Symbol funSubstring = {"ifj.substring", FUNCTION, false, true, U8_ARRAY_NULLABLE, NULL};
-    Symbol funStrcmp = {"ifj.strcmp", FUNCTION, false, true, I32, NULL};
-    Symbol funOrd = {"ifj.ord", FUNCTION, false, true, I32, NULL};
-    Symbol funChr = {"ifj.chr", FUNCTION, false, true, U8_ARRAY, NULL};
-    Symbol varNull = {"_", UNDEFINED, true, true, NONE, NULL};
+    Symbol funWrite = {"ifj.write", FUNCTION, false, true, NONE, NULL, NULL};
+    Symbol funReadi32 = {"ifj.readi32", FUNCTION, false, true, I32_NULLABLE, NULL, NULL};
+    Symbol funReadf64 = {"ifj.readf64", FUNCTION, false, true, F64_NULLABLE, NULL, NULL};
+    Symbol funReadstr = {"ifj.readstr", FUNCTION, false, true, U8_ARRAY_NULLABLE, NULL, NULL};
+    Symbol funf2i = {"ifj.f2i", FUNCTION, false, true, I32, NULL, NULL};
+    Symbol funi2f = {"ifj.i2f", FUNCTION, false, true, F64, NULL, NULL};
+    Symbol funString = {"ifj.string", FUNCTION, false, true, U8_ARRAY, NULL, NULL};
+    Symbol funLength = {"ifj.length", FUNCTION, false, true, I32, NULL, NULL};
+    Symbol funConcat = {"ifj.concat", FUNCTION, false, true, U8_ARRAY, NULL, NULL};
+    Symbol funSubstring = {"ifj.substring", FUNCTION, false, true, U8_ARRAY_NULLABLE, NULL, NULL};
+    Symbol funStrcmp = {"ifj.strcmp", FUNCTION, false, true, I32, NULL, NULL};
+    Symbol funOrd = {"ifj.ord", FUNCTION, false, true, I32, NULL, NULL};
+    Symbol funChr = {"ifj.chr", FUNCTION, false, true, U8_ARRAY, NULL, NULL};
+    Symbol varNull = {"_", UNDEFINED, true, true, NONE, NULL, NULL};
     SymTable_AddSymbol(table, &funWrite);
     SymTable_AddSymbol(table, &funReadi32);
     SymTable_AddSymbol(table, &funReadf64);
@@ -96,6 +96,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
         funName.used = false;
         funName.mut = false;
         funName.type = FUNCTION;
+        funName.CompTimeVal = NULL;
         funName.paramList = NULL;
         if(SymTable_Search(table, funName.name) != NULL) {
             loginfo("Error: redefinition of a function!\n");
@@ -248,6 +249,7 @@ ASTNode* parseFunctionDef() {
     }
 
     if(SymTable_UpperScope(sym_Table) != 0) { //quit the scope
+        loginfo("Error: unused variable in the scope!\n");
         exit(9); //unused variables
     }
 
@@ -273,6 +275,7 @@ ASTNode* parseParamList() {
         symbol.mut = true;
         symbol.used = false;
         symbol.retType = NONE;
+        symbol.CompTimeVal = NULL;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
         
@@ -308,6 +311,7 @@ ASTNode* parseParamListTail() {
     symbol.mut = true;
     symbol.used = false;
     symbol.retType = NONE;
+    symbol.CompTimeVal = NULL;
     symbol.paramList = NULL;
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
         loginfo("Error: resefinition of a variable!\n");
@@ -483,6 +487,7 @@ ASTNode* parseConstDeclaration() {
     ASTNode* constNode = createASTNode(ConstDeclaration, constName);
     constNode->left = typeNode;    // Attach type as left child (if available)
     constNode->right = exprNode;   // Attach the expression as right child
+    symbol.CompTimeVal = exprNode->value; //may be dangerous
     symbol.type = Sem_AssignConv(typeNode, exprNode, constNode);
     if(symbol.type == NONE) {
         loginfo("Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
@@ -666,6 +671,7 @@ ASTNode* parseFactor() {
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, NULL);  // Literal node
+                factorNode->value = (ASTValue *)malloc(sizeof(ASTValue));
                 factorNode->value->string = strdup(token.attribute.str);
                 factorNode->valType = STR_LITERAL;
                 break;
@@ -727,7 +733,7 @@ ASTNode* parseFunctionCall(char *funcName) {
         param = param->next;
     }
     if(param != NULL) { //too few arguments
-        loginfo("Error: Too few arguments provided fpr function %s\n", funcName);
+        loginfo("Error: Too few arguments provided for function %s\n", funcName);
         exit(4); 
     }
     
@@ -758,6 +764,7 @@ ASTNode* parseVarDeclaration() {
 
     match(TOKEN_ASSIGNMENT);  // Match '='
     ASTNode* exprNode = parseExpression();  // Parse the assigned expression
+    symbol.CompTimeVal = exprNode->value;
     ASTNode* varNode = createASTNode(VarDeclaration, varName);
     varNode->left = typeNode;   // Attach type as left child (if available)
     varNode->right = exprNode;  // Attach expression as right child
@@ -806,6 +813,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         SymTable_SetUsed(sym_Table, identifier, true);
 
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
+        SymTable_SetCTVal(sym_Table, identifier, exprNode->value); //null if not compile time
         ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
         assignNode->valType = SymTable_GetType(sym_Table, identifier);  // Attach the expression as the left child
         assignNode->left = exprNode;
@@ -876,6 +884,7 @@ ASTNode* parseIfCondition() {
         symbol.mut = true;
         symbol.used = false;
         symbol.retType = NONE;
+        symbol.CompTimeVal = NULL;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
         if_malloc_error(bindingVar);
@@ -962,6 +971,7 @@ ASTNode* parseWhileCondition() {
         symbol.mut = true;
         symbol.used = false;
         symbol.retType = NONE;
+        symbol.CompTimeVal = NULL;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
         match(TOKEN_ID);                // Match identifier for nullable binding

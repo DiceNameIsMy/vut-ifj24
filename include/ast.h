@@ -68,6 +68,7 @@ typedef struct ASTNode {
     struct ASTNode* binding;   // Nullable binding, specific to 'if' statements
 } ASTNode;
 
+ASTValue *valCpy(ASTValue *value);
 ASTNode* createASTNode(NodeType nodeType, char* value);
 ASTNode* createASTNodeInteger(NodeType nodeType, int value);
 ASTNode* createASTNodeReal(NodeType nodeType, double value);

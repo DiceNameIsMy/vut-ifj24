@@ -5,6 +5,7 @@
 #include "symtable.h"
 #include "bvs.h"
 #include "stack.h"
+#include "ast.h" //TEMPORARY!!
 #include <string.h>
 #include <stdio.h>
 
@@ -62,6 +63,18 @@ void SymTable_SetType(SymTable *table, char *name, type_t type)
     return;
   }
   ((Symbol *)(BVS_Search(current->tree, name)))->type = type;//TODO: implement "current" mechanism
+  return;
+}
+
+void SymTable_SetCTVal(SymTable *table, char *name, ASTValue *value)
+{
+  Scope *current = table->current;
+  while (current != NULL && BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  if (current == NULL) {
+    return;
+  }
+  ((Symbol *)(BVS_Search(current->tree, name)))->CompTimeVal = value;//TODO: implement "current" mechanism
   return;
 }
 
@@ -158,6 +171,17 @@ type_t SymTable_GetType(SymTable *table, char *name)
     exit(99);
   }
   return ((Symbol *)(BVS_Search(current->tree, name)))->type;
+}
+
+ASTValue *SymTable_GetCTVal(SymTable *table, char *name)
+{
+  Scope *current = table->current;
+  while (BVS_Search(current->tree, name) == NULL)
+    current = current->parent;
+  if (current == NULL) {
+    exit(99);
+  }
+  return ((Symbol *)(BVS_Search(current->tree, name)))->CompTimeVal;
 }
 
 bool SymTable_GetMut(SymTable *table, char *name)

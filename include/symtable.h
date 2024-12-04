@@ -2,6 +2,7 @@
 #include "bvs.h"
 #include "stack.h"
 #include "types.h"
+#include "ast.h" //TEMPORARY!!
 
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
@@ -25,6 +26,7 @@ typedef struct {
   bool mut;
   bool used;
   type_t retType;
+  ASTValue *CompTimeVal;
   struct param_t *paramList;
 } Symbol;
 
@@ -37,6 +39,7 @@ typedef struct param_t {
 
 Symbol *SymTable_Search(SymTable *table, char *name);
 void SymTable_SetType(SymTable *table, char *name, type_t type);
+void SymTable_SetCTVal(SymTable *table, char *name, ASTValue *value);
 void SymTable_SetMut(SymTable *table, char *name, bool isMutable);
 void SymTable_SetUsed(SymTable *table, char *name, bool isUsed);
 
@@ -49,6 +52,7 @@ void SymTable_PushFuncParam(SymTable *table, char *name, type_t paramType, char 
 void SymTable_SetRetType(SymTable *table, char *name, type_t retType);
 
 type_t SymTable_GetType(SymTable *table, char *name);
+ASTValue *SymTable_GetCTVal(SymTable *table, char *name);
 bool SymTable_GetMut(SymTable *table, char *name);
 bool SymTable_GetUsed(SymTable *table, char *name);
 type_t SymTable_GetRetType(SymTable *table, char *name);

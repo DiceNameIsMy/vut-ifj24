@@ -8,6 +8,15 @@
 #include "stdio.h"
 #include "ast.h"
 
+ASTValue *valCpy(ASTValue *value) {
+    ASTValue *newVal = NULL;
+    if(value != NULL) {
+        newVal = (ASTValue *)malloc(sizeof(ASTValue));
+        (*newVal) = (*value);
+    }
+    return newVal;
+}
+
 ASTNode *createASTNode(NodeType nodeType, char *name)
 {
     // Allocate memory for the ASTNode
@@ -31,13 +40,7 @@ ASTNode *createASTNode(NodeType nodeType, char *name)
     }
     // Initialize child pointers to NULL
     newNode->valType = NONE;
-    newNode->value = (ASTValue *) malloc(sizeof(ASTValue));
-    if (newNode->value == NULL){
-        fprintf(stderr, "Memory allocation failed for node value\n");
-        free(newNode);
-        exit(99);
-    }
-    newNode->value->string = NULL;
+    newNode->value = NULL;
     newNode->left = NULL;
     newNode->right = NULL;
     newNode->next = NULL;
@@ -122,12 +125,7 @@ ASTNode *createBinaryASTNode(NodeType operator, ASTNode * left, ASTNode *right)
     newNode->valType = NONE;
 
     // Allocate and copy the operator as the value
-    newNode->value = (ASTValue *) malloc(sizeof(ASTValue));
-    if (newNode->value == NULL){
-        fprintf(stderr, "Memory allocation failed for node value\n");
-        free(newNode);
-        exit(99);
-    }
+    newNode->value = NULL;
 
     // Attach the left and right child nodes
     newNode->left = left;
