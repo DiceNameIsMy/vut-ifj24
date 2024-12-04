@@ -297,7 +297,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   if (generateStrcmpFunction)
   {
     addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
-    fprintf(outputStream, ifjStrcmpFunctionBody);
+    fprintf(outputStream, "%s", ifjStrcmpFunctionBody);
   }
 
   char *ifjSubstringLabel;
@@ -306,7 +306,7 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   if (generateSubstringFunction)
   {
     addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
-    fprintf(outputStream, ifjSubstringFunctionBody);
+    fprintf(outputStream, "%s", ifjSubstringFunctionBody);
   }
 
   // Add label to the end of the program. After main function is done,
