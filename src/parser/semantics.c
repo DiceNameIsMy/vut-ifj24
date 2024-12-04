@@ -274,6 +274,7 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         higher_order->value->integer = A / B;
         return;
       default:
+        fprintf(stderr, "Lonfon\n");
         exit(99);
     }
   }
@@ -342,6 +343,8 @@ type_t Sem_ParamConv(type_t ParamType, type_t ArgType) {
       return NONE;
     case UNDEFINED:
       return ParamType;
+    case NONE:
+      return NONE;
     default:
       exit(99);
   }    
