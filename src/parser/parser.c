@@ -807,6 +807,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
         ASTNode* exprNode = parseExpression();  // Parse the expression to assign
         ASTNode* assignNode = createASTNode(Assignment, identifier);  // Create an assignment node
         assignNode->valType = SymTable_GetType(sym_Table, identifier);  // Attach the expression as the left child
+        assignNode->left = exprNode;
         if(Sem_AssignConv(NULL, exprNode, assignNode) == NONE) { //typecheck
             loginfo("Error: Cannot assign a value to a variable of uncompatible type: %s\n", identifier);
             exit(7);
@@ -867,6 +868,7 @@ ASTNode* parseIfCondition() {
                 break;
             default:
                 loginfo("Error: Nullable binding with non-nullable value.\n");
+                inspectAstNode(conditionNode);
                 exit(7);//INVALID CONDITION TYPE
         }
         symbol.mut = true;

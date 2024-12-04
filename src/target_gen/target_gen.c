@@ -533,7 +533,7 @@ void generateDeclaration(ASTNode *node)
   Operand varOperand = getOrCreateVar(node->name, FRAME_LF);
 
   // Make an assignment
-  bool isCompileTimeValue = node->right == NULL;
+  bool isCompileTimeValue = false;
   if (isCompileTimeValue)
   {
     addInstruction(initInstr2(INST_MOVE, varOperand, initCompileTimeOperand(node)));
@@ -565,7 +565,7 @@ void generateAssignment(ASTNode *node)
   }
 
   // Generate assigment evaluation
-  bool isCompileTimeValue = node->left == NULL;
+  bool isCompileTimeValue = false;
   if (isCompileTimeValue)
   {
     addInstruction(initInstr2(INST_MOVE, dest, initCompileTimeOperand(node)));
