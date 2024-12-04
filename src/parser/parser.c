@@ -99,7 +99,7 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
         funName.CompTimeVal = NULL;
         funName.paramList = NULL;
         if(SymTable_Search(table, funName.name) != NULL) {
-            loginfo("Error: redefinition of a function!\n");
+            loginfo("Error: %s redefined as a function!\n", funName.name);
             exit(5);
         }
         SymTable_AddSymbol(table, &funName);
@@ -235,8 +235,7 @@ ASTNode* parseFunctionDef() {
     // Capture the function name
     char* functionName;
     isMatch(TOKEN_ID);
-    functionName = strdup(token.attribute.str);//does it have any sense?
-    if_malloc_error(functionName);
+    functionName = token.attribute.str;//does it have any sense?
     match(TOKEN_ID);
 
     type_to_return = SymTable_GetRetType(sym_Table, functionName);
@@ -276,8 +275,7 @@ ASTNode* parseParamList() {
 
     if (token.type == TOKEN_ID) {
         // Parse the first parameter
-        char* paramName = strdup(token.attribute.str);
-        if_malloc_error(paramName);
+        char* paramName = token.attribute.str;
         Symbol symbol;
         
         symbol.name = token.attribute.str; //symbol info
@@ -314,8 +312,7 @@ ASTNode* parseParamListTail() {
     // Parse the next parameter
     char* paramName;
     isMatch(TOKEN_ID);
-    paramName = strdup(token.attribute.str);
-    if_malloc_error(paramName);
+    paramName = token.attribute.str;
         
     Symbol symbol;
     symbol.name = token.attribute.str;
@@ -328,7 +325,7 @@ ASTNode* parseParamListTail() {
     symbol.CompTimeVal = NULL;
     symbol.paramList = NULL;
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        loginfo("Error: resefinition of a variable!\n");
+        loginfo("Error: %s redefined as a variable!\n", symbol.name);
         exit(5);
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -482,8 +479,7 @@ ASTNode* parseConstDeclaration() {
     char *constName;
     // Capture the constant name
     isMatch(TOKEN_ID);
-    constName = strdup(token.attribute.str);
-    if_malloc_error(constName);
+    constName = token.attribute.str;
     symbol.name = token.attribute.str; //TODO: INVENT A WAY TO MARK AS A CONSTANT
     symbol.mut = false;
     symbol.used = false;
@@ -504,15 +500,15 @@ ASTNode* parseConstDeclaration() {
     symbol.CompTimeVal = exprNode->value; //may be dangerous
     symbol.type = Sem_AssignConv(typeNode, exprNode, constNode);
     if(symbol.type == NONE) {
-        loginfo("Error: Cannot assign to a variable of an uncompatible type : %s\n", symbol.name);
+        loginfo("Error: Cannot assign to a variable of an uncompatible type: %s\n", symbol.name);
         exit(7);//I'll lookup the right code later or even write a special routine for this
     }
     if(symbol.type == UNDEFINED) {
-        loginfo("Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
+        loginfo("Error: Cannot determine the type of the declared variable: %s\n", symbol.name);
         exit(8);
     }
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        loginfo("Error: redefinition of a const\n");
+        loginfo("Error: %s redefined as a const\n", symbol.name);
         exit(5); //exit with error (redefinition!!!!)
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -645,8 +641,7 @@ ASTNode* parseFactor() {
         factorNode = parseExpression();  // Parse the sub-expression inside parentheses
         match(TOKEN_RIGHT_ROUND_BRACKET);
     } else if (token.type == TOKEN_ID) {  // For identifiers (variables or function calls)
-        char* identifier = strdup(token.attribute.str);
-        if_malloc_error(identifier);
+        char* identifier = token.attribute.str;
         match(TOKEN_ID);
         if (token.type == TOKEN_LEFT_ROUND_BRACKET) {  // If it’s a function call
             
@@ -685,8 +680,9 @@ ASTNode* parseFactor() {
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, NULL);  // Literal node
-                factorNode->value = (ASTValue *)malloc(sizeof(ASTValue));
+                factorNode->value = (CTValue *)malloc(sizeof(CTValue));
                 factorNode->value->string = strdup(token.attribute.str);
+                if_malloc_error(factorNode->value->string);
                 factorNode->valType = STR_LITERAL;
                 break;
             default:
@@ -763,8 +759,7 @@ ASTNode* parseVarDeclaration() {
     Symbol symbol;
     // Capture variable name
     isMatch(TOKEN_ID);
-    varName = strdup(token.attribute.str);
-    if_malloc_error(varName);
+    varName = token.attribute.str;
     symbol.name = token.attribute.str;
     symbol.type = UNDEFINED;
     symbol.mut = true;
@@ -785,15 +780,15 @@ ASTNode* parseVarDeclaration() {
 
     symbol.type = Sem_AssignConv(typeNode, exprNode, varNode);
     if(symbol.type == NONE) {
-        loginfo("Error: Cannot assign a value to a variable of incompatible type : %s\n", symbol.name);
+        loginfo("Error: Cannot assign a value to a variable of incompatible type: %s\n", symbol.name);
         exit(7);
     }
     if(symbol.type == UNDEFINED) {
-        loginfo("Error: Cannot determine the type of the declared variable :%s\n", symbol.name);
+        loginfo("Error: Cannot determine the type of the declared variable: %s\n", symbol.name);
         exit(8);
     }
     if(SymTable_Search(sym_Table, symbol.name) != NULL) {
-        loginfo("Error: Redefinition of a variable: %s", symbol.name);
+        loginfo("Error: %s redefined as a variable\n", symbol.name);
         exit(5); //REDEFINITION!
     }
     SymTable_AddSymbol(sym_Table, &symbol);
@@ -808,8 +803,7 @@ ASTNode* parseAssignmentOrFunctionCall() {
     // Capture the identifier (variable or function name)
     char* identifier;
     isMatch(TOKEN_ID);
-    identifier = strdup(token.attribute.str);
-    if_malloc_error(identifier);
+    identifier = token.attribute.str;
     match(TOKEN_ID);  // Match the identifier
     if (token.type == TOKEN_ASSIGNMENT) {
         // Handle assignment
@@ -877,7 +871,7 @@ ASTNode* parseIfCondition() {
     if (token.type == TOKEN_VERTICAL_BAR) {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         isMatch(TOKEN_ID);
-        char* bindingVar = strdup(token.attribute.str);
+        char* bindingVar = token.attribute.str;
         Symbol symbol;
         symbol.name = token.attribute.str;
         switch (conditionNode->valType) {
@@ -901,7 +895,6 @@ ASTNode* parseIfCondition() {
         symbol.CompTimeVal = NULL;
         symbol.paramList = NULL;
         SymTable_AddSymbol(sym_Table, &symbol);
-        if_malloc_error(bindingVar);
         match(TOKEN_ID);                // Match identifier for nullable binding
         bindingNode = createASTNode(NullBinding, bindingVar);
         match(TOKEN_VERTICAL_BAR);      // Match closing '|'
@@ -964,8 +957,7 @@ ASTNode* parseWhileCondition() {
         match(TOKEN_VERTICAL_BAR);      // Match '|'
         char* bindingVar;
         isMatch(TOKEN_ID);
-        bindingVar = strdup(token.attribute.str);
-        if_malloc_error(bindingVar);
+        bindingVar = token.attribute.str;
         Symbol symbol;
         symbol.name = token.attribute.str;
         switch (conditionNode->valType) {

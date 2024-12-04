@@ -51,16 +51,11 @@ typedef enum {
 //        default: return "Unknown";
 //    }
 //}
-typedef union ASTValue{
-    char *string;
-    int integer;
-    double real;
-} ASTValue;
 
 typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
     type_t valType;
-    ASTValue* value;    // Literal value or identifier
+    CTValue* value;    // Literal value or identifier
     char *name;        //TODO: free afterwards
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node
@@ -68,7 +63,7 @@ typedef struct ASTNode {
     struct ASTNode* binding;   // Nullable binding, specific to 'if' statements
 } ASTNode;
 
-ASTValue *valCpy(ASTValue *value);
+CTValue *valCpy(CTValue *value);
 ASTNode* createASTNode(NodeType nodeType, char* value);
 ASTNode* createASTNodeInteger(NodeType nodeType, int value);
 ASTNode* createASTNodeReal(NodeType nodeType, double value);
