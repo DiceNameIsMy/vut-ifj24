@@ -228,6 +228,9 @@ bool isRound(double literal) {
 }
 
 void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
+  if(right->value == NULL || left->value == NULL) {
+    return;
+  }
   higher_order->value = (ASTValue *)malloc(sizeof(ASTValue));
   if(left->valType == I32_LITERAL && right->valType == I32_LITERAL) {
     int A = left->value->integer;
