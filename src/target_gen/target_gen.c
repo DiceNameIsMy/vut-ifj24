@@ -437,10 +437,11 @@ void generateFunction(ASTNode *node)
     statementNode = statementNode->next;
   }
 
-  // TODO: generate only if last instruction was not return
   loginfo("Generating function return: %s", node->right->name);
   if (strcmp(node->right->name, "void") == 0)
   {
+    // Could be reduntant, for example in if (x) {return;} else {return;}
+    // Haven't found a simple way to avoid this.
     Instruction returnInst = initInstr0(INST_RETURN);
     addInstruction(returnInst);
   }
@@ -977,13 +978,17 @@ void generateFunctionCall(ASTNode *node, Operand *outVar)
   Instruction popFrameInst = initInstr0(INST_POPFRAME);
   addInstruction(popFrameInst);
 
-  // If function returns a value, put it into outVar
   bool returnsVoid = node->valType == NONE;
-  if (!returnsVoid && outVar != NULL)
-  {
-    *outVar = createTmpVar("tmp", FRAME_LF);
-    addInstruction(initInstr1(INST_POPS, *outVar));
+
+  if (returnsVoid || outVar == NULL) {
+    // Function does not return a value or a result is not needed. 
+    // Do not pop a return value to the stack.
+    return;
   }
+
+  // Load the return value of a function
+  *outVar = createTmpVar("tmp", FRAME_LF);
+  addInstruction(initInstr1(INST_POPS, *outVar));
 }
 
 void generateFunctionCallParameter(ASTNode *node)

@@ -145,13 +145,14 @@ void clearAstNode(ASTNode *node)
         return;
     }
     if (node->value != NULL) {
-    if(node->value->string != NULL && node->nodeType == StringLiteral){
-        free(node->value->string);
-        node->value->string = NULL;
-    }
+        if(node->nodeType == StringLiteral && node->value->string != NULL){
+            free(node->value->string);
+            node->value->string = NULL;
+        }
         free(node->value);
         node->value = NULL;
     }
+    
     if (node->left != NULL) {
         clearAstNode(node->left);
         node->left = NULL;

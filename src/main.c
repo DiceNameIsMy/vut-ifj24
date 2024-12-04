@@ -39,7 +39,6 @@ int main(void) {
     freeTokenArray(&tokenArray); // Free the token array
     clearAstNode(astNode);
     SymTable_Dispose(&Table);
-
     return 0;
 }
 

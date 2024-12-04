@@ -125,6 +125,20 @@ void addFunctionsToSymTable(TokenArray *array, SymTable *table) {
         }
         SymTable_SetRetType(table, funName.name, idType(token));
     }
+
+    if(!SymTable_Search(table, "main")) {
+        loginfo("Error: no main function!\n");
+        exit(10);
+    }
+    if(SymTable_GetRetType(table, "main") != NONE) {
+        loginfo("Error: main function must return void!\n");
+        exit(4); 
+    }
+    if(SymTable_GetParamList(table, "main") != NULL) {
+        loginfo("Error: main must not contain any parameters!\n");
+        exit(10);
+    }
+    
     stat_index = 0;
     return;
 }
