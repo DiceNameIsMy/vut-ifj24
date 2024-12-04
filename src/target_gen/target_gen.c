@@ -1133,16 +1133,16 @@ void generateReturn(ASTNode *node)
 
 Operand initConstantOperand(ASTNode *node)
 {
-  switch (node->nodeType)
+  switch (node->valType)
   {
-  case IntLiteral:
+  case I32_LITERAL:
     return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value.integer});
-  case FloatLiteral:
+  case F64_LITERAL:
     return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value.real});
-  case StringLiteral:
+  case STR_LITERAL:
     char *literalString = convertToCompatibleStringLiteral(node->value.string);
     return initStringOperand(OP_CONST_STRING, literalString);
-  case NullLiteral:
+  case NULL_LITERAL:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
   default:
     loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
