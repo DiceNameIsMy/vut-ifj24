@@ -186,6 +186,7 @@ Operand createTmpLabel(char *name);
 Operand getOrCreateVar(char *name, VarFrameType frame);
 Operand createTmpVar(char *name, VarFrameType frame);
 
+void generateAllFunctions(ASTNode *node);
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
 
@@ -215,7 +216,6 @@ void generateFunctionCallParameter(ASTNode *node);
 void generateReturn(ASTNode *node);
 
 Operand initConstantOperand(ASTNode *node);
-Operand initCompileTimeOperand(ASTNode *node);
 
 InstType binaryNodeToInstructionType(ASTNode *node);
 bool negateBinaryInstruction(ASTNode *node);
@@ -261,14 +261,13 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
   fprintf(outputStream, ".IFJcode24\n");
 
   // Create an initial frame for the program
-  Instruction createFrameInst = initInstr0(INST_CREATEFRAME);
-  addInstruction(createFrameInst);
-  Instruction pushFrameInst = initInstr0(INST_PUSHFRAME);
-  addInstruction(pushFrameInst);
+  addInstruction(initInstr0(INST_CREATEFRAME));
+  addInstruction(initInstr0(INST_PUSHFRAME));
 
   // Call main function
   Operand mainFuncLabel = getOrCreateLabel("main");
   Instruction callMainInst = initInstr1(INST_CALL, mainFuncLabel);
+  destroyOperand(&mainFuncLabel);
   addInstruction(callMainInst);
 
   // Pop the frame since its no longer needed
@@ -277,41 +276,18 @@ void generateTargetCode(ASTNode *root, SymTable *symbolTable, FILE *output)
 
   // Jump to the end of the generated file
   Operand endProgramLabel = getOrCreateLabel("end_program");
-  Instruction jumpToEndInst = initInstr1(INST_JUMP, endProgramLabel);
-  addInstruction(jumpToEndInst);
+  addInstruction(initInstr1(INST_JUMP, endProgramLabel));
 
   // Generate functions
-  ASTNode *funcNode = root->right;
-  while (funcNode != NULL)
-  {
-    generateFunction(funcNode);
-    funcNode = funcNode->binding;
-  }
-
-  // Generate complex builtin functions if they were used
-  char *ifjStrcmpLabel;
-  bool created = IdIndexer_GetOrCreate(labelIndexer, "ifj_strcmp", &ifjStrcmpLabel);
-  bool generateStrcmpFunction = !created;
-  if (generateStrcmpFunction)
-  {
-    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
-    fprintf(outputStream, "%s", ifjStrcmpFunctionBody);
-  }
-
-  char *ifjSubstringLabel;
-  created = IdIndexer_GetOrCreate(labelIndexer, "ifj_substring", &ifjSubstringLabel);
-  bool generateSubstringFunction = !created;
-  if (generateSubstringFunction)
-  {
-    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
-    fprintf(outputStream, "%s", ifjSubstringFunctionBody);
-  }
+  generateAllFunctions(root->right);
 
   // Add label to the end of the program. After main function is done,
   // the program will jump to this label to end the program.
   Operand var = initStringOperand(OP_LABEL, endProgramLabel.attr.string);
   Instruction inst = initInstr1(INST_LABEL, var);
   addInstruction(inst);
+  destroyOperand(&endProgramLabel);
+  destroyOperand(&var);
 
   IdIndexer_Destroy(labelIndexer);
   free(labelIndexer);
@@ -386,6 +362,33 @@ Operand createTmpVar(char *name, VarFrameType frame)
   assert(funcScope != NULL);
   TFC_AddVar(funcScope, var.attr.var);
   return var;
+}
+
+void generateAllFunctions(ASTNode *node) {
+  while (node != NULL)
+  {
+    generateFunction(node);
+    node = node->binding;
+  }
+
+  // Generate complex builtin functions if they were used
+  char *ifjStrcmpLabel;
+  bool created = IdIndexer_GetOrCreate(labelIndexer, "ifj_strcmp", &ifjStrcmpLabel);
+  bool generateStrcmpFunction = !created;
+  if (generateStrcmpFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjStrcmpLabel)));
+    fprintf(outputStream, "%s", ifjStrcmpFunctionBody);
+  }
+
+  char *ifjSubstringLabel;
+  created = IdIndexer_GetOrCreate(labelIndexer, "ifj_substring", &ifjSubstringLabel);
+  bool generateSubstringFunction = !created;
+  if (generateSubstringFunction)
+  {
+    addInstruction(initInstr1(INST_LABEL, initStringOperand(OP_LABEL, ifjSubstringLabel)));
+    fprintf(outputStream, "%s", ifjSubstringFunctionBody);
+  }
 }
 
 void generateFunction(ASTNode *node)
@@ -529,7 +532,7 @@ void generateDeclaration(ASTNode *node)
   bool isCompileTimeValue = false;
   if (isCompileTimeValue)
   {
-    addInstruction(initInstr2(INST_MOVE, varOperand, initCompileTimeOperand(node)));
+    addInstruction(initInstr2(INST_MOVE, varOperand, initConstantOperand(node)));
   }
   else
   {
@@ -561,7 +564,7 @@ void generateAssignment(ASTNode *node)
   bool isCompileTimeValue = false;
   if (isCompileTimeValue)
   {
-    addInstruction(initInstr2(INST_MOVE, dest, initCompileTimeOperand(node)));
+    addInstruction(initInstr2(INST_MOVE, dest, initConstantOperand(node)));
   }
   else
   {
@@ -1140,28 +1143,13 @@ Operand initConstantOperand(ASTNode *node)
     return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value->real});
   case STR_LITERAL:
     char *literalString = convertToCompatibleStringLiteral(node->value->string);
-    return initStringOperand(OP_CONST_STRING, literalString);
+    Operand strLiteralOperand = initStringOperand(OP_CONST_STRING, literalString);
+    free(literalString);
+    return strLiteralOperand;
   case NULL_LITERAL:
     return initOperand(OP_CONST_NIL, (OperandAttribute){});
   default:
     loginfo("Unexpected constant type: %s", nodeTypeToString(node->nodeType));
-    exit(99);
-  }
-}
-
-Operand initCompileTimeOperand(ASTNode *node)
-{
-  switch (node->valType)
-  {
-  case I32_LITERAL:
-    return initOperand(OP_CONST_INT64, (OperandAttribute){.i64 = node->value->integer});
-  case F64_LITERAL:
-    return initOperand(OP_CONST_FLOAT64, (OperandAttribute){.f64 = node->value->real});
-  case STR_LITERAL:
-    char *literalString = convertToCompatibleStringLiteral(node->value->string);
-    return initStringOperand(OP_CONST_STRING, literalString);
-  default:
-    loginfo("Unexpected compile time type: %s", nodeTypeToString(node->valType));
     exit(99);
   }
 }
