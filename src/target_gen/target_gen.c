@@ -188,8 +188,6 @@ Operand createTmpVar(char *name, VarFrameType frame);
 
 void generateFunction(ASTNode *node);
 void generateFunctionParametersInitialization(Param *param);
-void generateIfjStrcmpFunction();
-void generateIfjSubstringFunction();
 
 /// @brief
 /// @param node
@@ -475,11 +473,6 @@ void generateFunctionParametersInitialization(Param *param)
   // Load variable from stack
   Instruction inst = initInstr1(INST_POPS, var);
   addInstruction(inst);
-}
-
-void generateIfjStrcmpFunction()
-{
-  fprintf(outputStream, ifjStrcmpFunctionBody);
 }
 
 void generateStatement(ASTNode *node)
