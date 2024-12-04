@@ -220,6 +220,16 @@ void parse_ID_TEMPLATE(){
         addToken(lexer_tokenArr, keywordToken);
     } else {
         // if the identifier is not a keyword
+        
+        // if is has @ it is an error
+        if (strchr(buff.data, '@') != NULL) {
+            Token errorToken = {.type = TOKEN_ERROR};
+            initStringAttribute(&errorToken.attribute, "Error: Unexpected token '@'");
+            addToken(lexer_tokenArr, errorToken);
+            emptyDynBuffer(&buff);
+            endWithCode(1);
+        }
+
         // add it as an identifier token
         Token idToken = {.type = TOKEN_ID};
         initStringAttribute(&idToken.attribute, buff.data);
@@ -456,7 +466,7 @@ void parse_NUMBER() {
         if (c >= '0' && c <= '9') {
             // digit to the number
             appendDynBuffer(&buff, c);
-        } else if (c == '.' && !isFloat) {
+        } else if (c == '.' && !isFloat && !hasExponent) {
             // if there is a dot, it is a float number
             isFloat = 1;
             appendDynBuffer(&buff, c);
@@ -469,7 +479,8 @@ void parse_NUMBER() {
             char next = sourceCode[current_char_index];
             if (next == '+' || next == '-') {
                 appendDynBuffer(&buff, next);
-                next = sourceCode[++current_char_index];
+                current_char_index++;
+                next = sourceCode[current_char_index];
             }
             // check for 0.2e (no digit after e)
             if (!isdigit(next)) {
@@ -478,12 +489,21 @@ void parse_NUMBER() {
                 initStringAttribute(&errorToken.attribute, "Invalid exponent format");
                 addToken(lexer_tokenArr, errorToken);
                 emptyDynBuffer(&buff);
-                endWithCode(1); // ERROR - invalid exponent
+                endWithCode(1);
             } else{
                 // digit after e/E
                 appendDynBuffer(&buff, next);
             }
         } else {
+            // number can't be followed by a letter or _
+            // in other cases common state will handle it
+            if (isalpha(c) || c == '_') {
+                Token errorToken = {.type = TOKEN_ERROR};
+                initStringAttribute(&errorToken.attribute, "Invalid number format");
+                addToken(lexer_tokenArr, errorToken);
+                emptyDynBuffer(&buff);
+                endWithCode(1); // ERROR - invalid number format
+            }
             // End of the number
             break;
         }
@@ -562,6 +582,7 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
     initStringAttribute(&stringToken.attribute, buff.data);
     addToken(lexer_tokenArr, stringToken);
     emptyDynBuffer(&buff);
+    // return to the common state, where the end of the file will be processed
     return;
 }
 
@@ -633,10 +654,13 @@ void parse_MULTILINE_STRING() {
             endWithCode(1);
         }
     }
-    // Error - multiline string was not ended properly
-    // TODO: What if it is the last line?
-    // TODO: perhaps, it's better to parse as a string and call no error
-    endWithCode(1);
+    // End of file was reached while parsing a multiline string
+    // so it is not an error, string must be ended
+    Token stringToken = {.type = TOKEN_STRING_LITERAL};
+    initStringAttribute(&stringToken.attribute, buff.data);
+    addToken(lexer_tokenArr, stringToken);
+    emptyDynBuffer(&buff);
+    return;
 }
 
 void parse_STRING() {
@@ -771,10 +795,6 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
         } else if (c >= '0' && c <= '9'){
             appendDynBuffer(&buff, c);
             parse_NUMBER();
-        } else if (c == '.'){ // In case of dot, it can be a part of a number
-            appendDynBuffer(&buff, '0');
-            current_char_index--;
-            parse_NUMBER();
         } else if (isSpecialSymbol(c)){
             // No need to memorize letters (type tells content) 
             // appendDynBuffer(&buff, c);
@@ -782,6 +802,7 @@ void runLexer(const char *source_code, TokenArray *tokenArray) {
             parse_SPECIAL_SYMBOL();
         }  else {
             //there is no token for this character
+            printf("Unexpected character: %c\n", c);
             endWithCode(1);
         }
     }
