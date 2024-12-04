@@ -214,6 +214,10 @@ void inspectAstNode(ASTNode *node)
         return;
     }
     loginfo("Node type: %s, with valType: %i", nodeTypeToString(node->nodeType), node->valType);
+    if (node->name != NULL)
+        loginfo("Node name: %s", node->name);
+    else
+        loginfo("Node name is NULL");
     if (node->left != NULL)
         loginfo("Left node type: %s", nodeTypeToString(node->left->nodeType));
     else
