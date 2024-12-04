@@ -123,7 +123,7 @@ void clearAstNode(ASTNode *node)
     {
         return;
     }
-    if(node->value.string != NULL){ //REMEMBER IT'S UNION!!
+    if(node->value.string != NULL && node->nodeType == StringLiteral){
         free(node->value.string);
     }
     clearAstNode(node->left);
