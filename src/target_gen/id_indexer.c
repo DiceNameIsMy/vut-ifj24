@@ -12,7 +12,7 @@
 
 void constructUniqueName(char *name, int counter, char **label)
 {
-    size_t labelLength = strlen(name) + 1 + 4; // name + underscore + 4 digits
+    size_t labelLength = strlen(name) + 1 + 4 + 1; // name + underscore + 4 digits + \0 byte
 
     *label = (char *)malloc(labelLength * sizeof(char));
     if (*label == NULL)

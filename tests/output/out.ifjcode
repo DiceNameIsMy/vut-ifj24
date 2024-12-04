@@ -4,68 +4,59 @@ PUSHFRAME
 CALL main_0000
 POPFRAME
 JUMP end_program_0001
-
 LABEL main_0000
-DEFVAR LF@val_0000
+DEFVAR LF@a_0000
 DEFVAR LF@tmp_0001
-DEFVAR LF@tmp_0002
-DEFVAR LF@d_0003
-DEFVAR LF@tmp_0004
-DEFVAR LF@vysl_0005
-DEFVAR LF@tmp_0006
+DEFVAR LF@not_null_0002
+DEFVAR LF@var_type_0003
+DEFVAR LF@val_0004
+DEFVAR LF@tmp_0005
+DEFVAR LF@d_0006
 DEFVAR LF@tmp_0007
-DEFVAR LF@tmp_0008
-DEFVAR LF@vysl_i32_0009
+DEFVAR LF@vysl_0008
+DEFVAR LF@tmp_0009
 DEFVAR LF@tmp_0010
 DEFVAR LF@tmp_0011
-DEFVAR LF@tmp_0012
+DEFVAR LF@vysl_i32_0012
 DEFVAR LF@tmp_0013
-DEFVAR LF@tmp_0014
-DEFVAR LF@tmp_0015
 WRITE string@Zadejte\032cislo\032pro\032vypocet\032faktorialu\010
-MOVE LF@val_0000 int@5
-EQ LF@tmp_0001 LF@val_0000 LF@val_0000
-JUMPIFEQ end_if_0002 LF@tmp_0001 bool@true
+READ LF@tmp_0001 int
+MOVE LF@a_0000 LF@tmp_0001
+TYPE LF@var_type_0003 LF@a_0000
+EQ LF@not_null_0002 LF@var_type_0003 string@nil
+NOT LF@not_null_0002 LF@not_null_0002
+JUMPIFEQ if_true_0003 LF@not_null_0002 bool@true
 WRITE string@Faktorial\032pro\032null\032nelze\032spocitat\010
 JUMP end_if_0002
-LT LF@tmp_0002 LF@val_0000 int@0
-JUMPIFEQ end_if_0003 LF@tmp_0002 bool@true
-INT2FLOAT LF@tmp_0004 LF@val
-MOVE LF@d_0003 LF@tmp_0004
-MOVE LF@vysl_0005 float@0x1p+0
-
-LABEL while_iteration_0004
-GT LF@tmp_0006 LF@d_0003 int@0
-JUMPIFEQ end_while_0005 LF@tmp_0006 bool@false
-MUL LF@tmp_0007 LF@vysl_0005 LF@d_0003
-SUB LF@tmp_0008 LF@d_0003 float@0x1p+0
-JUMP while_iteration_0004
-
-LABEL end_while_0005
-FLOAT2INT LF@tmp_0010 LF@vysl
-MOVE LF@vysl_i32_0009 LF@tmp_0010
-JUMP end_if_0003
-WRITE string@Faktorial\032
-WRITE string@\032nelze\032spocitat\010
-
-LABEL end_if_0003
-INT2FLOAT LF@tmp_0011 LF@val
-MOVE LF@d_0003 LF@tmp_0011
-MOVE LF@vysl_0005 float@0x1p+0
-
+LABEL if_true_0003
+MOVE LF@val_0004 LF@a_0000
+LT LF@tmp_0005 LF@val_0004 int@0
+JUMPIFEQ if_true_0005 LF@tmp_0005 bool@true
+INT2FLOAT LF@tmp_0007 LF@val_0004
+MOVE LF@d_0006 LF@tmp_0007
+MOVE LF@vysl_0008 float@0x1p+0
 LABEL while_iteration_0006
-GT LF@tmp_0012 LF@d_0003 int@0
-JUMPIFEQ end_while_0007 LF@tmp_0012 bool@false
-MUL LF@tmp_0013 LF@vysl_0005 LF@d_0003
-SUB LF@tmp_0014 LF@d_0003 float@0x1p+0
+GT LF@tmp_0009 LF@d_0006 int@0
+JUMPIFEQ end_while_0007 LF@tmp_0009 bool@false
+MUL LF@tmp_0010 LF@vysl_0008 LF@d_0006
+MOVE LF@vysl_0008 LF@tmp_0010
+SUB LF@tmp_0011 LF@d_0006 float@0x1p+0
+MOVE LF@d_0006 LF@tmp_0011
 JUMP while_iteration_0006
-
 LABEL end_while_0007
-FLOAT2INT LF@tmp_0015 LF@vysl
-MOVE LF@vysl_i32_0009 LF@tmp_0015
-
+WRITE string@Vysledek:\032
+WRITE LF@vysl_0008
+WRITE string@\032=\032
+FLOAT2INT LF@tmp_0013 LF@vysl_0008
+MOVE LF@vysl_i32_0012 LF@tmp_0013
+WRITE LF@vysl_i32_0012
+WRITE string@\010
+JUMP end_if_0004
+LABEL if_true_0005
+WRITE string@Faktorial\032
+WRITE LF@val_0004
+WRITE string@\032nelze\032spocitat\010
+LABEL end_if_0004
 LABEL end_if_0002
-WRITE string@Faktorial\032pro\032null\032nelze\032spocitat\010
 RETURN
-
 LABEL end_program_0001
