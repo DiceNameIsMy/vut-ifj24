@@ -1,4 +1,5 @@
 #include "semantics.h"
+#include "logging.h"
 #include <stdio.h>
 
 type_t Sem_MathConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
@@ -230,6 +231,14 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         higher_order->valType = UNDEFINED;
         return UNDEFINED;
       }
+      if(typeR == I32_LITERAL) {
+        higher_order->valType = I32;
+        return I32;
+      }
+      if(typeR == F64_LITERAL) {
+        higher_order->valType = F64;
+        return F64;
+      }
       higher_order->valType = typeR;
       //higher_order->value = valCpy(right->value);
       return typeR;
@@ -248,7 +257,7 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
   if(right->value == NULL || left->value == NULL) {
     return;
   }
-  higher_order->value = (ASTValue *)malloc(sizeof(ASTValue));
+  higher_order->value = (CTValue *)malloc(sizeof(CTValue));
   if((left->valType == I32 || left->valType == I32_LITERAL) && (right->valType == I32 || right->valType == I32_LITERAL)) {
     int A = left->value->integer;
     int B = right->value->integer;
@@ -264,9 +273,10 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         return;
       case DivOperation:
         if(B == 0) {
-          fprintf(stderr, "Error: Division by a compile time zero!\n");
+          loginfo("Error: Division by a compile time zero!\n");
           exit(10);
         }
+        fprintf(stderr, "Higher_order valtype is %d\n", higher_order->valType);
         higher_order->value->integer = A / B;
         return;
       default:
@@ -288,7 +298,7 @@ void PerformArithm(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
       return;
     case DivOperation:
       if (B == 0.0) {
-        fprintf(stderr, "Error: Division by a compile time zero!\n");
+        loginfo("Error: Division by a compile time zero!\n");
         exit(10);
       }
       higher_order->value->real = A / B;
@@ -320,7 +330,7 @@ type_t Sem_ParamConv(type_t ParamType, type_t ArgType) {
         return NONE;
       }
     case F64_NULLABLE:
-      if(ArgType == F64 || ArgType == F64_LITERAL || ArgType == F64_NULLABLE || ArgType ==I32_LITERAL || ArgType == NULL_LITERAL) {
+      if(ArgType == F64 || ArgType == F64_LITERAL || ArgType == F64_NULLABLE || ArgType == I32_LITERAL || ArgType == NULL_LITERAL) {
         return ParamType;
       }
       return NONE;

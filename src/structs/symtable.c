@@ -66,7 +66,7 @@ void SymTable_SetType(SymTable *table, char *name, type_t type)
   return;
 }
 
-void SymTable_SetCTVal(SymTable *table, char *name, ASTValue *value)
+void SymTable_SetCTVal(SymTable *table, char *name, CTValue *value)
 {
   Scope *current = table->current;
   while (current != NULL && BVS_Search(current->tree, name) == NULL)
@@ -173,7 +173,7 @@ type_t SymTable_GetType(SymTable *table, char *name)
   return ((Symbol *)(BVS_Search(current->tree, name)))->type;
 }
 
-ASTValue *SymTable_GetCTVal(SymTable *table, char *name)
+CTValue *SymTable_GetCTVal(SymTable *table, char *name)
 {
   Scope *current = table->current;
   while (BVS_Search(current->tree, name) == NULL)

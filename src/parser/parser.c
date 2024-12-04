@@ -680,7 +680,7 @@ ASTNode* parseFactor() {
                 break;
             case TOKEN_STRING_LITERAL:
                 factorNode = createASTNode(StringLiteral, NULL);  // Literal node
-                factorNode->value = (ASTValue *)malloc(sizeof(ASTValue));
+                factorNode->value = (CTValue *)malloc(sizeof(CTValue));
                 factorNode->value->string = strdup(token.attribute.str);
                 if_malloc_error(factorNode->value->string);
                 factorNode->valType = STR_LITERAL;

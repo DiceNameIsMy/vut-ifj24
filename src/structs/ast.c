@@ -8,10 +8,10 @@
 #include "stdio.h"
 #include "ast.h"
 
-ASTValue *valCpy(ASTValue *value) {
-    ASTValue *newVal = NULL;
+CTValue *valCpy(CTValue *value) {
+    CTValue *newVal = NULL;
     if(value != NULL) {
-        newVal = (ASTValue *)malloc(sizeof(ASTValue));
+        newVal = (CTValue *)malloc(sizeof(CTValue));
         (*newVal) = (*value);
     }
     return newVal;
@@ -23,7 +23,7 @@ ASTNode *createASTNode(NodeType nodeType, char *name)
     ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
     if (newNode == NULL)
     {
-        fprintf(stderr, "Memory allocation failed for ASTNode\n");
+        loginfo("Memory allocation failed for ASTNode\n");
         exit(99);
     }
 
@@ -34,7 +34,7 @@ ASTNode *createASTNode(NodeType nodeType, char *name)
     newNode->name = name ? strdup(name) : NULL;
     if (newNode->name == NULL && name)
     {
-        fprintf(stderr, "Memory allocation failed for nodeType\n");
+        loginfo("Memory allocation failed for nodeType\n");
         free(newNode);
         exit(99);
     }
@@ -55,15 +55,15 @@ ASTNode *createASTNodeInteger(NodeType nodeType, int value)
     ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
     if (newNode == NULL)
     {
-        fprintf(stderr, "Memory allocation failed for ASTNode\n");
+        loginfo("Memory allocation failed for ASTNode\n");
         exit(99);
     }
     // Allocate and copy the nodeType
     newNode->nodeType = nodeType;
     // Allocate and copy the value (if provided)
-    newNode->value = (ASTValue *) malloc(sizeof(ASTValue));
+    newNode->value = (CTValue *) malloc(sizeof(CTValue));
     if (newNode->value == NULL){
-        fprintf(stderr, "Memory allocation failed for node value\n");
+        loginfo("Memory allocation failed for node value\n");
         free(newNode);
         exit(99);
     }
@@ -85,15 +85,15 @@ ASTNode *createASTNodeReal(NodeType nodeType, double value)
     ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
     if (newNode == NULL)
     {
-        fprintf(stderr, "Memory allocation failed for ASTNode\n");
+        loginfo("Memory allocation failed for ASTNode\n");
         exit(99);
     }
 
     // Allocate and copy the nodeType
     newNode->nodeType = nodeType;
-    newNode->value = (ASTValue *) malloc(sizeof(ASTValue));
+    newNode->value = (CTValue *) malloc(sizeof(CTValue));
     if (newNode->value == NULL){
-        fprintf(stderr, "Memory allocation failed for node value\n");
+        loginfo("Memory allocation failed for node value\n");
         free(newNode);
         exit(99);
     }
@@ -116,7 +116,7 @@ ASTNode *createBinaryASTNode(NodeType operator, ASTNode * left, ASTNode *right)
     ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
     if (newNode == NULL)
     {
-        fprintf(stderr, "Memory allocation failed for ASTNode\n");
+        loginfo("Memory allocation failed for ASTNode\n");
         exit(99);
     }
 
