@@ -91,7 +91,7 @@
 
 	\subsubsection{Communication}
 
-	Communication was in general conversation or private messages.
+	Communication was mainly in a group chat and in private messages. During the first half of the semester, several offline meetings were conducted.
 
 	Towards the end of the project, we met to demonstrate how our program blocks worked, in order to find errors and increase the understanding of the project to the other participants.
 
@@ -127,9 +127,7 @@
     The compiler consists of the following modules:\\
     \textbf{Lexical analyzer (lexer):} Converts source code to tokens\\
     \textbf{Parser:} It analyzes tokens using syntactic and semantic rules and then builds an abstract syntax tree (AST).\\
-    \textbf{Code Generator:} Generates target code from AST.
-   
-    The finite automaton diagram for the lexer and the LL table will be attached in separate attachments.
+    \textbf{Code Generator:} Generates target code from AST.\\
 
 	\subsection{Lexical Analysis}
 
@@ -223,20 +221,78 @@
         
         The AST is then passed to the semantic analyzer.
 
-	\subsection{Semantic analysis}
+	\subsection{Semantic Analysis}
 
-    	Semantic analysis
+    Semantic analysis is performed alongside syntax analysis, using AST nodes as storage units for various useful data, such as:
+    \begin{itemize}
+        \item Compile-time values for variables, constants, literals, and expressions.
+        \item Value types for variables, constants, literals, expressions, and statements, for type-checking purposes.
+        \item Names to store variables and constants' identifiers.
+    \end{itemize}
+    
+    Semantic analysis constructs and utilizes the \textit{symbol table}, which is implemented as a "spaghetti stack" structure. Each item of the stack represents a \textit{scope}. 
+    
+    A \textit{scope} is a structure that contains:
+    \begin{itemize}
+        \item A Red-Black binary search tree (BST) for efficient symbol storage and lookup.
+        \item A counter for unused variables within the scope.
+    \end{itemize}
+    
+    Additionally, the symbol table structure includes a regular stack to facilitate freeing all allocated scopes when exiting a block or function.
+    
     
 
 	\subsection{Target code generation}
 
-	\begin{itemize}
-    \item \texttt{target\_gen.h}: An entry point to the target code generation.
-    \item \texttt{target\_func\_context.h}: Used to store all instructions to be used within a function context. Variable definitions (DEFVAR Instructions) are stored separately and outputted first. Then, other instructions are outputted. It's done so that each variable is defined only once within a scope. If its done more often, a program will crash. It can happen if a variable declaration is done within a loop.
-    \item \texttt{id\_indexer.h}: Used to add a unique index for labels and each function scope, in order to avoid label/variable name collisions.
-    \item \texttt{instructions.h}: Module that encapsulates the target code's instructions construction.
-    
-    \end{itemize}
+        \subsection*{Structure}
+
+        Target code, (\texttt{IFJcode24}), is constructed using the AST and symtable. The final structure of a target program is the following:
+        \begin{verbatim}
+        .IFJcode24
+        CALL main
+        JUMP end_program
+        LABEL main
+            ... # main function's body
+        LABEL f1
+            DEFVAR LF@x
+            DEFVAR LF@out
+            ... # f1 function's body
+            PUSHS LF@out
+        LABEL end_program
+        \end{verbatim}
+
+        \subsection*{Algorithm}
+        
+        The main idea of the algorithm for generating the target code is the following.
+        \begin{enumerate}
+            \item Create labels in memory: \texttt{"main"} and \texttt{"end\_program"}.
+            \item Output a call to label \texttt{"main"}.
+            \item Output a \texttt{JUMP} to \texttt{"end\_program"} label.
+            \item For each node in the AST with a \texttt{Function} type:
+            \begin{enumerate}
+                \item Create and print a label representing the function's entry point.
+                \item For each statement within a function:
+                \begin{enumerate}
+                    \item Add appropriate instruction(s) to the function's instruction context.
+                    \item If a new variable (including temporary) must be defined within the scope of the function, add it to the function's variables context.
+                \end{enumerate}
+                \item Output every variable definition within the function's variables context.
+                \item Output every other instruction within the context.
+            \end{enumerate}
+            \item Output \texttt{"end\_program"} label.
+        \end{enumerate}
+
+        \subsection*{Development}
+
+        When I began working on target generation, proper syntax and semantic analyses were not yet in place. As a result, the first sub-component I implemented was functionality for outputting instructions programmatically, which can be found in \texttt{instructions.h}. Following this, I started adding scaffolding to the \texttt{target\_gen.h} component, creating functions with comments describing the intended behavior but without actual implementations.
+        
+        After the AST was developed, the real work began. I implemented the outlined functions one by one, and during this process, I encountered two key challenges:
+        
+        \begin{enumerate}
+            \item \texttt{DEFVAR} can be invoked only once per variable name within a scope. Redefining the same variable in a single scope causes an interpretation error. Since functions must operate within a single scope, this led to issues with variables defined inside loops in the AST. To resolve this, I grouped all \texttt{DEFVAR} instructions while traversing the AST and emitted them at the beginning of the function, before generating other instructions. This solution is implemented in \texttt{target\_func\_context.h}.
+            \item To prevent variable name collisions, I adopted a method to generate unique identifiers by appending a distinct suffix to each variable or label. A separate indexer is used for labels. New indexer is created for each function scope. This functionality is implemented in \texttt{id\_indexer.h}.
+            \item When most of the functionality was ready, I've realized that we could've used polish notation to simplify the generation of arithmetic operations. Unfortunately, due to time constraints, I've decided to not implement it.
+        \end{enumerate}
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Conclusion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	\section{Conclusion}
