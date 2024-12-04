@@ -37,7 +37,7 @@ from main import run_compiler, run_interpreter
         "Failed to read f64",
         ""
     ])),
-    ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
+    ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu\nVysledek: 0x1.ep6 = 120\n"),
 ])
 def test_program(program_name, interpreter_input, expected_interpreter_output):
     input_file_path = f"./tests/input/{program_name}"

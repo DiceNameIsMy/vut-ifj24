@@ -559,6 +559,18 @@ ASTNode* parseRelationalTail(ASTNode* left) {
         ASTNode* right = parseSimpleExpression();
         ASTNode* opNode = createBinaryASTNode(operator, left, right);
 
+        // Implicit i32 literal conversion
+        if (left->nodeType == IntLiteral && (right->valType == F64_LITERAL || right->valType == F64)) {
+            left->nodeType = FloatLiteral;
+            left->value.real = (double)left->value.integer;
+            left->valType = F64_LITERAL;
+        }
+        else if (right->nodeType == IntLiteral && (left->valType == F64_LITERAL || left->valType == F64)) {
+            right->nodeType = FloatLiteral;
+            right->value.real = (double)right->value.integer;
+            right->valType = F64_LITERAL;
+        }
+
         bool canCmp = (Sem_MathConv(left, right, opNode) == BOOL);
         if(!canCmp) { //TODO: cmp logic
             loginfo("Error: Cannot compare uncompatible types %d and %d\n", (int)left->valType, (int)right->valType);
