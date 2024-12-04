@@ -229,6 +229,10 @@ type_t Sem_AssignConv(ASTNode *left, ASTNode *right, ASTNode *higher_order) {
         higher_order->valType = NONE;
         return NONE;
       }
+      if(typeR == NULL_LITERAL) {
+        higher_order->valType = UNDEFINED;
+        return UNDEFINED;
+      }
       higher_order->valType = typeR;
       higher_order->value = valCpy(right->value);
       return typeR;
