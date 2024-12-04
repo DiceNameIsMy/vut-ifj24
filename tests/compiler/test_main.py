@@ -28,6 +28,15 @@ from main import run_compiler, run_interpreter
         "ifj.substring: strt",
         ""
     ])),
+    ("read.ifj24.zig", "string\n999\n1.5\nstring2\ninvalid\ninvalid\n", "\n".join([
+        "string",
+        "999",
+        "0x1.8p0",
+        "string2",
+        "Failed to read i32",
+        "Failed to read f64",
+        ""
+    ])),
     ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
 ])
 def test_program(program_name, interpreter_input, expected_interpreter_output):
