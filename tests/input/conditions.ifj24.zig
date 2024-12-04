@@ -29,7 +29,7 @@ pub fn main() void {
     }
 
     var out = 0;
-    var b: ?i32 = 1;
+    var b: ?i32 = ifj.readi32();
     if (b) |val| {
         out = val;
         ifj.write("if(b)\n");

@@ -8,7 +8,16 @@
 #include "stdio.h"
 #include "ast.h"
 
-ASTNode *createASTNode(NodeType nodeType, char *value)
+ASTValue *valCpy(ASTValue *value) {
+    ASTValue *newVal = NULL;
+    if(value != NULL) {
+        newVal = (ASTValue *)malloc(sizeof(ASTValue));
+        (*newVal) = (*value);
+    }
+    return newVal;
+}
+
+ASTNode *createASTNode(NodeType nodeType, char *name)
 {
     // Allocate memory for the ASTNode
     ASTNode *newNode = (ASTNode *)malloc(sizeof(ASTNode));
@@ -22,8 +31,8 @@ ASTNode *createASTNode(NodeType nodeType, char *value)
     newNode->nodeType = nodeType;
 
     // Allocate and copy the value (if provided)
-    newNode->value.string = value ? strdup(value) : NULL;
-    if (newNode->value.string == NULL && value)
+    newNode->name = name ? strdup(name) : NULL;
+    if (newNode->name == NULL && name)
     {
         fprintf(stderr, "Memory allocation failed for nodeType\n");
         free(newNode);
@@ -31,6 +40,7 @@ ASTNode *createASTNode(NodeType nodeType, char *value)
     }
     // Initialize child pointers to NULL
     newNode->valType = NONE;
+    newNode->value = NULL;
     newNode->left = NULL;
     newNode->right = NULL;
     newNode->next = NULL;
@@ -51,7 +61,14 @@ ASTNode *createASTNodeInteger(NodeType nodeType, int value)
     // Allocate and copy the nodeType
     newNode->nodeType = nodeType;
     // Allocate and copy the value (if provided)
-    newNode->value.integer = value;
+    newNode->value = (ASTValue *) malloc(sizeof(ASTValue));
+    if (newNode->value == NULL){
+        fprintf(stderr, "Memory allocation failed for node value\n");
+        free(newNode);
+        exit(99);
+    }
+    newNode->value->integer = value;
+    newNode->name = NULL;
     newNode->valType = I32;
     // Initialize child pointers to NULL
     newNode->left = NULL;
@@ -74,15 +91,21 @@ ASTNode *createASTNodeReal(NodeType nodeType, double value)
 
     // Allocate and copy the nodeType
     newNode->nodeType = nodeType;
-
+    newNode->value = (ASTValue *) malloc(sizeof(ASTValue));
+    if (newNode->value == NULL){
+        fprintf(stderr, "Memory allocation failed for node value\n");
+        free(newNode);
+        exit(99);
+    }
     // Allocate and copy the value (if provided)
-    newNode->value.real = value;
+    newNode->value->real = value;
     newNode->valType = F64;
     // Initialize child pointers to NULL
     newNode->left = NULL;
     newNode->right = NULL;
     newNode->next = NULL;
     newNode->binding = NULL;
+    newNode->name = NULL;
 
     return newNode;
 }
@@ -102,11 +125,12 @@ ASTNode *createBinaryASTNode(NodeType operator, ASTNode * left, ASTNode *right)
     newNode->valType = NONE;
 
     // Allocate and copy the operator as the value
+    newNode->value = NULL;
 
     // Attach the left and right child nodes
     newNode->left = left;
     newNode->right = right;
-
+    newNode->name = NULL;
     // Initialize the next pointer to NULL (binary nodes usually don't use it)
     newNode->next = NULL;
     newNode->binding = NULL;
@@ -120,11 +144,37 @@ void clearAstNode(ASTNode *node)
     {
         return;
     }
-    clearAstNode(node->left);
-    clearAstNode(node->right);
-    clearAstNode(node->next);
-    clearAstNode(node->binding);
+    if (node->value != NULL) {
+    if(node->value->string != NULL && node->nodeType == StringLiteral){
+        free(node->value->string);
+        node->value->string = NULL;
+    }
+        free(node->value);
+        node->value = NULL;
+    }
+    if (node->left != NULL) {
+        clearAstNode(node->left);
+        node->left = NULL;
+    }
+    if (node->right != NULL) {
+        clearAstNode(node->right);
+        node->right = NULL;
+    }
+    if (node->next != NULL) {
+        clearAstNode(node->next);
+        node->next = NULL;
+    }
+    if (node->binding != NULL) {
+        clearAstNode(node->binding);
+        node->binding = NULL;
+    }
+
+    if(node->name != NULL) {
+        free(node->name);
+        node->name = NULL;
+    }
     free(node);
+    node = NULL;
 }
 
 const char *nodeTypeToString(NodeType nodeType)
@@ -193,8 +243,6 @@ const char *nodeTypeToString(NodeType nodeType)
         return "ReturnStatement";
     case Assignment:
         return "Assignment";
-    case BuiltInFunctionCall:
-        return "BuiltInFunctionCall";
     default:
         return "Unknown";
     }
@@ -208,6 +256,10 @@ void inspectAstNode(ASTNode *node)
         return;
     }
     loginfo("Node type: %s, with valType: %i", nodeTypeToString(node->nodeType), node->valType);
+    if (node->name != NULL)
+        loginfo("Node name: %s", node->name);
+    else
+        loginfo("Node name is NULL");
     if (node->left != NULL)
         loginfo("Left node type: %s", nodeTypeToString(node->left->nodeType));
     else

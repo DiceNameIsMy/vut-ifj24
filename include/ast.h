@@ -1,7 +1,7 @@
 //
 // Created by malbert on 10/23/24.
 //
-#include "symtable.h"
+#include "types.h"
 
 #ifndef AST_H
 #define AST_H
@@ -39,7 +39,6 @@ typedef enum {
     WhileCondition,
     ReturnStatement,
     Assignment,
-    BuiltInFunctionCall,
 } NodeType;
 
 //const char* getQuestionTypeName(NodeType type) {
@@ -54,7 +53,6 @@ typedef enum {
 //}
 typedef union ASTValue{
     char *string;
-    Symbol *symbol;
     int integer;
     double real;
 } ASTValue;
@@ -62,13 +60,15 @@ typedef union ASTValue{
 typedef struct ASTNode {
     NodeType nodeType; // Type of the node (e.g., "Variable", "FunctionCall", etc.)
     type_t valType;
-    ASTValue value;    // Literal value or identifier
+    ASTValue* value;    // Literal value or identifier
+    char *name;        //TODO: free afterwards
     struct ASTNode* left;      // Left child node
     struct ASTNode* right;     // Right child node
     struct ASTNode* next;      // Pointer to the next statement (for sequences of statements)
     struct ASTNode* binding;   // Nullable binding, specific to 'if' statements
 } ASTNode;
 
+ASTValue *valCpy(ASTValue *value);
 ASTNode* createASTNode(NodeType nodeType, char* value);
 ASTNode* createASTNodeInteger(NodeType nodeType, int value);
 ASTNode* createASTNodeReal(NodeType nodeType, double value);

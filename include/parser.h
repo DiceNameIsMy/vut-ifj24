@@ -1,19 +1,20 @@
 //
 // Created by malbert on 10/5/24.
 //
+#include "ast.h"
+#include "token.h"
+#include "semantics.h"
+#include <stdio.h>
+#include <stdbool.h>
 
 #ifndef VUT_IFJ_PARSER_H
 #define VUT_IFJ_PARSER_H
 
-#include "ast.h"
-#include "token.h"
-#include "symtable.h"
 
-#include <stdio.h>
-#include <stdbool.h>
-
+type_t idType(Token token);
+void AddFunctionsToSymTable(TokenArray *array, SymTable *table);
 void match(TokenType expected);
-bool isMatch(TokenType expected);
+void isMatch(TokenType expected);
 ASTNode* parseInit(TokenArray* array, SymTable *table);
 ASTNode* parseProgram();
 ASTNode* parseProlog();

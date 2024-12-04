@@ -6,7 +6,7 @@ from main import run_compiler, run_interpreter
 
 @pytest.mark.parametrize("program_name, interpreter_input, expected_interpreter_output", [
     ("hello_world.ifj24.zig", "", "Hello World!\n"),
-    ("conditions.ifj24.zig", "", "\n".join([
+    ("conditions.ifj24.zig", "1\n", "\n".join([
         "if(a == 1)", 
         "if(a == 2) else", 
         "if(a == 3) else if(a == 1)", 
@@ -37,8 +37,7 @@ from main import run_compiler, run_interpreter
         "Failed to read f64",
         ""
     ])),
-    # TODO: Add implicit literal conversion
-    # ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu: Vysledek: 120"),
+    ("factorial_iter.ifj24.zig", "5\n", "Zadejte cislo pro vypocet faktorialu\nVysledek: 0x1.ep6 = 120\n"),
 ])
 def test_program(program_name, interpreter_input, expected_interpreter_output):
     input_file_path = f"./tests/input/{program_name}"
@@ -47,10 +46,10 @@ def test_program(program_name, interpreter_input, expected_interpreter_output):
     try:
         # Run the compiler
         compiler_stdout, compiler_stderr, compiler_returncode = run_compiler(input_file_path)
-        assert compiler_returncode == 0, f"Compiler error: {compiler_stderr}"
+        assert compiler_returncode == 0, f"Compiler error: file[{program_name}] exit_code[{compiler_returncode}] stderr[{compiler_stderr}] stdout[{compiler_stdout}]"
 
         # Write the compiler output to a temporary file
-        with open(output_file_path, 'w') as f:
+        with open(output_file_path, 'w', encoding="utf-8") as f:
             f.write(compiler_stdout)
 
         # Run the interpreter

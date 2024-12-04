@@ -10,8 +10,6 @@
 /* Private Function Declarations */
 /**********************************************************/
 
-int copyOperand(Operand *dest, Operand *src);
-
 int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird);
 
@@ -103,6 +101,34 @@ Operand initEmptyOperand()
     op.attr.boolean = false;
 
     return op;
+}
+
+Operand copyOperand(Operand *src)
+{
+    if (src == NULL)
+    {
+        loginfo("Operand pointer is NULL");
+        exit(99);
+    }
+
+    switch (src->type) {
+        case OP_NONE:
+            return initEmptyOperand();
+        case OP_VAR:
+            return initVarOperand(src->type, src->attr.var.frame, src->attr.var.name);
+        case OP_CONST_BOOL:
+        case OP_CONST_INT64:
+        case OP_CONST_FLOAT64:
+        case OP_CONST_NIL:
+            return initOperand(src->type, src->attr);
+        case OP_CONST_STRING:
+        case OP_LABEL:
+        case OP_TYPE:
+            return initStringOperand(src->type, src->attr.string);
+        default:
+            loginfo("Unknown operand type %i", src->type);
+            exit(99);
+    }
 }
 
 void destroyOperand(Operand *op)
@@ -237,40 +263,6 @@ void printInstruction(Instruction *inst, FILE *stream)
 /* Function Definitions */
 /**********************************************************/
 
-int copyOperand(Operand *dest, Operand *src)
-{
-    if (dest == NULL || src == NULL)
-    {
-        loginfo("Operand pointers are NULL");
-        return -1;
-    }
-
-    dest->type = src->type;
-    if (src->type == OP_VAR)
-    {
-        dest->attr.var.frame = src->attr.var.frame;
-        dest->attr.var.name = strdup(src->attr.var.name);
-        if (dest->attr.var.name == NULL)
-        {
-            loginfo("Failed to allocate memory for variable name");
-            return -1;
-        }
-    }
-    else if (src->type == OP_CONST_STRING || src->type == OP_LABEL || src->type == OP_TYPE)
-    {
-        dest->attr.string = strdup(src->attr.string);
-        if (dest->attr.string == NULL)
-        {
-            loginfo("Failed to allocate memory for string");
-            return -1;
-        }
-    } else {
-        dest->attr = src->attr;
-    }
-
-    return 0;
-}
-
 int initInstruction(Instruction *inst, InstType type,
                     Operand opFirst, Operand opSecond, Operand opThird)
 {
@@ -281,9 +273,12 @@ int initInstruction(Instruction *inst, InstType type,
     }
 
     inst->type = type;
-    copyOperand(&inst->opFirst, &opFirst);
-    copyOperand(&inst->opSecond, &opSecond);
-    copyOperand(&inst->opThird, &opThird);
+    // inst->opFirst = opFirst;
+    inst->opSecond = opSecond;
+    inst->opThird = opThird;
+    inst->opFirst = copyOperand(&opFirst);
+    // inst->opSecond = copyOperand(&opSecond);
+    // inst->opThird = copyOperand(&opThird);
 
     return 0;
 }

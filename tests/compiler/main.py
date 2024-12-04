@@ -7,7 +7,7 @@ To run tests, install `pytest` & execute `pytest` in the terminal
 def run_compiler(input_file_path):
     try:
         # Open the input file
-        with open(input_file_path, 'rb') as input_file:
+        with open(input_file_path, 'r', encoding='utf-8') as input_file:
             # Run the binary file and pass the input file contents to its stdin
             process = subprocess.Popen("./build/src/vut_ifj_debug", stdin=input_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
