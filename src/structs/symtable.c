@@ -245,6 +245,8 @@ void SymTable_Dispose(SymTable *table)
     Scope *scope = (Scope *)(popStack(table->stack));
     Scope_Dispose(scope);
   }
+  destroyStack(table->stack);
+
   // should we free a symtable?
   return;
 }

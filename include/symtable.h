@@ -62,6 +62,6 @@ void SymTable_Init(SymTable *table);
 void SymTable_AddSymbol(SymTable *table, Symbol *symbol);
 void SymTable_NewScope(SymTable *table); //Use this function to jump into a new sub-scope
 int SymTable_UpperScope(SymTable *table); //returns count of unused local vars
-void Symtable_Dispose(SymTable *table); //"delete root" algorithm
+void SymTable_Dispose(SymTable *table); //"delete root" algorithm
 
 #endif
