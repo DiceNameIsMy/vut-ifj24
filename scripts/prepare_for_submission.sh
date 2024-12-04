@@ -16,9 +16,9 @@ find "./include" -type f -name "*.h" -exec cp {} "$dest_dir" \;
 # Discard unstaged changes. They appear when the script is ran to add authors to the files.
 git restore .
 
-cp ./docs/dokumentace.pdf ./${dest_dir}/dokumentace.pdf
+cp ./docs/documentation.pdf ./${dest_dir}/dokumentace.pdf
 
-echo -e "xpopov10:25\nxturar00:25\nxkrasoo00:25\nxsavini00:25" > ./${dest_dir}/rozdeleni
+echo -e "xpopov10:25\nxturarn00:25\nxkrasoo00:25\nxsavini00:25" > ./${dest_dir}/rozdeleni
 
 echo -e "FUNEXP" > ./${dest_dir}/rozsireni
 # echo -e "ORELSE\nUNREACHABLE\nBOLLTHEN\nFOR\nWHILE\nFUNEXP" > ./${dest_dir}/rozsireni
