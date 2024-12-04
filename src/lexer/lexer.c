@@ -67,7 +67,6 @@ bool tryGetKeyword(const char *str, TokenType *keywordType) {
 // Error handler
 __attribute__((weak)) void endWithCode(int code) {
     loginfo("Lexer error: %d", code);
-    // TODO: uncomment when time comes
     freeDynBuffer(&buff); // free the buffer (it was allocated during initialization) and was not freed yet
     freeTokenArray(lexer_tokenArr); // free the token array (it was allocated during initialization) and was not freed yet
     exit(code);
@@ -546,7 +545,6 @@ void parse_MULTILINE_STRING_SKIP_WHITESPACE(){
             // if whitespace continue searching for next character
             continue;
         }else if (c == '\\') {
-            // TODO: Can return with current_char_index - 1 so error would be in common state
             // if next simbol is \ then it is a multiline string
             if (sourceCode[current_char_index] == '\\') {
                 current_char_index++;
@@ -706,7 +704,6 @@ void parse_STRING() {
                         emptyDynBuffer(&buff);
                         endWithCode(1);
                     } else {
-                        // TODO: could it be \x00 and can it cause an error?
                         // Convert hex to char
                         char hex[3] = {firstHex, secondHex, '\0'};
                         appendDynBuffer(&buff, (char)strtol(hex, NULL, 16));
